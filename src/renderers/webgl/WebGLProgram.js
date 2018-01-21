@@ -438,7 +438,7 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters 
 
 			( parameters.useFog && parameters.fog ) ? '#define USE_FOG' : '',
 			( parameters.useFog && parameters.fogExp ) ? '#define FOG_EXP2' : '',
-
+/*
 			parameters.map ? '#define USE_MAP' : '',
 			parameters.envMap ? '#define USE_ENVMAP' : '',
 			parameters.envMap ? '#define ' + envMapTypeDefine : '',
@@ -456,7 +456,7 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters 
 			parameters.vertexColors ? '#define USE_COLOR' : '',
 
 			parameters.gradientMap ? '#define USE_GRADIENTMAP' : '',
-
+*/
 			parameters.flatShading ? '#define FLAT_SHADED' : '',
 
 			parameters.doubleSided ? '#define DOUBLE_SIDED' : '',
@@ -487,9 +487,11 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters 
 			parameters.dithering ? '#define DITHERING' : '',
 
 			( parameters.outputEncoding || parameters.mapEncoding || parameters.envMapEncoding || parameters.emissiveMapEncoding ) ? ShaderChunk[ 'encodings_pars_fragment' ] : '', // this code is required here because it is used by the various encoding/decoding function defined below
+
 			parameters.mapEncoding ? getTexelDecodingFunction( 'mapTexelToLinear', parameters.mapEncoding ) : '',
 			parameters.envMapEncoding ? getTexelDecodingFunction( 'envMapTexelToLinear', parameters.envMapEncoding ) : '',
 			parameters.emissiveMapEncoding ? getTexelDecodingFunction( 'emissiveMapTexelToLinear', parameters.emissiveMapEncoding ) : '',
+
 			parameters.outputEncoding ? getTexelEncodingFunction( 'linearToOutputTexel', parameters.outputEncoding ) : '',
 
 			parameters.depthPacking ? '#define DEPTH_PACKING ' + material.depthPacking : '',
@@ -518,7 +520,7 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters 
 
 	// console.log( '*VERTEX*', vertexGlsl );
 	// console.log( '*FRAGMENT*', fragmentGlsl );
-
+//console.log( fragmentGlsl ); // sunag
 	var glVertexShader = WebGLShader( gl, gl.VERTEX_SHADER, vertexGlsl );
 	var glFragmentShader = WebGLShader( gl, gl.FRAGMENT_SHADER, fragmentGlsl );
 

@@ -626,7 +626,6 @@ function WebGLRenderer( parameters ) {
 			_gl.bindBuffer( _gl.ARRAY_BUFFER, buffers.normal );
 
 			if ( ! material.isMeshPhongMaterial &&
-				! material.isMeshStandardMaterial &&
 				! material.isMeshNormalMaterial &&
 				material.flatShading === true ) {
 
@@ -1720,7 +1719,6 @@ function WebGLRenderer( parameters ) {
 
 			if ( material.isShaderMaterial ||
 				material.isMeshPhongMaterial ||
-				material.isMeshStandardMaterial ||
 				material.envMap ) {
 
 				var uCamPos = p_uniforms.map.cameraPosition;
@@ -1737,7 +1735,6 @@ function WebGLRenderer( parameters ) {
 			if ( material.isMeshPhongMaterial ||
 				material.isMeshLambertMaterial ||
 				material.isMeshBasicMaterial ||
-				material.isMeshStandardMaterial ||
 				material.isShaderMaterial ||
 				material.skinning ) {
 
@@ -1850,20 +1847,6 @@ function WebGLRenderer( parameters ) {
 				} else {
 
 					refreshUniformsPhong( m_uniforms, material );
-
-				}
-
-			} else if ( material.isMeshStandardMaterial ) {
-
-				refreshUniformsCommon( m_uniforms, material );
-
-				if ( material.isMeshPhysicalMaterial ) {
-
-					refreshUniformsPhysical( m_uniforms, material );
-
-				} else {
-
-					refreshUniformsStandard( m_uniforms, material );
 
 				}
 
@@ -2177,69 +2160,6 @@ function WebGLRenderer( parameters ) {
 			uniforms.gradientMap.value = material.gradientMap;
 
 		}
-
-	}
-
-	function refreshUniformsStandard( uniforms, material ) {
-
-		uniforms.roughness.value = material.roughness;
-		uniforms.metalness.value = material.metalness;
-
-		if ( material.roughnessMap ) {
-
-			uniforms.roughnessMap.value = material.roughnessMap;
-
-		}
-
-		if ( material.metalnessMap ) {
-
-			uniforms.metalnessMap.value = material.metalnessMap;
-
-		}
-
-		if ( material.emissiveMap ) {
-
-			uniforms.emissiveMap.value = material.emissiveMap;
-
-		}
-
-		if ( material.bumpMap ) {
-
-			uniforms.bumpMap.value = material.bumpMap;
-			uniforms.bumpScale.value = material.bumpScale;
-
-		}
-
-		if ( material.normalMap ) {
-
-			uniforms.normalMap.value = material.normalMap;
-			uniforms.normalScale.value.copy( material.normalScale );
-
-		}
-
-		if ( material.displacementMap ) {
-
-			uniforms.displacementMap.value = material.displacementMap;
-			uniforms.displacementScale.value = material.displacementScale;
-			uniforms.displacementBias.value = material.displacementBias;
-
-		}
-
-		if ( material.envMap ) {
-
-			//uniforms.envMap.value = material.envMap; // part of uniforms common
-			uniforms.envMapIntensity.value = material.envMapIntensity;
-
-		}
-
-	}
-
-	function refreshUniformsPhysical( uniforms, material ) {
-
-		uniforms.clearCoat.value = material.clearCoat;
-		uniforms.clearCoatRoughness.value = material.clearCoatRoughness;
-
-		refreshUniformsStandard( uniforms, material );
 
 	}
 
