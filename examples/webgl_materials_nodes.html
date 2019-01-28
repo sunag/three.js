@@ -1241,7 +1241,7 @@
 						var color = new THREE.ColorNode( 0xEEEEEE );
 						var borderColor = new THREE.ColorNode( 0x0054df );
 						var threshold = new THREE.FloatNode( .4 ); 
-						var thresholdSize = new THREE.FloatNode( .3 );
+						var borderSize = new THREE.FloatNode( .3 );
 						
 						// animate uv
 						
@@ -1264,7 +1264,7 @@
 						var texArea = new THREE.SwitchNode( tex, 'w' );
 						
 						var thresholdBorder = new THREE.Math3Node(
-							new THREE.OperatorNode( threshold, thresholdSize, THREE.OperatorNode.ADD ),
+							new THREE.OperatorNode( threshold, borderSize, THREE.OperatorNode.ADD ),
 							threshold,
 							texArea,
 							THREE.Math3Node.SMOOTHSTEP
@@ -1298,9 +1298,9 @@
 
 						}, false, 0, 1 );
 						
-						addGui( 'thresholdSize', thresholdSize.value, function ( val ) {
+						addGui( 'borderSize', borderSize.value, function ( val ) {
 
-							thresholdSize.value = val;
+							borderSize.value = val;
 
 						}, false, 0, .5 );
 						
