@@ -4,12 +4,13 @@
 
 import { Node } from '../core/Node.js';
 
-function ClipNode( value, threshold ) {
+function ClipNode( value, threshold, output ) {
 
 	Node.call( this );
 
 	this.value = value;
 	this.threshold = threshold;
+	this.output = output;
 	this.conditional = "<=";
 
 }
@@ -20,7 +21,7 @@ ClipNode.prototype.nodeType = "Clip";
 
 ClipNode.prototype.getType = function ( builder ) {
 
-	return this.value.getType( builder );
+	return this.output.getType( builder );
 
 };
 
@@ -34,7 +35,7 @@ ClipNode.prototype.generate = function ( builder, output ) {
 	// clip
 	builder.addNodeCode( clipCode );
 
-	return this.value.build( builder, output );
+	return this.output.build( builder, output );
 
 };
 

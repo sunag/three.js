@@ -1260,7 +1260,10 @@
 						var tex = new THREE.TextureNode( getTexture( "cloud" ), displaceOffset );
 						var texArea = new THREE.SwitchNode( tex, 'w' );
 						
-						mtl.color = new THREE.ClipNode( texArea, threshold );
+						var clip = new THREE.ClipNode( texArea, threshold, mtl.color );
+						clip.conditional = "<";
+						
+						mtl.color = clip;
 
 						// GUI
 
