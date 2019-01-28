@@ -1238,7 +1238,10 @@
 
 						mtl = new THREE.PhongNodeMaterial();
 
-						var threshold = new THREE.FloatNode( .5 ); 
+						var color = new THREE.ColorNode( 0xEEEEEE );
+						var borderColor = new THREE.ColorNode( 0x0054df );
+						var threshold = new THREE.FloatNode( .4 ); 
+						var thresholdSize = new THREE.FloatNode( .3 );
 						
 						// animate uv
 						
@@ -1260,10 +1263,26 @@
 						var tex = new THREE.TextureNode( getTexture( "cloud" ), displaceOffset );
 						var texArea = new THREE.SwitchNode( tex, 'w' );
 						
-						var clip = new THREE.ClipNode( texArea, threshold, mtl.color );
+						var thresholdBorder = new THREE.Math3Node(
+							new THREE.OperatorNode( threshold, thresholdSize, THREE.OperatorNode.ADD ),
+							threshold,
+							texArea,
+							THREE.Math3Node.SMOOTHSTEP
+						);
+						
+						var thresholdEmissive = new THREE.OperatorNode(
+							borderColor,
+							thresholdBorder,
+							THREE.OperatorNode.MUL
+						);
+						
+						var clip = new THREE.ClipNode( texArea, threshold, color );
 						clip.conditional = "<";
 						
+						// APPLY
+						
 						mtl.color = clip;
+						mtl.emissive = thresholdEmissive;
 
 						// GUI
 
@@ -1278,6 +1297,24 @@
 							threshold.value = val;
 
 						}, false, 0, 1 );
+						
+						addGui( 'thresholdSize', thresholdSize.value, function ( val ) {
+
+							thresholdSize.value = val;
+
+						}, false, 0, .5 );
+						
+						addGui( 'color', color.value.getHex(), function ( val ) {
+
+							color.value.setHex( val );
+
+						}, true );
+						
+						addGui( 'borderColor', borderColor.value.getHex(), function ( val ) {
+
+							borderColor.value.setHex( val );
+
+						}, true );
 						
 						break;
 
