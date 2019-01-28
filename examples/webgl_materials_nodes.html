@@ -179,6 +179,7 @@
 					'adv / skin': 'skin',
 					'adv / skin-phong': 'skin-phong',
 					'adv / caustic': 'caustic',
+					'adv / clip': 'clip',
 					'adv / displace': 'displace',
 					'adv / plush': 'plush',
 					'adv / toon': 'toon',
@@ -1229,6 +1230,52 @@
 
 						}, false, - 10, 10 );
 
+						break;
+
+					case 'clip':
+
+						// MATERIAL
+
+						mtl = new THREE.PhongNodeMaterial();
+
+						var threshold = new THREE.FloatNode( .5 ); 
+						
+						// animate uv
+						
+						var time = new THREE.TimerNode();
+						var speed = new THREE.FloatNode( .2 );
+						
+						var timeScl = new THREE.OperatorNode(
+							time,
+							speed,
+							THREE.OperatorNode.MUL
+						);
+						
+						var displaceOffset = new THREE.OperatorNode(
+							timeScl,
+							new THREE.UVNode(),
+							THREE.OperatorNode.ADD
+						);
+						
+						var tex = new THREE.TextureNode( getTexture( "cloud" ), displaceOffset );
+						var texArea = new THREE.SwitchNode( tex, 'w' );
+						
+						mtl.color = new THREE.ClipNode( texArea, threshold );
+
+						// GUI
+
+						addGui( 'speed', speed.value, function ( val ) {
+
+							speed.value = val;
+
+						}, false, 0, 1 );
+						
+						addGui( 'threshold', threshold.value, function ( val ) {
+
+							threshold.value = val;
+
+						}, false, 0, 1 );
+						
 						break;
 
 					case 'displace':

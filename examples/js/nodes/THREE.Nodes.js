@@ -76,6 +76,7 @@ import {
 	// utils
 
 	BypassNode,
+	ClipNode,
 	JoinNode,
 	SwitchNode,
 	TimerNode,
@@ -188,6 +189,7 @@ THREE.BumpMapNode = BumpMapNode;
 // utils
 
 THREE.BypassNode = BypassNode;
+THREE.ClipNode = ClipNode;
 THREE.JoinNode = JoinNode;
 THREE.SwitchNode = SwitchNode;
 THREE.TimerNode = TimerNode;
