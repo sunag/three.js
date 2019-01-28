@@ -1245,22 +1245,7 @@
 						
 						// animate uv
 						
-						var time = new THREE.TimerNode();
-						var speed = new THREE.FloatNode( .2 );
-						
-						var timeScl = new THREE.OperatorNode(
-							time,
-							speed,
-							THREE.OperatorNode.MUL
-						);
-						
-						var displaceOffset = new THREE.OperatorNode(
-							timeScl,
-							new THREE.UVNode(),
-							THREE.OperatorNode.ADD
-						);
-						
-						var tex = new THREE.TextureNode( getTexture( "cloud" ), displaceOffset );
+						var tex = new THREE.TextureNode( getTexture( "cloud" ) );
 						var texArea = new THREE.SwitchNode( tex, 'w' );
 						
 						var thresholdBorder = new THREE.Math3Node(
@@ -1277,7 +1262,7 @@
 						);
 						
 						var clip = new THREE.ClipNode( texArea, threshold, color );
-						clip.conditional = "<";
+						clip.conditional = THREE.CondNode.LESS;
 						
 						// APPLY
 						
@@ -1286,12 +1271,6 @@
 
 						// GUI
 
-						addGui( 'speed', speed.value, function ( val ) {
-
-							speed.value = val;
-
-						}, false, 0, 1 );
-						
 						addGui( 'threshold', threshold.value, function ( val ) {
 
 							threshold.value = val;
@@ -1315,7 +1294,23 @@
 							borderColor.value.setHex( val );
 
 						}, true );
-						
+						/*
+						addGui( 'conditional', {
+							LESS: THREE.CondNode.LESS,
+							LESS_EQUAL: THREE.CondNode.LESS_EQUAL,
+							EQUAL: THREE.CondNode.EQUAL,
+							NOT_EQUAL: THREE.CondNode.NOT_EQUAL,
+							GREATER: THREE.CondNode.GREATER,
+							GREATER_EQUAL: THREE.CondNode.GREATER_EQUAL
+						}, function ( val ) {
+
+							clip.conditional = val;
+
+							mtl.build();
+							mtl.needsUpdate = true;
+
+						} );
+						*/
 						break;
 
 					case 'displace':
