@@ -206,6 +206,8 @@ function WebGLPrograms( renderer, extensions, capabilities ) {
 			toneMapping: renderer.toneMapping,
 			physicallyCorrectLights: renderer.physicallyCorrectLights,
 
+			energyPreservation: material.energyPreservation,
+
 			premultipliedAlpha: material.premultipliedAlpha,
 
 			alphaTest: material.alphaTest,
