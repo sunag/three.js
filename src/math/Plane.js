@@ -5,8 +5,6 @@ import { Vector3 } from './Vector3.js';
  * @author bhouston / http://clara.io
  */
 
-var _vector1, _vector2, _normalMatrix;
-
 function Plane( normal, constant ) {
 
 	// normal is assumed to be normalized
@@ -47,24 +45,24 @@ Object.assign( Plane.prototype, {
 
 	},
 
-	setFromCoplanarPoints: function ( a, b, c ) {
+	setFromCoplanarPoints: function () {
 
-		if ( _vector1 === undefined ) {
+		var v1 = new Vector3();
+		var v2 = new Vector3();
 
-			_vector1 = new Vector3();
-			_vector2 = new Vector3();
+		return function setFromCoplanarPoints( a, b, c ) {
 
-		}
+			var normal = v1.subVectors( c, b ).cross( v2.subVectors( a, b ) ).normalize();
 
-		var normal = _vector1.subVectors( c, b ).cross( _vector2.subVectors( a, b ) ).normalize();
+			// Q: should an error be thrown if normal is zero (e.g. degenerate plane)?
 
-		// Q: should an error be thrown if normal is zero (e.g. degenerate plane)?
+			this.setFromNormalAndCoplanarPoint( normal, a );
 
-		this.setFromNormalAndCoplanarPoint( normal, a );
+			return this;
 
-		return this;
+		};
 
-	},
+	}(),
 
 	clone: function () {
 
@@ -127,46 +125,50 @@ Object.assign( Plane.prototype, {
 
 	},
 
-	intersectLine: function ( line, target ) {
+	intersectLine: function () {
 
-		if ( _vector1 === undefined ) _vector1 = new Vector3();
+		var v1 = new Vector3();
 
-		if ( target === undefined ) {
+		return function intersectLine( line, target ) {
 
-			console.warn( 'THREE.Plane: .intersectLine() target is now required' );
-			target = new Vector3();
+			if ( target === undefined ) {
 
-		}
-
-		var direction = line.delta( _vector1 );
-
-		var denominator = this.normal.dot( direction );
-
-		if ( denominator === 0 ) {
-
-			// line is coplanar, return origin
-			if ( this.distanceToPoint( line.start ) === 0 ) {
-
-				return target.copy( line.start );
+				console.warn( 'THREE.Plane: .intersectLine() target is now required' );
+				target = new Vector3();
 
 			}
 
-			// Unsure if this is the correct method to handle this case.
-			return undefined;
+			var direction = line.delta( v1 );
 
-		}
+			var denominator = this.normal.dot( direction );
 
-		var t = - ( line.start.dot( this.normal ) + this.constant ) / denominator;
+			if ( denominator === 0 ) {
 
-		if ( t < 0 || t > 1 ) {
+				// line is coplanar, return origin
+				if ( this.distanceToPoint( line.start ) === 0 ) {
 
-			return undefined;
+					return target.copy( line.start );
 
-		}
+				}
 
-		return target.copy( direction ).multiplyScalar( t ).add( line.start );
+				// Unsure if this is the correct method to handle this case.
+				return undefined;
 
-	},
+			}
+
+			var t = - ( line.start.dot( this.normal ) + this.constant ) / denominator;
+
+			if ( t < 0 || t > 1 ) {
+
+				return undefined;
+
+			}
+
+			return target.copy( direction ).multiplyScalar( t ).add( line.start );
+
+		};
+
+	}(),
 
 	intersectsLine: function ( line ) {
 
@@ -204,26 +206,26 @@ Object.assign( Plane.prototype, {
 
 	},
 
-	applyMatrix4: function ( matrix, optionalNormalMatrix ) {
+	applyMatrix4: function () {
 
-		if ( _normalMatrix === undefined ) {
+		var v1 = new Vector3();
+		var m1 = new Matrix3();
 
-			_normalMatrix = new Matrix3();
-			_vector1 = new Vector3();
+		return function applyMatrix4( matrix, optionalNormalMatrix ) {
 
-		}
+			var normalMatrix = optionalNormalMatrix || m1.getNormalMatrix( matrix );
 
-		var normalMatrix = optionalNormalMatrix || _normalMatrix.getNormalMatrix( matrix );
+			var referencePoint = this.coplanarPoint( v1 ).applyMatrix4( matrix );
 
-		var referencePoint = this.coplanarPoint( _vector1 ).applyMatrix4( matrix );
+			var normal = this.normal.applyMatrix3( normalMatrix ).normalize();
 
-		var normal = this.normal.applyMatrix3( normalMatrix ).normalize();
+			this.constant = - referencePoint.dot( normal );
 
-		this.constant = - referencePoint.dot( normal );
+			return this;
 
-		return this;
+		};
 
-	},
+	}(),
 
 	translate: function ( offset ) {
 

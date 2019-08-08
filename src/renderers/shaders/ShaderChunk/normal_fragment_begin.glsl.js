@@ -32,9 +32,4 @@ export default /* glsl */`
 	#endif
 
 #endif
-#ifdef USE_CLEARCOAT_NORMALMAP
-
-	vec3 geometryNormal = normal;
-
-#endif
 `;

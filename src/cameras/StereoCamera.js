@@ -48,21 +48,20 @@ Object.assign( StereoCamera.prototype, {
 				near = camera.near;
 				far = camera.far;
 				zoom = camera.zoom;
-				eyeSep = this.eyeSep;
 
 				// Off-axis stereoscopic effect based on
 				// http://paulbourke.net/stereographics/stereorender/
 
 				var projectionMatrix = camera.projectionMatrix.clone();
-				var eyeSepHalf = eyeSep / 2;
-				var eyeSepOnProjection = eyeSepHalf * near / focus;
+				eyeSep = this.eyeSep / 2;
+				var eyeSepOnProjection = eyeSep * near / focus;
 				var ymax = ( near * Math.tan( _Math.DEG2RAD * fov * 0.5 ) ) / zoom;
 				var xmin, xmax;
 
 				// translate xOffset
 
-				eyeLeft.elements[ 12 ] = - eyeSepHalf;
-				eyeRight.elements[ 12 ] = eyeSepHalf;
+				eyeLeft.elements[ 12 ] = - eyeSep;
+				eyeRight.elements[ 12 ] = eyeSep;
 
 				// for left eye
 

@@ -10,8 +10,6 @@ import { Quaternion } from './Quaternion.js';
  * @author WestLangley / http://github.com/WestLangley
  */
 
-var _vector, _quaternion;
-
 function Vector3( x, y, z ) {
 
 	this.x = x || 0;
@@ -233,27 +231,35 @@ Object.assign( Vector3.prototype, {
 
 	},
 
-	applyEuler: function ( euler ) {
+	applyEuler: function () {
 
-		if ( _quaternion === undefined ) _quaternion = new Quaternion();
+		var quaternion = new Quaternion();
 
-		if ( ! ( euler && euler.isEuler ) ) {
+		return function applyEuler( euler ) {
 
-			console.error( 'THREE.Vector3: .applyEuler() now expects an Euler rotation rather than a Vector3 and order.' );
+			if ( ! ( euler && euler.isEuler ) ) {
 
-		}
+				console.error( 'THREE.Vector3: .applyEuler() now expects an Euler rotation rather than a Vector3 and order.' );
 
-		return this.applyQuaternion( _quaternion.setFromEuler( euler ) );
+			}
 
-	},
+			return this.applyQuaternion( quaternion.setFromEuler( euler ) );
 
-	applyAxisAngle: function ( axis, angle ) {
+		};
 
-		if ( _quaternion === undefined ) _quaternion = new Quaternion();
+	}(),
 
-		return this.applyQuaternion( _quaternion.setFromAxisAngle( axis, angle ) );
+	applyAxisAngle: function () {
 
-	},
+		var quaternion = new Quaternion();
+
+		return function applyAxisAngle( axis, angle ) {
+
+			return this.applyQuaternion( quaternion.setFromAxisAngle( axis, angle ) );
+
+		};
+
+	}(),
 
 	applyMatrix3: function ( m ) {
 
@@ -537,26 +543,34 @@ Object.assign( Vector3.prototype, {
 
 	},
 
-	projectOnPlane: function ( planeNormal ) {
+	projectOnPlane: function () {
 
-		if ( _vector === undefined ) _vector = new Vector3();
+		var v1 = new Vector3();
 
-		_vector.copy( this ).projectOnVector( planeNormal );
+		return function projectOnPlane( planeNormal ) {
 
-		return this.sub( _vector );
+			v1.copy( this ).projectOnVector( planeNormal );
 
-	},
+			return this.sub( v1 );
 
-	reflect: function ( normal ) {
+		};
 
-		if ( _vector === undefined ) _vector = new Vector3();
+	}(),
+
+	reflect: function () {
 
 		// reflect incident vector off plane orthogonal to normal
 		// normal is assumed to have unit length
 
-		return this.sub( _vector.copy( normal ).multiplyScalar( 2 * this.dot( normal ) ) );
+		var v1 = new Vector3();
 
-	},
+		return function reflect( normal ) {
+
+			return this.sub( v1.copy( normal ).multiplyScalar( 2 * this.dot( normal ) ) );
+
+		};
+
+	}(),
 
 	angleTo: function ( v ) {
 

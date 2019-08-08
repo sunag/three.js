@@ -2,25 +2,25 @@
  * @author mrdoob / http://mrdoob.com/
  */
 
-var _context;
+var context;
 
 var AudioContext = {
 
 	getContext: function () {
 
-		if ( _context === undefined ) {
+		if ( context === undefined ) {
 
-			_context = new ( window.AudioContext || window.webkitAudioContext )();
+			context = new ( window.AudioContext || window.webkitAudioContext )();
 
 		}
 
-		return _context;
+		return context;
 
 	},
 
 	setContext: function ( value ) {
 
-		_context = value;
+		context = value;
 
 	}
 

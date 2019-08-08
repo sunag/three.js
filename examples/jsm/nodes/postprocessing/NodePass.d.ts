@@ -1,4 +1,4 @@
-import { NodeMaterial } from '../materials/NodeMaterial';
+import { NodeMaterial } from './NodeMaterial';
 import { ShaderPass } from '../../postprocessing/ShaderPass';
 import { ScreenNode } from '../inputs/ScreenNode';
 

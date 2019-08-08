@@ -215,17 +215,13 @@ function WebGLState( gl, extensions, utils, capabilities ) {
 
 			setTest: function ( stencilTest ) {
 
-				if ( ! locked ) {
+				if ( stencilTest ) {
 
-					if ( stencilTest ) {
+					enable( gl.STENCIL_TEST );
 
-						enable( gl.STENCIL_TEST );
+				} else {
 
-					} else {
-
-						disable( gl.STENCIL_TEST );
-
-					}
+					disable( gl.STENCIL_TEST );
 
 				}
 

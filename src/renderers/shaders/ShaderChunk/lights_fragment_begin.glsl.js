@@ -20,12 +20,6 @@ geometry.position = - vViewPosition;
 geometry.normal = normal;
 geometry.viewDir = normalize( vViewPosition );
 
-#ifdef USE_CLEARCOAT_NORMALMAP
-
-	geometry.clearCoatNormal = clearCoatNormal;
-
-#endif
-
 IncidentLight directLight;
 
 #if ( NUM_POINT_LIGHTS > 0 ) && defined( RE_Direct )
@@ -39,7 +33,7 @@ IncidentLight directLight;
 
 		getPointDirectLightIrradiance( pointLight, geometry, directLight );
 
-		#if defined( USE_SHADOWMAP ) && ( UNROLLED_LOOP_INDEX < NUM_POINT_LIGHT_SHADOWS )
+		#ifdef USE_SHADOWMAP
 		directLight.color *= all( bvec2( pointLight.shadow, directLight.visible ) ) ? getPointShadow( pointShadowMap[ i ], pointLight.shadowMapSize, pointLight.shadowBias, pointLight.shadowRadius, vPointShadowCoord[ i ], pointLight.shadowCameraNear, pointLight.shadowCameraFar ) : 1.0;
 		#endif
 
@@ -60,7 +54,7 @@ IncidentLight directLight;
 
 		getSpotDirectLightIrradiance( spotLight, geometry, directLight );
 
-		#if defined( USE_SHADOWMAP ) && ( UNROLLED_LOOP_INDEX < NUM_SPOT_LIGHT_SHADOWS )
+		#ifdef USE_SHADOWMAP
 		directLight.color *= all( bvec2( spotLight.shadow, directLight.visible ) ) ? getShadow( spotShadowMap[ i ], spotLight.shadowMapSize, spotLight.shadowBias, spotLight.shadowRadius, vSpotShadowCoord[ i ] ) : 1.0;
 		#endif
 
@@ -81,7 +75,7 @@ IncidentLight directLight;
 
 		getDirectionalDirectLightIrradiance( directionalLight, geometry, directLight );
 
-		#if defined( USE_SHADOWMAP ) && ( UNROLLED_LOOP_INDEX < NUM_DIR_LIGHT_SHADOWS )
+		#ifdef USE_SHADOWMAP
 		directLight.color *= all( bvec2( directionalLight.shadow, directLight.visible ) ) ? getShadow( directionalShadowMap[ i ], directionalLight.shadowMapSize, directionalLight.shadowBias, directionalLight.shadowRadius, vDirectionalShadowCoord[ i ] ) : 1.0;
 		#endif
 

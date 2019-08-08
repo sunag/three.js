@@ -4,7 +4,7 @@ import { _Math } from './Math.js';
  * @author mrdoob / http://mrdoob.com/
  */
 
-var _colorKeywords = { 'aliceblue': 0xF0F8FF, 'antiquewhite': 0xFAEBD7, 'aqua': 0x00FFFF, 'aquamarine': 0x7FFFD4, 'azure': 0xF0FFFF,
+var ColorKeywords = { 'aliceblue': 0xF0F8FF, 'antiquewhite': 0xFAEBD7, 'aqua': 0x00FFFF, 'aquamarine': 0x7FFFD4, 'azure': 0xF0FFFF,
 	'beige': 0xF5F5DC, 'bisque': 0xFFE4C4, 'black': 0x000000, 'blanchedalmond': 0xFFEBCD, 'blue': 0x0000FF, 'blueviolet': 0x8A2BE2,
 	'brown': 0xA52A2A, 'burlywood': 0xDEB887, 'cadetblue': 0x5F9EA0, 'chartreuse': 0x7FFF00, 'chocolate': 0xD2691E, 'coral': 0xFF7F50,
 	'cornflowerblue': 0x6495ED, 'cornsilk': 0xFFF8DC, 'crimson': 0xDC143C, 'cyan': 0x00FFFF, 'darkblue': 0x00008B, 'darkcyan': 0x008B8B,
@@ -28,9 +28,6 @@ var _colorKeywords = { 'aliceblue': 0xF0F8FF, 'antiquewhite': 0xFAEBD7, 'aqua': 
 	'sienna': 0xA0522D, 'silver': 0xC0C0C0, 'skyblue': 0x87CEEB, 'slateblue': 0x6A5ACD, 'slategray': 0x708090, 'slategrey': 0x708090, 'snow': 0xFFFAFA,
 	'springgreen': 0x00FF7F, 'steelblue': 0x4682B4, 'tan': 0xD2B48C, 'teal': 0x008080, 'thistle': 0xD8BFD8, 'tomato': 0xFF6347, 'turquoise': 0x40E0D0,
 	'violet': 0xEE82EE, 'wheat': 0xF5DEB3, 'white': 0xFFFFFF, 'whitesmoke': 0xF5F5F5, 'yellow': 0xFFFF00, 'yellowgreen': 0x9ACD32 };
-
-var _hslA = { h: 0, s: 0, l: 0 };
-var _hslB = { h: 0, s: 0, l: 0 };
 
 function Color( r, g, b ) {
 
@@ -262,7 +259,7 @@ Object.assign( Color.prototype, {
 		if ( style && style.length > 0 ) {
 
 			// color keywords
-			var hex = _colorKeywords[ style ];
+			var hex = ColorKeywords[ style ];
 
 			if ( hex !== undefined ) {
 
@@ -444,17 +441,23 @@ Object.assign( Color.prototype, {
 
 	},
 
-	offsetHSL: function ( h, s, l ) {
+	offsetHSL: function () {
 
-		this.getHSL( _hslA );
+		var hsl = {};
 
-		_hslA.h += h; _hslA.s += s; _hslA.l += l;
+		return function ( h, s, l ) {
 
-		this.setHSL( _hslA.h, _hslA.s, _hslA.l );
+			this.getHSL( hsl );
 
-		return this;
+			hsl.h += h; hsl.s += s; hsl.l += l;
 
-	},
+			this.setHSL( hsl.h, hsl.s, hsl.l );
+
+			return this;
+
+		};
+
+	}(),
 
 	add: function ( color ) {
 
@@ -526,20 +529,27 @@ Object.assign( Color.prototype, {
 
 	},
 
-	lerpHSL: function ( color, alpha ) {
+	lerpHSL: function () {
 
-		this.getHSL( _hslA );
-		color.getHSL( _hslB );
+		var hslA = { h: 0, s: 0, l: 0 };
+		var hslB = { h: 0, s: 0, l: 0 };
 
-		var h = _Math.lerp( _hslA.h, _hslB.h, alpha );
-		var s = _Math.lerp( _hslA.s, _hslB.s, alpha );
-		var l = _Math.lerp( _hslA.l, _hslB.l, alpha );
+		return function lerpHSL( color, alpha ) {
 
-		this.setHSL( h, s, l );
+			this.getHSL( hslA );
+			color.getHSL( hslB );
 
-		return this;
+			var h = _Math.lerp( hslA.h, hslB.h, alpha );
+			var s = _Math.lerp( hslA.s, hslB.s, alpha );
+			var l = _Math.lerp( hslA.l, hslB.l, alpha );
 
-	},
+			this.setHSL( h, s, l );
+
+			return this;
+
+		};
+
+	}(),
 
 	equals: function ( c ) {
 

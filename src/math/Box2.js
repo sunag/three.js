@@ -4,8 +4,6 @@ import { Vector2 } from './Vector2.js';
  * @author bhouston / http://clara.io
  */
 
-var _vector;
-
 function Box2( min, max ) {
 
 	this.min = ( min !== undefined ) ? min : new Vector2( + Infinity, + Infinity );
@@ -38,17 +36,21 @@ Object.assign( Box2.prototype, {
 
 	},
 
-	setFromCenterAndSize: function ( center, size ) {
+	setFromCenterAndSize: function () {
 
-		if ( _vector === undefined ) _vector = new Vector2();
+		var v1 = new Vector2();
 
-		var halfSize = _vector.copy( size ).multiplyScalar( 0.5 );
-		this.min.copy( center ).sub( halfSize );
-		this.max.copy( center ).add( halfSize );
+		return function setFromCenterAndSize( center, size ) {
 
-		return this;
+			var halfSize = v1.copy( size ).multiplyScalar( 0.5 );
+			this.min.copy( center ).sub( halfSize );
+			this.max.copy( center ).add( halfSize );
 
-	},
+			return this;
+
+		};
+
+	}(),
 
 	clone: function () {
 
@@ -190,14 +192,18 @@ Object.assign( Box2.prototype, {
 
 	},
 
-	distanceToPoint: function ( point ) {
+	distanceToPoint: function () {
 
-		if ( _vector === undefined ) _vector = new Vector2();
+		var v1 = new Vector2();
 
-		var clampedPoint = _vector.copy( point ).clamp( this.min, this.max );
-		return clampedPoint.sub( point ).length();
+		return function distanceToPoint( point ) {
 
-	},
+			var clampedPoint = v1.copy( point ).clamp( this.min, this.max );
+			return clampedPoint.sub( point ).length();
+
+		};
+
+	}(),
 
 	intersect: function ( box ) {
 

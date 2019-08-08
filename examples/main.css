@@ -10,7 +10,6 @@ body {
 a {
 	color: #ff0;
 	text-decoration: none;
-	pointer-events: auto;
 }
 
 a:hover {
@@ -37,7 +36,6 @@ canvas {
 	-webkit-user-select: none;
 	-ms-user-select: none;
 	user-select: none;
-	pointer-events: none;
 	z-index: 1; /* TODO Solve this in HTML */
 }
 

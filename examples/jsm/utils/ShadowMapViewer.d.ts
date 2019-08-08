@@ -1,4 +1,4 @@
-import {Light} from "../../../src/Three";
+import {Light} from "../../..";
 
 export class ShadowMapViewer {
 	constructor(light: Light)

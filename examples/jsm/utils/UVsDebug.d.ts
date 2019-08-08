@@ -1,3 +1,3 @@
-import {Geometry} from "../../../src/Three";
+import {Geometry} from "../../..";
 
 export function UVsDebug(geometry: Geometry, size: number): HTMLCanvasElement;
