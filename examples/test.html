@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>threejs webgl - Node Material Normal Map</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+body {
+  color: #fff;
+  font-family: Monospace;
+  font-size: 13px;
+  text-align: center;
+  background-color: #000;
+  margin: 0px;
+  overflow: hidden;
+}
+
+#container {
+  background-color: #000;
+  width: 100%;
+  height: 100%;
+}
+	</style>
+    <script src="../build/three.js"></script>
+    <script src="./js/controls/OrbitControls.js"></script>
+    <script src="./js/loaders/RGBELoader.js"></script>
+    <script src="./js/loaders/EquirectangularToCubeGenerator.js"></script>
+    <script src="./js/pmrem/PMREMCubeUVPacker.js"></script>
+    <script src="./js/pmrem/PMREMGenerator.js"></script>
+    
+    <script type="module">
+      import * as Nodes from './jsm/nodes/Nodes.js';
+      
+      var container = document.getElementById('container');
+      
+      var scene = new THREE.Scene();
+      
+      var renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
+			renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      
+      container.appendChild(renderer.domElement);
+      
+      var camera = new THREE.PerspectiveCamera(25, window.innerWidth /  window.innerHeight, 1, 10000);
+
+      var cameraControls = new THREE.OrbitControls(camera, renderer.domElement);
+      cameraControls.screenSpacePanning = true;
+      
+      // Set up camera
+      camera.position.set(28.068, 27.589, 62.657);
+      camera.up.set(0, 1, 0);
+
+      var target = new THREE.Vector3(-0.954, 2.873, -0.774);
+      cameraControls.target.copy(target);
+
+      cameraControls.update();
+      
+      // Load envmap
+      var envmap = null;
+      var filepath = 'https://www.mecabricks.com/crossorigin/nodesNormalMap/venice_sunset.hdr';
+      new THREE.RGBELoader().load(filepath, texture => {
+      	var cubemapGenerator = new THREE.EquirectangularToCubeGenerator(texture, {
+          resolution: 512,
+          type: THREE.HalfFloatType
+        });
+        
+        var cubeMapTexture = cubemapGenerator.update(renderer);
+        
+        var pmremGenerator = new THREE.PMREMGenerator(cubeMapTexture, undefined, 512 / 4);
+        pmremGenerator.update(renderer);
+        
+        var pmremCubeUVPacker = new THREE.PMREMCubeUVPacker(pmremGenerator.cubeLods);
+        pmremCubeUVPacker.update(renderer);
+        
+        var cubeRenderTarget = pmremCubeUVPacker.CubeUVRenderTarget;
+        
+        texture.dispose();
+        cubemapGenerator.dispose();
+        pmremGenerator.dispose();
+        pmremCubeUVPacker.dispose();
+        
+        envmap = new Nodes.TextureCubeNode(new Nodes.TextureNode(cubeRenderTarget.texture), new Nodes.FloatNode(512));
+        
+        // Load geometry
+				var geometry = new THREE.BoxBufferGeometry( 4, 4, 4 );
+        
+        // WORLD NORMAL
+        var wMaterial = new Nodes.StandardNodeMaterial();
+        wMaterial.environment = envmap;
+        wMaterial.roughness.value = 1;
+        wMaterial.metalness.value = 0;
+        
+        wMaterial.color = new Nodes.NormalNode(Nodes.NormalNode.WORLD);
+        
+        // LOCAL NORMAL
+        var lMaterial = new Nodes.StandardNodeMaterial();
+        lMaterial.environment = envmap;
+        lMaterial.roughness.value = 1;
+        lMaterial.metalness.value = 0;
+        
+        lMaterial.color = new Nodes.NormalNode(Nodes.NormalNode.LOCAL);
+        
+        // VIEW (CAMERA) NORMAL
+        var vMaterial = new Nodes.StandardNodeMaterial();
+        vMaterial.environment = envmap;
+        vMaterial.roughness.value = 1;
+        vMaterial.metalness.value = 0;
+        
+        vMaterial.color = new Nodes.NormalNode(Nodes.NormalNode.VIEW);
+        
+
+				// Objects
+        var wObject1 = new THREE.Mesh(geometry, wMaterial);
+        wObject1.position.x = -4;
+        wObject1.position.z = 4;
+        
+        var wObject2 = new THREE.Mesh(geometry, wMaterial);
+        wObject2.position.x = -4;
+        wObject2.position.z = -4;
+        wObject2.rotation.y = -Math.PI / 4;
+        
+        
+        var lObject1 = new THREE.Mesh(geometry, lMaterial);
+        lObject1.position.x = 4;
+        lObject1.position.z = 4;
+        
+        var lObject2 = new THREE.Mesh(geometry, lMaterial);
+        lObject2.position.x = 4;
+        lObject2.position.z = -4;
+        lObject2.rotation.y = -Math.PI / 4;
+        
+        var vObject1 = new THREE.Mesh(geometry, vMaterial);
+        vObject1.position.x = 12;
+        vObject1.position.z = 4;
+        
+        var vObject2 = new THREE.Mesh(geometry, vMaterial);
+        vObject2.position.x = 12;
+        vObject2.position.z = -4;
+        vObject2.rotation.y = -Math.PI / 4;
+			
+
+        scene.add(wObject1);
+        scene.add(wObject2);
+        
+        scene.add(lObject1);
+        scene.add(lObject2);
+        
+        scene.add(vObject1);
+        scene.add(vObject2);
+        
+        // Helper
+        scene.add( new THREE.AxesHelper( 10 ) );
+      });
+     
+     	window.addEventListener('resize', onWindowResize, false);
+     
+     	onWindowResize();
+			animate();
+      
+      function animate() {
+      	renderer.render(scene, camera);
+      	requestAnimationFrame(animate);
+      }
+      
+      function onWindowResize() {
+				var width = window.innerWidth, height = window.innerHeight;
+				camera.aspect = width / height;
+				camera.updateProjectionMatrix();
+				renderer.setSize(width, height);
+			}
+    </script>
+	</head>
+	<body>
+		<div id="container"></div>
+	</body>
+</html>

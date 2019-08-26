@@ -4,12 +4,9 @@
 
 import { TempNode } from '../core/TempNode.js';
 
-var vertexDict = [ 'color', 'color2' ],
-	fragmentDict = [ 'vColor', 'vColor2' ];
-
 function ColorsNode( index ) {
 
-	TempNode.call( this, 'v4', { shared: false } );
+	TempNode.call( this, 'v4', { unique: true } );
 
 	this.index = index || 0;
 
@@ -21,9 +18,23 @@ ColorsNode.prototype.nodeType = "Colors";
 
 ColorsNode.prototype.generate = function ( builder, output ) {
 
-	builder.requires.color[ this.index ] = true;
+	var needId = this.index > 0;
+	var offsetName = needId ? this.index + 1 : '';
 
-	var result = builder.isShader( 'vertex' ) ? vertexDict[ this.index ] : fragmentDict[ this.index ];
+	var vertexName = `color${offsetName}`;
+	var fragmentName = `vColor${offsetName}`;
+
+	if ( ! builder.analyzing ) {
+
+		if ( needId ) builder.addVertexParsCode( `attribute vec4 ${vertexName};` );
+
+		builder.addVaryCode( `varying vec4 ${fragmentName};` );
+
+		builder.addVertexFinalCode( `${fragmentName} = ${vertexName};` );
+
+	}
+
+	var result = builder.isShader( 'vertex' ) ? vertexName : fragmentName;
 
 	return builder.format( result, this.getType( builder ), output );
 

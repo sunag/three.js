@@ -15,16 +15,17 @@ function NormalNode( scope ) {
 
 NormalNode.LOCAL = 'local';
 NormalNode.WORLD = 'world';
+NormalNode.VIEW = 'view';
 
 NormalNode.prototype = Object.create( TempNode.prototype );
 NormalNode.prototype.constructor = NormalNode;
 NormalNode.prototype.nodeType = "Normal";
 
-NormalNode.prototype.getShared = function () {
+NormalNode.prototype.getUnique = function ( /* builder */ ) {
 
-	// if shared is false, TempNode will not create temp variable (for optimization)
+	// generate snippets a single time even using other instances or more times in material
 
-	return this.scope === NormalNode.WORLD;
+	return this.scope === NormalNode.LOCAL || this.scope === NormalNode.VIEW;
 
 };
 
@@ -36,7 +37,15 @@ NormalNode.prototype.generate = function ( builder, output ) {
 
 		case NormalNode.LOCAL:
 
-			result = 'normal';
+			if ( ! builder.analyzing ) {
+
+				builder.addVaryCode( 'varying vec3 vObjectNormal;' );
+
+				builder.addVertexFinalCode( 'vObjectNormal = normal;' );
+
+			}
+
+			result = builder.isShader( 'vertex' ) ? 'normal' : 'vObjectNormal';
 
 			break;
 
@@ -51,6 +60,12 @@ NormalNode.prototype.generate = function ( builder, output ) {
 				result = 'inverseTransformDirection( normal, viewMatrix )';
 
 			}
+
+			break;
+
+		case NormalNode.VIEW:
+
+			result = 'normal';
 
 			break;
 
@@ -86,9 +101,9 @@ NormalNode.prototype.toJSON = function ( meta ) {
 
 };
 
-NodeLib.addKeyword( 'normal', function () {
+NodeLib.addKeyword( 'normalView', function () {
 
-	return new NormalNode();
+	return new NormalNode( NormalNode.VIEW );
 
 } );
 

@@ -5,12 +5,9 @@
 import { TempNode } from '../core/TempNode.js';
 import { NodeLib } from '../core/NodeLib.js';
 
-var vertexDict = [ 'uv', 'uv2' ],
-	fragmentDict = [ 'vUv', 'vUv2' ];
-
 function UVNode( index ) {
 
-	TempNode.call( this, 'v2', { shared: false } );
+	TempNode.call( this, 'v2', { unique: true } );
 
 	this.index = index || 0;
 
@@ -22,10 +19,24 @@ UVNode.prototype.nodeType = "UV";
 
 UVNode.prototype.generate = function ( builder, output ) {
 
-	builder.requires.uv[ this.index ] = true;
+	var needId = this.index > 0;
+	var offsetName = needId ? this.index + 1 : '';
 
-	var result = builder.isShader( 'vertex' ) ? vertexDict[ this.index ] : fragmentDict[ this.index ];
+	var vertexName = `uv${offsetName}`;
+	var fragmentName = `vUv${offsetName}`;
 
+	if ( ! builder.analyzing ) {
+
+		if ( needId ) builder.addVertexParsCode( `attribute vec2 ${vertexName};` );
+
+		builder.addVaryCode( `varying vec2 ${fragmentName};` );
+
+		builder.addVertexFinalCode( `${fragmentName} = ${vertexName};` );
+
+	}
+
+	var result = builder.isShader( 'vertex' ) ? vertexName : fragmentName;
+console.log( builder.analyzing, result, builder.shader );
 	return builder.format( result, this.getType( builder ), output );
 
 };

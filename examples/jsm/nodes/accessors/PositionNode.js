@@ -66,7 +66,13 @@ PositionNode.prototype.generate = function ( builder, output ) {
 
 			} else {
 
-				builder.requires.position = true;
+				if ( ! builder.analyzing ) {
+
+					builder.addVaryCode( 'varying vec3 vPosition;' );
+
+					builder.addVertexFinalCode( 'vPosition = transformed;' );
+
+				}
 
 				result = 'vPosition';
 
@@ -82,7 +88,13 @@ PositionNode.prototype.generate = function ( builder, output ) {
 
 			} else {
 
-				builder.requires.worldPosition = true;
+				if ( ! builder.analyzing ) {
+
+					builder.addVaryCode( 'varying vec3 vWPosition;' );
+
+					builder.addVertexFinalCode( 'vWPosition = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;' );
+
+				}
 
 				result = 'vWPosition';
 

@@ -58,7 +58,10 @@ function NodeBuilder() {
 
 	this.keywords = {};
 
-	this.nodeData = {};
+	this.nodeData = {
+		vertex: {},
+		fragment: {}
+	};
 
 	this.requires = {
 		uv: [],
@@ -163,73 +166,6 @@ NodeBuilder.prototype = {
 
 		this.buildShader( 'vertex', vertex );
 		this.buildShader( 'fragment', fragment );
-
-		if ( this.requires.uv[ 0 ] ) {
-
-			this.addVaryCode( 'varying vec2 vUv;' );
-
-			this.addVertexFinalCode( 'vUv = uv;' );
-
-		}
-
-		if ( this.requires.uv[ 1 ] ) {
-
-			this.addVaryCode( 'varying vec2 vUv2;' );
-			this.addVertexParsCode( 'attribute vec2 uv2;' );
-
-			this.addVertexFinalCode( 'vUv2 = uv2;' );
-
-		}
-
-		if ( this.requires.color[ 0 ] ) {
-
-			this.addVaryCode( 'varying vec4 vColor;' );
-			this.addVertexParsCode( 'attribute vec4 color;' );
-
-			this.addVertexFinalCode( 'vColor = color;' );
-
-		}
-
-		if ( this.requires.color[ 1 ] ) {
-
-			this.addVaryCode( 'varying vec4 vColor2;' );
-			this.addVertexParsCode( 'attribute vec4 color2;' );
-
-			this.addVertexFinalCode( 'vColor2 = color2;' );
-
-		}
-
-		if ( this.requires.position ) {
-
-			this.addVaryCode( 'varying vec3 vPosition;' );
-
-			this.addVertexFinalCode( 'vPosition = transformed;' );
-
-		}
-
-		if ( this.requires.worldPosition ) {
-
-			this.addVaryCode( 'varying vec3 vWPosition;' );
-
-			this.addVertexFinalCode( 'vWPosition = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;' );
-
-		}
-
-		if ( this.requires.normal ) {
-
-			this.addVaryCode( 'varying vec3 vObjectNormal;' );
-
-			this.addVertexFinalCode( 'vObjectNormal = normal;' );
-
-		}
-
-		if ( this.requires.worldNormal ) {
-
-			this.addVaryCode( 'varying vec3 vWNormal;' );
-
-			this.addVertexFinalCode( 'vWNormal = ( modelMatrix * vec4( objectNormal, 0.0 ) ).xyz;' );
-
-		}
 
 		return this;
 
@@ -557,7 +493,7 @@ NodeBuilder.prototype = {
 
 		var uuid = node.isNode ? node.uuid : node;
 
-		return this.nodeData[ uuid ] = this.nodeData[ uuid ] || {};
+		return this.nodeData[ this.shader ][ uuid ] = this.nodeData[ this.shader ][ uuid ] || {};
 
 	},
 
