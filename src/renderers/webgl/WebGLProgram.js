@@ -243,14 +243,29 @@ function unrollLoops( string ) {
 
 }
 
-function WebGLProgram( renderer, extensions, code, material, shader, parameters, capabilities ) {
+function generatePrecision( parameters ) {
 
-	var gl = renderer.getContext();
+	var precisionstring = "precision " + parameters.precision + " float;\nprecision " + parameters.precision + " int;";
 
-	var defines = material.defines;
+	if ( parameters.precision === "highp" ) {
 
-	var vertexShader = shader.vertexShader;
-	var fragmentShader = shader.fragmentShader;
+		precisionstring += "\n#define HIGH_PRECISION;";
+
+	} else if ( parameters.precision === "mediump" ) {
+
+		precisionstring += "\n#define MEDIUM_PRECISION;";
+
+	} else if ( parameters.precision === "lowp" ) {
+
+		precisionstring += "\n#define LOW_PRECISION;";
+
+	}
+
+	return precisionstring;
+
+}
+
+function generateShadowMapTypeDefine( parameters ) {
 
 	var shadowMapTypeDefine = 'SHADOWMAP_TYPE_BASIC';
 
@@ -268,9 +283,13 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters,
 
 	}
 
+	return shadowMapTypeDefine;
+
+}
+
+function generateEnvMapTypeDefine( parameters, material ) {
+
 	var envMapTypeDefine = 'ENVMAP_TYPE_CUBE';
-	var envMapModeDefine = 'ENVMAP_MODE_REFLECTION';
-	var envMapBlendingDefine = 'ENVMAP_BLENDING_MULTIPLY';
 
 	if ( parameters.envMap ) {
 
@@ -297,6 +316,18 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters,
 
 		}
 
+	}
+
+	return envMapTypeDefine;
+
+}
+
+function generateEnvMapModeDefine( parameters, material ) {
+
+	var envMapModeDefine = 'ENVMAP_MODE_REFLECTION';
+
+	if ( parameters.envMap ) {
+
 		switch ( material.envMap.mapping ) {
 
 			case CubeRefractionMapping:
@@ -305,6 +336,18 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters,
 				break;
 
 		}
+
+	}
+
+	return envMapModeDefine;
+
+}
+
+function generateEnvMapBlendingDefine( parameters, material ) {
+
+	var envMapBlendingDefine = 'ENVMAP_BLENDING_MULTIPLY';
+
+	if ( parameters.envMap ) {
 
 		switch ( material.combine ) {
 
@@ -324,21 +367,36 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters,
 
 	}
 
+	return envMapBlendingDefine;
+
+}
+
+function WebGLProgram( renderer, extensions, code, material, shader, parameters, capabilities ) {
+
+	var gl = renderer.getContext();
+
+	var defines = material.defines;
+
+	var vertexShader = shader.vertexShader;
+	var fragmentShader = shader.fragmentShader;
+	var shadowMapTypeDefine = generateShadowMapTypeDefine( parameters );
+	var envMapTypeDefine = generateEnvMapTypeDefine( parameters, material );
+	var envMapModeDefine = generateEnvMapModeDefine( parameters, material );
+	var envMapBlendingDefine = generateEnvMapBlendingDefine( parameters, material );
+
+
 	var gammaFactorDefine = ( renderer.gammaFactor > 0 ) ? renderer.gammaFactor : 1.0;
-
-	// console.log( 'building new program ' );
-
-	//
 
 	var customExtensions = capabilities.isWebGL2 ? '' : generateExtensions( material.extensions, parameters, extensions );
 
 	var customDefines = generateDefines( defines );
 
-	//
-
 	var program = gl.createProgram();
 
 	var prefixVertex, prefixFragment;
+
+	var renderTarget = renderer.getRenderTarget();
+	var numMultiviewViews = renderTarget && renderTarget.isWebGLMultiviewRenderTarget ? renderTarget.numViews : 0;
 
 	if ( material.isRawShaderMaterial ) {
 
@@ -371,10 +429,7 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters,
 
 		prefixVertex = [
 
-			'precision ' + parameters.precision + ' float;',
-			'precision ' + parameters.precision + ' int;',
-
-			( parameters.precision === 'highp' ) ? '#define HIGH_PRECISION' : '',
+			generatePrecision( parameters ),
 
 			'#define SHADER_NAME ' + shader.name,
 
@@ -427,13 +482,28 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters,
 
 			parameters.logarithmicDepthBuffer ? '#define USE_LOGDEPTHBUF' : '',
 			parameters.logarithmicDepthBuffer && ( capabilities.isWebGL2 || extensions.get( 'EXT_frag_depth' ) ) ? '#define USE_LOGDEPTHBUF_EXT' : '',
-
 			'uniform mat4 modelMatrix;',
-			'uniform mat4 modelViewMatrix;',
-			'uniform mat4 projectionMatrix;',
-			'uniform mat4 viewMatrix;',
-			'uniform mat3 normalMatrix;',
 			'uniform vec3 cameraPosition;',
+
+			numMultiviewViews > 0 ? [
+				'uniform mat4 modelViewMatrices[' + numMultiviewViews + '];',
+				'uniform mat3 normalMatrices[' + numMultiviewViews + '];',
+				'uniform mat4 viewMatrices[' + numMultiviewViews + '];',
+				'uniform mat4 projectionMatrices[' + numMultiviewViews + '];',
+
+				'#define modelViewMatrix modelViewMatrices[VIEW_ID]',
+				'#define normalMatrix normalMatrices[VIEW_ID]',
+				'#define viewMatrix viewMatrices[VIEW_ID]',
+				'#define projectionMatrix projectionMatrices[VIEW_ID]'
+
+			].join( '\n' ) : [
+
+				'uniform mat4 modelViewMatrix;',
+				'uniform mat4 projectionMatrix;',
+				'uniform mat4 viewMatrix;',
+				'uniform mat3 normalMatrix;',
+
+			].join( '\n' ),
 
 			'attribute vec3 position;',
 			'attribute vec3 normal;',
@@ -491,10 +561,7 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters,
 
 			customExtensions,
 
-			'precision ' + parameters.precision + ' float;',
-			'precision ' + parameters.precision + ' int;',
-
-			( parameters.precision === 'highp' ) ? '#define HIGH_PRECISION' : '',
+			generatePrecision( parameters ),
 
 			'#define SHADER_NAME ' + shader.name,
 
@@ -551,8 +618,14 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters,
 
 			( ( material.extensions ? material.extensions.shaderTextureLOD : false ) || parameters.envMap ) && ( capabilities.isWebGL2 || extensions.get( 'EXT_shader_texture_lod' ) ) ? '#define TEXTURE_LOD_EXT' : '',
 
-			'uniform mat4 viewMatrix;',
 			'uniform vec3 cameraPosition;',
+
+			numMultiviewViews > 0 ? [
+
+				'uniform mat4 viewMatrices[' + numMultiviewViews + '];',
+				'#define viewMatrix viewMatrices[VIEW_ID]'
+
+			].join( '\n' ) : 'uniform mat4 viewMatrix;',
 
 			( parameters.toneMapping !== NoToneMapping ) ? '#define TONE_MAPPING' : '',
 			( parameters.toneMapping !== NoToneMapping ) ? ShaderChunk[ 'tonemapping_pars_fragment' ] : '', // this code is required here because it is used by the toneMapping() function defined below
@@ -607,6 +680,15 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters,
 		// GLSL 3.0 conversion
 		prefixVertex = [
 			'#version 300 es\n',
+
+			numMultiviewViews > 0 ? [
+
+				'#extension GL_OVR_multiview2 : require',
+				'layout(num_views = ' + numMultiviewViews + ') in;',
+				'#define VIEW_ID gl_ViewID_OVR'
+
+			].join( '\n' ) : '',
+
 			'#define attribute in',
 			'#define varying out',
 			'#define texture2D texture'
@@ -614,6 +696,12 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters,
 
 		prefixFragment = [
 			'#version 300 es\n',
+			numMultiviewViews > 0 ? [
+
+				'#extension GL_OVR_multiview2 : require',
+				'#define VIEW_ID gl_ViewID_OVR'
+
+			].join( '\n' ) : '',
 			'#define varying in',
 			isGLSL3ShaderMaterial ? '' : 'out highp vec4 pc_fragColor;',
 			isGLSL3ShaderMaterial ? '' : '#define gl_FragColor pc_fragColor',
@@ -771,6 +859,7 @@ function WebGLProgram( renderer, extensions, code, material, shader, parameters,
 	this.program = program;
 	this.vertexShader = glVertexShader;
 	this.fragmentShader = glFragmentShader;
+	this.numMultiviewViews = numMultiviewViews;
 
 	return this;
 
