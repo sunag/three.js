@@ -2,7 +2,7 @@
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
 	(global = global || self, factory(global.THREE = {}));
-}(this, (function (exports) { 'use strict';
+}(this, function (exports) { 'use strict';
 
 	// Polyfills
 
@@ -3858,6 +3858,12 @@
 		setFromMatrixColumn: function ( m, index ) {
 
 			return this.fromArray( m.elements, index * 4 );
+
+		},
+
+		setFromMatrix3Column: function ( m, index ) {
+
+			return this.fromArray( m.elements, index * 3 );
 
 		},
 
@@ -13804,7 +13810,7 @@
 
 		options = options || { format: RGBFormat, magFilter: LinearFilter, minFilter: LinearFilter };
 
-		this.renderTarget = new WebGLCubeRenderTarget( cubeResolution, cubeResolution, options );
+		this.renderTarget = new WebGLCubeRenderTarget( cubeResolution, options );
 		this.renderTarget.texture.name = "CubeCamera";
 
 		this.update = function ( renderer, scene ) {
@@ -13870,9 +13876,17 @@
 	 * @author WestLangley / http://github.com/WestLangley
 	 */
 
-	function WebGLCubeRenderTarget( width, height, options ) {
+	function WebGLCubeRenderTarget( size, options, dummy ) {
 
-		WebGLRenderTarget.call( this, width, height, options );
+		if ( Number.isInteger( options ) ) {
+
+			console.warn( 'THREE.WebGLCubeRenderTarget: constructor signature is now WebGLCubeRenderTarget( size, options )' );
+
+			options = dummy;
+
+		}
+
+		WebGLRenderTarget.call( this, size, size, options );
 
 	}
 
@@ -14175,33 +14189,229 @@
 	 * Uniforms library for shared webgl shaders
 	 */
 
+	var rendererSize;
+
+	function refreshUVTransform2D( uniforms, material ) {
+
+		// uv repeat and offset setting priorities
+		// 1. color map
+		// 2. alpha map
+
+		var uvScaleMap;
+
+		if ( material.map ) {
+
+			uvScaleMap = material.map;
+
+		} else if ( material.alphaMap ) {
+
+			uvScaleMap = material.alphaMap;
+
+		}
+
+		if ( uvScaleMap !== undefined ) {
+
+			if ( uvScaleMap.matrixAutoUpdate === true ) {
+
+				uvScaleMap.updateMatrix();
+
+			}
+
+			uniforms.uvTransform.value.copy( uvScaleMap.matrix );
+
+		}
+
+	}
+
 	var UniformsLib = {
 
 		common: {
 
-			diffuse: { value: new Color( 0xeeeeee ) },
+			diffuse: {
+
+				value: new Color( 0xeeeeee ),
+
+				onUpdate: function ( uniforms, material ) {
+
+					if ( material.color ) {
+
+						uniforms.diffuse.value.copy( material.color );
+
+					}
+
+				}
+
+			},
+
 			opacity: { value: 1.0 },
 
 			map: { value: null },
-			uvTransform: { value: new Matrix3() },
-			uv2Transform: { value: new Matrix3() },
 
-			alphaMap: { value: null },
+			uvTransform: {
+
+				value: new Matrix3(),
+
+				onUpdate: function ( uniforms, material ) {
+
+					// uv repeat and offset setting priorities
+					// 1. color map
+					// 2. specular map
+					// 3. normal map
+					// 4. bump map
+					// 5. alpha map
+					// 6. emissive map
+
+					var uvScaleMap;
+
+					if ( material.map ) {
+
+						uvScaleMap = material.map;
+
+					} else if ( material.specularMap ) {
+
+						uvScaleMap = material.specularMap;
+
+					} else if ( material.displacementMap ) {
+
+						uvScaleMap = material.displacementMap;
+
+					} else if ( material.normalMap ) {
+
+						uvScaleMap = material.normalMap;
+
+					} else if ( material.bumpMap ) {
+
+						uvScaleMap = material.bumpMap;
+
+					} else if ( material.roughnessMap ) {
+
+						uvScaleMap = material.roughnessMap;
+
+					} else if ( material.metalnessMap ) {
+
+						uvScaleMap = material.metalnessMap;
+
+					} else if ( material.alphaMap ) {
+
+						uvScaleMap = material.alphaMap;
+
+					} else if ( material.emissiveMap ) {
+
+						uvScaleMap = material.emissiveMap;
+
+					}
+
+					if ( uvScaleMap !== undefined ) {
+
+						// backwards compatibility
+						if ( uvScaleMap.isWebGLRenderTarget ) {
+
+							uvScaleMap = uvScaleMap.texture;
+
+						}
+
+						if ( uvScaleMap.matrixAutoUpdate === true ) {
+
+							uvScaleMap.updateMatrix();
+
+						}
+
+						uniforms.uvTransform.value.copy( uvScaleMap.matrix );
+
+					}
+
+				}
+			},
+
+			uv2Transform: {
+
+				value: new Matrix3(),
+
+				onUpdate: function ( uniforms, material ) {
+
+					// uv repeat and offset setting priorities for uv2
+					// 1. ao map
+					// 2. light map
+
+					var uv2ScaleMap;
+
+					if ( material.aoMap ) {
+
+						uv2ScaleMap = material.aoMap;
+
+					} else if ( material.lightMap ) {
+
+						uv2ScaleMap = material.lightMap;
+
+					}
+
+					if ( uv2ScaleMap !== undefined ) {
+
+						// backwards compatibility
+						if ( uv2ScaleMap.isWebGLRenderTarget ) {
+
+							uv2ScaleMap = uv2ScaleMap.texture;
+
+						}
+
+						if ( uv2ScaleMap.matrixAutoUpdate === true ) {
+
+							uv2ScaleMap.updateMatrix();
+
+						}
+
+						uniforms.uv2Transform.value.copy( uv2ScaleMap.matrix );
+
+					}
+
+				}
+
+			},
+
+			alphaMap: { value: null }
 
 		},
 
 		specularmap: {
 
-			specularMap: { value: null },
+			specularMap: { value: null }
 
 		},
 
 		envmap: {
 
-			envMap: { value: null },
+			envMap: {
+
+				value: null,
+
+				onUpdate: function ( uniforms, material, renderer, scene ) {
+
+					var envMap = material.envMap || scene.environment;
+
+					uniforms.envMap.value = envMap;
+
+					if ( envMap ) {
+
+						// don't flip CubeTexture envMaps, flip everything else:
+						//  WebGLCubeRenderTarget will be flipped for backwards compatibility
+						//  WebGLCubeRenderTarget.texture will be flipped because it's a Texture and NOT a CubeTexture
+						// this check must be handled differently, or removed entirely, if WebGLCubeRenderTarget uses a CubeTexture in the future
+						uniforms.flipEnvMap.value = envMap.isCubeTexture ? - 1 : 1;
+
+						uniforms.maxMipLevel.value = renderer.properties.get( envMap ).__maxMipLevel;
+
+					}
+
+				}
+
+			},
+
 			flipEnvMap: { value: - 1 },
+
 			reflectivity: { value: 1.0 },
+
 			refractionRatio: { value: 0.98 },
+
 			maxMipLevel: { value: 0 }
 
 		},
@@ -14220,6 +14430,38 @@
 
 		},
 
+		emissive: {
+
+			emissive: {
+
+				value: new Color( 0x000000 ),
+
+				onUpdate: function ( uniforms, material ) {
+
+					uniforms.emissive.value.copy( material.emissive ).multiplyScalar( material.emissiveIntensity );
+
+				}
+
+			}
+
+		},
+
+		shininess: {
+
+			shininess: {
+
+				value: 30,
+
+				onUpdate: function ( uniforms, material ) {
+
+					uniforms.shininess.value = Math.max( material.shininess, 1e-4 ); // to prevent pow( 0.0, 0.0 )
+
+				}
+
+			}
+
+		},
+
 		emissivemap: {
 
 			emissiveMap: { value: null }
@@ -14228,14 +14470,40 @@
 
 		bumpmap: {
 
-			bumpMap: { value: null },
+			bumpMap: {
+
+				value: null,
+
+				onUpdate: function ( uniforms, material ) {
+
+					uniforms.bumpMap.value = material.bumpMap;
+					uniforms.bumpScale.value = material.bumpScale;
+					if ( material.side === BackSide ) { uniforms.bumpScale.value *= - 1; }
+
+				}
+
+			},
+
 			bumpScale: { value: 1 }
 
 		},
 
 		normalmap: {
 
-			normalMap: { value: null },
+			normalMap: {
+
+				value: null,
+
+				onUpdate: function ( uniforms, material ) {
+
+					uniforms.normalMap.value = material.normalMap;
+					uniforms.normalScale.value.copy( material.normalScale );
+					if ( material.side === BackSide ) { uniforms.normalScale.value.negate(); }
+
+				}
+
+			},
+
 			normalScale: { value: new Vector2( 1, 1 ) }
 
 		},
@@ -14269,9 +14537,39 @@
 		fog: {
 
 			fogDensity: { value: 0.00025 },
+
 			fogNear: { value: 1 },
+
 			fogFar: { value: 2000 },
-			fogColor: { value: new Color( 0xffffff ) }
+
+			fogColor: {
+
+				value: new Color( 0xffffff ),
+
+				onUpdate: function ( uniforms, material, renderer, scene ) {
+
+					var fog = scene.fog;
+
+					if ( fog && material.fog ) {
+
+						uniforms.fogColor.value.copy( fog.color );
+
+						if ( fog.isFog ) {
+
+							uniforms.fogNear.value = fog.near;
+							uniforms.fogFar.value = fog.far;
+
+						} else if ( fog.isFogExp2 ) {
+
+							uniforms.fogDensity.value = fog.density;
+
+						}
+
+					}
+
+				}
+
+			}
 
 		},
 
@@ -14348,12 +14646,40 @@
 		points: {
 
 			diffuse: { value: new Color( 0xeeeeee ) },
+
 			opacity: { value: 1.0 },
-			size: { value: 1.0 },
-			scale: { value: 1.0 },
+
+			size: {
+
+				value: 1.0,
+
+				onUpdate: function ( uniforms, material, renderer ) {
+
+					uniforms.size.value = material.size * renderer.getPixelRatio();
+
+				}
+
+			},
+
+			scale: {
+
+				value: 1.0,
+
+				onUpdate: function ( uniforms, material, renderer ) {
+
+					rendererSize = rendererSize || new Vector2();
+
+					uniforms.scale.value = renderer.getSize( rendererSize ).y * 0.5;
+
+				}
+
+			},
+
 			map: { value: null },
+
 			alphaMap: { value: null },
-			uvTransform: { value: new Matrix3() }
+
+			uvTransform: { value: new Matrix3(), onUpdate: refreshUVTransform2D }
 
 		},
 
@@ -14365,7 +14691,7 @@
 			rotation: { value: 0.0 },
 			map: { value: null },
 			alphaMap: { value: null },
-			uvTransform: { value: new Matrix3() }
+			uvTransform: { value: new Matrix3(), onUpdate: refreshUVTransform2D }
 
 		}
 
@@ -15111,9 +15437,7 @@
 				UniformsLib.emissivemap,
 				UniformsLib.fog,
 				UniformsLib.lights,
-				{
-					emissive: { value: new Color( 0x000000 ) }
-				}
+				UniformsLib.emissive
 			] ),
 
 			vertexShader: ShaderChunk.meshlambert_vert,
@@ -15135,10 +15459,10 @@
 				UniformsLib.displacementmap,
 				UniformsLib.fog,
 				UniformsLib.lights,
+				UniformsLib.emissive,
+				UniformsLib.shininess,
 				{
-					emissive: { value: new Color( 0x000000 ) },
 					specular: { value: new Color( 0x111111 ) },
-					shininess: { value: 30 }
 				}
 			] ),
 
@@ -15162,8 +15486,8 @@
 				UniformsLib.metalnessmap,
 				UniformsLib.fog,
 				UniformsLib.lights,
+				UniformsLib.emissive,
 				{
-					emissive: { value: new Color( 0x000000 ) },
 					roughness: { value: 0.5 },
 					metalness: { value: 0.5 },
 					envMapIntensity: { value: 1 } // temporary
@@ -15189,10 +15513,10 @@
 				UniformsLib.gradientmap,
 				UniformsLib.fog,
 				UniformsLib.lights,
+				UniformsLib.emissive,
+				UniformsLib.shininess,
 				{
-					emissive: { value: new Color( 0x000000 ) },
-					specular: { value: new Color( 0x111111 ) },
-					shininess: { value: 30 }
+					specular: { value: new Color( 0x111111 ) }
 				}
 			] ),
 
@@ -15397,6 +15721,7 @@
 		// so we can recompile the material accordingly.
 		var currentBackground = null;
 		var currentBackgroundVersion = 0;
+		var currentTonemapping = null;
 
 		function render( renderList, scene, camera, forceClear ) {
 
@@ -15483,12 +15808,14 @@
 				boxMesh.material.uniforms.flipEnvMap.value = texture.isCubeTexture ? - 1 : 1;
 
 				if ( currentBackground !== background ||
-				     currentBackgroundVersion !== texture.version ) {
+					currentBackgroundVersion !== texture.version ||
+					currentTonemapping !== renderer.toneMapping ) {
 
 					boxMesh.material.needsUpdate = true;
 
 					currentBackground = background;
 					currentBackgroundVersion = texture.version;
+					currentTonemapping = renderer.toneMapping;
 
 				}
 
@@ -15541,12 +15868,14 @@
 				planeMesh.material.uniforms.uvTransform.value.copy( background.matrix );
 
 				if ( currentBackground !== background ||
-					   currentBackgroundVersion !== background.version ) {
+					currentBackgroundVersion !== background.version ||
+					currentTonemapping !== renderer.toneMapping ) {
 
 					planeMesh.material.needsUpdate = true;
 
 					currentBackground = background;
 					currentBackgroundVersion = background.version;
+					currentTonemapping = renderer.toneMapping;
 
 				}
 
@@ -17733,6 +18062,39 @@
 
 	}
 
+	// Resolve nodes
+
+	function resolveNodes( string, parameters ) {
+
+		var main = 'void main() {';
+
+		var nodes = parameters.nodes.nodes;
+		
+		// 1 step
+
+		for ( var i = 0; i < nodes.length; i ++ ) {
+
+			var node = nodes[ i ];
+			var regexp = new RegExp(("uniform\\s(\\w+)\\s" + (node.property) + ";"), 'g');
+
+			string = string.replace( regexp, ("$1 " + (node.property) + ";") );
+
+		}
+
+		// 2 step
+
+		var mainIndex = string.indexOf( main );
+		
+		string = 
+			parameters.nodes.parsCode + '\n\n\n' +
+			string.substring( 0, mainIndex + main.length ) + '\n' +
+			parameters.nodes.code +
+			string.substring( mainIndex + main.length );
+
+		return string;
+
+	}
+
 	// Unroll Loops
 
 	var loopPattern = /#pragma unroll_loop[\s]+?for \( int i \= (\d+)\; i < (\d+)\; i \+\+ \) \{([\s\S]+?)(?=\})\}/g;
@@ -18168,6 +18530,12 @@
 		vertexShader = unrollLoops( vertexShader );
 		fragmentShader = unrollLoops( fragmentShader );
 
+		if (parameters.nodes) {
+			
+			fragmentShader = resolveNodes( fragmentShader, parameters );
+			
+		}
+
 		if ( parameters.isWebGL2 && ! parameters.isRawShaderMaterial ) {
 
 			var isGLSL3ShaderMaterial = false;
@@ -18412,6 +18780,1949 @@
 	}
 
 	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function NodeUniform( params ) {
+
+		params = params || {};
+
+		this.name = params.name;
+		this.type = params.type;
+		this.node = params.node;
+		this.needsUpdate = params.needsUpdate;
+
+	}
+
+	Object.defineProperties( NodeUniform.prototype, {
+
+		value: {
+
+			get: function () {
+
+				return this.node.value;
+
+			},
+
+			set: function ( val ) {
+
+				this.node.value = val;
+
+			}
+
+		}
+
+	} );
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	var NodeUtils = {
+
+		elements: [ 'x', 'y', 'z', 'w' ],
+
+		addShortcuts: function () {
+
+			function applyShortcut( proxy, property, subProperty ) {
+
+				if ( subProperty ) {
+
+					return {
+
+						get: function () {
+
+							return this[ proxy ][ property ][ subProperty ];
+
+						},
+
+						set: function ( val ) {
+
+							this[ proxy ][ property ][ subProperty ] = val;
+
+						}
+
+					};
+
+				} else {
+
+					return {
+
+						get: function () {
+
+							return this[ proxy ][ property ];
+
+						},
+
+						set: function ( val ) {
+
+							this[ proxy ][ property ] = val;
+
+						}
+
+					};
+
+				}
+
+			}
+
+			return function addShortcuts( proto, proxy, list ) {
+
+				var shortcuts = {};
+
+				for ( var i = 0; i < list.length; ++ i ) {
+
+					var data = list[ i ].split( "." ),
+						property = data[ 0 ],
+						subProperty = data[ 1 ];
+
+					shortcuts[ property ] = applyShortcut( proxy, property, subProperty );
+
+				}
+
+				Object.defineProperties( proto, shortcuts );
+
+			};
+
+		}()
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	var NodeLib = {
+
+		nodes: {},
+		keywords: {},
+
+		add: function ( node ) {
+
+			this.nodes[ node.name ] = node;
+
+		},
+
+		addKeyword: function ( name, callback, cache ) {
+
+			cache = cache !== undefined ? cache : true;
+
+			this.keywords[ name ] = { callback: callback, cache: cache };
+
+		},
+
+		remove: function ( node ) {
+
+			delete this.nodes[ node.name ];
+
+		},
+
+		removeKeyword: function ( name ) {
+
+			delete this.keywords[ name ];
+
+		},
+
+		get: function ( name ) {
+
+			return this.nodes[ name ];
+
+		},
+
+		getKeyword: function ( name, builder ) {
+
+			return this.keywords[ name ].callback.call( this, builder );
+
+		},
+
+		getKeywordData: function ( name ) {
+
+			return this.keywords[ name ];
+
+		},
+
+		contains: function ( name ) {
+
+			return this.nodes[ name ] !== undefined;
+
+		},
+
+		containsKeyword: function ( name ) {
+
+			return this.keywords[ name ] !== undefined;
+
+		}
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function Node( type ) {
+
+		this.uuid = MathUtils.generateUUID();
+
+		this.name = "";
+
+		this.type = type;
+
+		this.userData = {};
+
+	}
+
+	Node.prototype = {
+
+		constructor: Node,
+
+		isNode: true,
+
+		analyze: function ( builder, settings ) {
+
+			settings = settings || {};
+
+			builder.analyzing = true;
+
+			this.build( builder.addFlow( settings.slot, settings.cache, settings.context ), 'v4' );
+
+			builder.clearVertexNodeCode();
+			builder.clearFragmentNodeCode();
+
+			builder.removeFlow();
+
+			builder.analyzing = false;
+
+		},
+
+		analyzeAndFlow: function ( builder, output, settings ) {
+
+			settings = settings || {};
+
+			this.analyze( builder, settings );
+
+			return this.flow( builder, output, settings );
+
+		},
+
+		flow: function ( builder, output, settings ) {
+
+			settings = settings || {};
+
+			builder.addFlow( settings.slot, settings.cache, settings.context );
+
+			var flow = {};
+			flow.result = this.build( builder, output );
+			flow.code = builder.clearNodeCode();
+			flow.extra = builder.context.extra;
+
+			builder.removeFlow();
+
+			return flow;
+
+		},
+
+		build: function ( builder, output, uuid ) {
+
+			output = output || this.getType( builder, output );
+
+			var data = builder.getNodeData( uuid || this );
+
+			if ( builder.analyzing ) {
+
+				this.appendDepsNode( builder, data, output );
+
+			}
+
+			if ( builder.nodes.indexOf( this ) === - 1 ) {
+
+				builder.nodes.push( this );
+
+			}
+
+			if ( this.updateFrame !== undefined && builder.updaters.indexOf( this ) === - 1 ) {
+
+				builder.updaters.push( this );
+
+			}
+
+			return this.generate( builder, output, uuid );
+
+		},
+
+		generate: function ( /* builder, output, uuid, type, ns */ ) {
+
+			// This method needs to be implemented in subclasses
+
+		},
+
+		appendDepsNode: function ( builder, data, output ) {
+
+			data.deps = ( data.deps || 0 ) + 1;
+
+			var outputLen = builder.getTypeLength( output );
+
+			if ( outputLen > ( data.outputMax || 0 ) || this.getType( builder, output ) ) {
+
+				data.outputMax = outputLen;
+				data.output = output;
+
+			}
+
+		},
+
+		setName: function ( name ) {
+
+			this.name = name;
+
+			return this;
+
+		},
+
+		getName: function ( /* builder */ ) {
+
+			return this.name;
+
+		},
+
+		getType: function ( builder, output ) {
+
+			return output === 'sampler2D' || output === 'samplerCube' ? output : this.type;
+
+		},
+
+		getJSONNode: function ( meta ) {
+
+			var isRootObject = ( meta === undefined || typeof meta === 'string' );
+
+			if ( ! isRootObject && meta.nodes[ this.uuid ] !== undefined ) {
+
+				return meta.nodes[ this.uuid ];
+
+			}
+
+		},
+
+		copy: function ( source ) {
+
+			if ( source.name !== undefined ) { this.name = source.name; }
+
+			if ( source.userData !== undefined ) { this.userData = JSON.parse( JSON.stringify( source.userData ) ); }
+
+			return this;
+
+		},
+
+		createJSONNode: function ( meta ) {
+
+			var isRootObject = ( meta === undefined || typeof meta === 'string' );
+
+			var data = {};
+
+			if ( typeof this.nodeType !== "string" ) { throw new Error( "Node does not allow serialization." ); }
+
+			data.uuid = this.uuid;
+			data.nodeType = this.nodeType;
+
+			if ( this.name !== "" ) { data.name = this.name; }
+
+			if ( JSON.stringify( this.userData ) !== '{}' ) { data.userData = this.userData; }
+
+			if ( ! isRootObject ) {
+
+				meta.nodes[ this.uuid ] = data;
+
+			}
+
+			return data;
+
+		},
+
+		toJSON: function ( meta ) {
+
+			return this.getJSONNode( meta ) || this.createJSONNode( meta );
+
+		}
+
+	};
+
+	/**
+	 * Automatic node cache
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function TempNode( type, params ) {
+
+		Node.call( this, type );
+
+		params = params || {};
+
+		this.shared = params.shared !== undefined ? params.shared : true;
+		this.unique = params.unique !== undefined ? params.unique : false;
+
+	}
+
+	TempNode.prototype = Object.create( Node.prototype );
+	TempNode.prototype.constructor = TempNode;
+
+	TempNode.prototype.build = function ( builder, output, uuid, ns ) {
+
+		output = output || this.getType( builder );
+
+		if ( this.getShared( builder, output ) ) {
+
+			var isUnique = this.getUnique( builder, output );
+
+			if ( isUnique && this.constructor.uuid === undefined ) {
+
+				this.constructor.uuid = MathUtils.generateUUID();
+
+			}
+
+			uuid = builder.getUuid( uuid || this.getUuid(), ! isUnique );
+
+			var data = builder.getNodeData( uuid ),
+				type = data.output || this.getType( builder );
+
+			if ( builder.analyzing ) {
+
+				if ( ( data.deps || 0 ) > 0 || this.getLabel() ) {
+
+					this.appendDepsNode( builder, data, output );
+
+					return this.generate( builder, output, uuid );
+
+				}
+
+				return Node.prototype.build.call( this, builder, output, uuid );
+
+			} else if ( isUnique ) {
+
+				data.name = data.name || Node.prototype.build.call( this, builder, output, uuid );
+
+				return data.name;
+
+			} else if ( ! this.getLabel() && ( ! this.getShared( builder, type ) || ( builder.context.ignoreCache || data.deps === 1 ) ) ) {
+
+				return Node.prototype.build.call( this, builder, output, uuid );
+
+			}
+
+			uuid = this.getUuid( false );
+
+			var name = this.getTemp( builder, uuid );
+
+			if ( name ) {
+
+				return builder.format( name, type, output );
+
+			} else {
+
+				name = TempNode.prototype.generate.call( this, builder, output, uuid, data.output, ns );
+
+				var code = this.generate( builder, type, uuid );
+
+				builder.addNodeCode( name + ' = ' + code + ';' );
+
+				return builder.format( name, type, output );
+
+			}
+
+		}
+
+		return Node.prototype.build.call( this, builder, output, uuid );
+
+	};
+
+	TempNode.prototype.getShared = function ( builder, output ) {
+
+		return output !== 'sampler2D' && output !== 'samplerCube' && this.shared;
+
+	};
+
+	TempNode.prototype.getUnique = function ( /* builder, output */ ) {
+
+		return this.unique;
+
+	};
+
+	TempNode.prototype.setLabel = function ( name ) {
+
+		this.label = name;
+
+		return this;
+
+	};
+
+	TempNode.prototype.getLabel = function ( /* builder */ ) {
+
+		return this.label;
+
+	};
+
+	TempNode.prototype.getUuid = function ( unique ) {
+
+		var uuid = unique || unique == undefined ? this.constructor.uuid || this.uuid : this.uuid;
+
+		if ( typeof this.scope === "string" ) { uuid = this.scope + '-' + uuid; }
+
+		return uuid;
+
+	};
+
+	TempNode.prototype.getTemp = function ( builder, uuid ) {
+
+		uuid = uuid || this.uuid;
+
+		var tempVar = builder.getVars()[ uuid ];
+
+		return tempVar ? tempVar.name : undefined;
+
+	};
+
+	TempNode.prototype.generate = function ( builder, output, uuid, type, ns ) {
+
+		if ( ! this.getShared( builder, output ) ) { console.error( "THREE.TempNode is not shared!" ); }
+
+		uuid = uuid || this.uuid;
+
+		return builder.getTempVar( uuid, type || this.getType( builder ), ns, this.getLabel() ).name;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 * @thanks bhouston / https://clara.io/
+	 */
+
+	var declarationRegexp = /^([a-z_0-9]+)\s([a-z_0-9]+)\s*\((.*?)\)/i,
+		propertiesRegexp = /[a-z_0-9]+/ig;
+
+	function FunctionNode( src, includes, extensions, keywords, type ) {
+
+		this.isMethod = type === undefined;
+		this.isInterface = false;
+
+		TempNode.call( this, type );
+
+		this.parse( src, includes, extensions, keywords );
+
+	}
+
+	FunctionNode.prototype = Object.create( TempNode.prototype );
+	FunctionNode.prototype.constructor = FunctionNode;
+	FunctionNode.prototype.nodeType = "Function";
+
+	FunctionNode.prototype.useKeywords = true;
+
+	FunctionNode.prototype.getShared = function ( /* builder, output */ ) {
+
+		return ! this.isMethod;
+
+	};
+
+	FunctionNode.prototype.getType = function ( builder ) {
+
+		return builder.getTypeByFormat( this.type );
+
+	};
+
+	FunctionNode.prototype.getInputByName = function ( name ) {
+
+		var i = this.inputs.length;
+
+		while ( i -- ) {
+
+			if ( this.inputs[ i ].name === name ) {
+
+				return this.inputs[ i ];
+
+			}
+
+		}
+
+	};
+
+	FunctionNode.prototype.getIncludeByName = function ( name ) {
+
+		var i = this.includes.length;
+
+		while ( i -- ) {
+
+			if ( this.includes[ i ].name === name ) {
+
+				return this.includes[ i ];
+
+			}
+
+		}
+
+	};
+
+	FunctionNode.prototype.generate = function ( builder, output ) {
+
+		var match, offset = 0, src = this.src;
+
+		for ( var i = 0; i < this.includes.length; i ++ ) {
+
+			builder.include( this.includes[ i ], this );
+
+		}
+
+		for ( var ext in this.extensions ) {
+
+			builder.extensions[ ext ] = true;
+
+		}
+
+		var matches = [];
+
+		while ( match = propertiesRegexp.exec( this.src ) ) { matches.push( match ); }
+
+		for ( var i = 0; i < matches.length; i ++ ) {
+
+			var match = matches[ i ];
+
+			var prop = match[ 0 ],
+				isGlobal = this.isMethod ? ! this.getInputByName( prop ) : true,
+				reference = prop;
+
+			if ( this.keywords[ prop ] || ( this.useKeywords && isGlobal && NodeLib.containsKeyword( prop ) ) ) {
+
+				var node = this.keywords[ prop ];
+
+				if ( ! node ) {
+
+					var keyword = NodeLib.getKeywordData( prop );
+
+					if ( keyword.cache ) { node = builder.keywords[ prop ]; }
+
+					node = node || NodeLib.getKeyword( prop, builder );
+
+					if ( keyword.cache ) { builder.keywords[ prop ] = node; }
+
+				}
+
+				reference = node.build( builder );
+
+			}
+
+			if ( prop !== reference ) {
+
+				src = src.substring( 0, match.index + offset ) + reference + src.substring( match.index + prop.length + offset );
+
+				offset += reference.length - prop.length;
+
+			}
+
+			if ( this.getIncludeByName( reference ) === undefined && NodeLib.contains( reference ) ) {
+
+				builder.include( NodeLib.get( reference ) );
+
+			}
+
+		}
+
+		if ( output === 'source' ) {
+
+			return src;
+
+		} else if ( this.isMethod ) {
+
+			if ( ! this.isInterface ) {
+
+				builder.include( this, false, src );
+
+			}
+
+			return this.name;
+
+		} else {
+
+			return builder.format( '( ' + src + ' )', this.getType( builder ), output );
+
+		}
+
+	};
+
+	FunctionNode.prototype.parse = function ( src, includes, extensions, keywords ) {
+
+		this.src = src || '';
+
+		this.includes = includes || [];
+		this.extensions = extensions || {};
+		this.keywords = keywords || {};
+
+		if ( this.isMethod ) {
+
+			var match = this.src.match( declarationRegexp );
+
+			this.inputs = [];
+
+			if ( match && match.length == 4 ) {
+
+				this.type = match[ 1 ];
+				this.name = match[ 2 ];
+
+				var inputs = match[ 3 ].match( propertiesRegexp );
+
+				if ( inputs ) {
+
+					var i = 0;
+
+					while ( i < inputs.length ) {
+
+						var qualifier = inputs[ i ++ ];
+						var type, name;
+
+						if ( qualifier === 'in' || qualifier === 'out' || qualifier === 'inout' ) {
+
+							type = inputs[ i ++ ];
+
+						} else {
+
+							type = qualifier;
+							qualifier = '';
+
+						}
+
+						name = inputs[ i ++ ];
+
+						this.inputs.push( {
+							name: name,
+							type: type,
+							qualifier: qualifier
+						} );
+
+					}
+
+				}
+
+				this.isInterface = this.src.indexOf( '{' ) === - 1;
+
+			} else {
+
+				this.type = '';
+				this.name = '';
+
+			}
+
+		}
+
+	};
+
+	FunctionNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.isMethod = source.isMethod;
+		this.useKeywords = source.useKeywords;
+
+		this.parse( source.src, source.includes, source.extensions, source.keywords );
+
+		if ( source.type !== undefined ) { this.type = source.type; }
+
+		return this;
+
+	};
+
+	FunctionNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.src = this.src;
+			data.isMethod = this.isMethod;
+			data.useKeywords = this.useKeywords;
+
+			if ( ! this.isMethod ) { data.type = this.type; }
+
+			data.extensions = JSON.parse( JSON.stringify( this.extensions ) );
+			data.keywords = {};
+
+			for ( var keyword in this.keywords ) {
+
+				data.keywords[ keyword ] = this.keywords[ keyword ].toJSON( meta ).uuid;
+
+			}
+
+			if ( this.includes.length ) {
+
+				data.includes = [];
+
+				for ( var i = 0; i < this.includes.length; i ++ ) {
+
+					data.includes.push( this.includes[ i ].toJSON( meta ).uuid );
+
+				}
+
+			}
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	var declarationRegexp$1 = /^([a-z_0-9]+)\s([a-z_0-9]+)\s?\=?\s?(.*?)(\;|$)/i;
+
+	function ConstNode( src, useDefine ) {
+
+		TempNode.call( this );
+
+		this.parse( src || ConstNode.PI, useDefine );
+
+	}
+
+	ConstNode.PI = 'PI';
+	ConstNode.PI2 = 'PI2';
+	ConstNode.RECIPROCAL_PI = 'RECIPROCAL_PI';
+	ConstNode.RECIPROCAL_PI2 = 'RECIPROCAL_PI2';
+	ConstNode.LOG2 = 'LOG2';
+	ConstNode.EPSILON = 'EPSILON';
+
+	ConstNode.prototype = Object.create( TempNode.prototype );
+	ConstNode.prototype.constructor = ConstNode;
+	ConstNode.prototype.nodeType = "Const";
+
+	ConstNode.prototype.getType = function ( builder ) {
+
+		return builder.getTypeByFormat( this.type );
+
+	};
+
+	ConstNode.prototype.parse = function ( src, useDefine ) {
+
+		this.src = src || '';
+
+		var name, type, value = "";
+
+		var match = this.src.match( declarationRegexp$1 );
+
+		this.useDefine = useDefine || this.src.charAt( 0 ) === '#';
+
+		if ( match && match.length > 1 ) {
+
+			type = match[ 1 ];
+			name = match[ 2 ];
+			value = match[ 3 ];
+
+		} else {
+
+			name = this.src;
+			type = 'f';
+
+		}
+
+		this.name = name;
+		this.type = type;
+		this.value = value;
+
+	};
+
+	ConstNode.prototype.build = function ( builder, output ) {
+
+		if ( output === 'source' ) {
+
+			if ( this.value ) {
+
+				if ( this.useDefine ) {
+
+					return '#define ' + this.name + ' ' + this.value;
+
+				}
+
+				return 'const ' + this.type + ' ' + this.name + ' = ' + this.value + ';';
+
+			} else if ( this.useDefine ) {
+
+				return this.src;
+
+			}
+
+		} else {
+
+			builder.include( this );
+
+			return builder.format( this.name, this.getType( builder ), output );
+
+		}
+
+	};
+
+	ConstNode.prototype.generate = function ( builder, output ) {
+
+		return builder.format( this.name, this.getType( builder ), output );
+
+	};
+
+	ConstNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.parse( source.src, source.useDefine );
+
+		return this;
+
+	};
+
+	ConstNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.src = this.src;
+
+			if ( data.useDefine === true ) { data.useDefine = true; }
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	var declarationRegexp$2 = /^struct\s*([a-z_0-9]+)\s*{\s*((.|\n)*?)}/img,
+		propertiesRegexp$1 = /\s*(\w*?)\s*(\w*?)(\=|\;)/img;
+
+	function StructNode( src ) {
+
+		TempNode.call( this );
+
+		this.parse( src );
+
+	}
+
+	StructNode.prototype = Object.create( TempNode.prototype );
+	StructNode.prototype.constructor = StructNode;
+	StructNode.prototype.nodeType = "Struct";
+
+	StructNode.prototype.getType = function ( builder ) {
+
+		return builder.getTypeByFormat( this.name );
+
+	};
+
+	StructNode.prototype.getInputByName = function ( name ) {
+
+		var i = this.inputs.length;
+
+		while ( i -- ) {
+
+			if ( this.inputs[ i ].name === name ) {
+
+				return this.inputs[ i ];
+
+			}
+
+		}
+
+	};
+
+	StructNode.prototype.generate = function ( builder, output ) {
+
+		if ( output === 'source' ) {
+
+			return this.src + ';';
+
+		} else {
+
+			return builder.format( '( ' + this.src + ' )', this.getType( builder ), output );
+
+		}
+
+	};
+
+	StructNode.prototype.parse = function ( src ) {
+
+		this.src = src || '';
+
+		this.inputs = [];
+
+		var declaration = declarationRegexp$2.exec( this.src );
+
+		if ( declaration ) {
+
+			var properties = declaration[ 2 ], match;
+
+			while ( match = propertiesRegexp$1.exec( properties ) ) {
+
+				this.inputs.push( {
+					type: match[ 1 ],
+					name: match[ 2 ]
+				} );
+
+			}
+
+			this.name = declaration[ 1 ];
+
+		} else {
+
+			this.name = '';
+
+		}
+
+		this.type = this.name;
+
+	};
+
+	StructNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.src = this.src;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+
+	var elements = NodeUtils.elements,
+		constructors = [ 'float', 'vec2', 'vec3', 'vec4' ],
+		convertFormatToType = {
+			float: 'f',
+			vec2: 'v2',
+			vec3: 'v3',
+			vec4: 'v4',
+			mat4: 'v4',
+			int: 'i',
+			bool: 'b'
+		},
+		convertTypeToFormat = {
+			t: 'sampler2D',
+			tc: 'samplerCube',
+			b: 'bool',
+			i: 'int',
+			f: 'float',
+			c: 'vec3',
+			v2: 'vec2',
+			v3: 'vec3',
+			v4: 'vec4',
+			m3: 'mat3',
+			m4: 'mat4'
+		};
+
+	function NodeBuilder() {
+
+		this.slots = [];
+		this.caches = [];
+		this.contexts = [];
+
+		this.keywords = {};
+
+		this.nodeData = {};
+
+		this.requires = {
+			uv: [],
+			color: [],
+			lights: false,
+			fog: false
+		};
+
+		this.includes = {
+			consts: [],
+			functions: [],
+			structs: []
+		};
+
+		this.attributes = {};
+
+		this.prefixCode = [
+			"#ifdef TEXTURE_LOD_EXT",
+
+			"	#define texCube(a, b) textureCube(a, b)",
+			"	#define texCubeBias(a, b, c) textureCubeLodEXT(a, b, c)",
+
+			"	#define tex2D(a, b) texture2D(a, b)",
+			"	#define tex2DBias(a, b, c) texture2DLodEXT(a, b, c)",
+
+			"#else",
+
+			"	#define texCube(a, b) textureCube(a, b)",
+			"	#define texCubeBias(a, b, c) textureCube(a, b, c)",
+
+			"	#define tex2D(a, b) texture2D(a, b)",
+			"	#define tex2DBias(a, b, c) texture2D(a, b, c)",
+
+			"#endif" ].join( "\n" );
+
+		this.includesCode = [
+
+			"#include <packing>",
+			"#include <common>"
+
+		].join( "\n" );
+
+		this.parsCode = {
+			vertex: '',
+			fragment: ''
+		};
+
+		this.code = {
+			vertex: '',
+			fragment: ''
+		};
+
+		this.nodeCode = {
+			vertex: '',
+			fragment: ''
+		};
+
+		this.resultCode = {
+			vertex: '',
+			fragment: ''
+		};
+
+		this.finalCode = {
+			vertex: '',
+			fragment: ''
+		};
+
+		this.inputs = {
+			uniforms: {
+				list: [],
+				vertex: [],
+				fragment: []
+			},
+			vars: {
+				varying: [],
+				vertex: [],
+				fragment: []
+			}
+		};
+
+		// send to material
+
+		this.defines = {};
+
+		this.uniforms = {};
+
+		this.extensions = {};
+
+		this.updaters = [];
+
+		this.nodes = [];
+
+		// --
+
+		this.analyzing = false;
+
+	}
+
+	NodeBuilder.prototype = {
+
+		constructor: NodeBuilder,
+
+		build: function ( vertex, fragment ) {
+
+			this.buildShader( 'vertex', vertex );
+			this.buildShader( 'fragment', fragment );
+
+			for ( var i = 0; i < this.requires.uv.length; i++ ) {
+
+				if ( this.requires.uv[ i ] ) {
+
+					var uvIndex = i > 0 ? i + 1 : '';
+
+					this.addVaryCode( 'varying vec2 vUv' + uvIndex + ';' );
+
+					if ( i > 0 ) {
+
+						this.addVertexParsCode( 'attribute vec2 uv' + uvIndex + ';' );
+
+					}
+
+					this.addVertexFinalCode( 'vUv' + uvIndex + ' = uv' + uvIndex +';' );
+
+				}
+
+			}
+
+			if ( this.requires.color[ 0 ] ) {
+
+				this.addVaryCode( 'varying vec4 vColor;' );
+				this.addVertexParsCode( 'attribute vec4 color;' );
+
+				this.addVertexFinalCode( 'vColor = color;' );
+
+			}
+
+			if ( this.requires.color[ 1 ] ) {
+
+				this.addVaryCode( 'varying vec4 vColor2;' );
+				this.addVertexParsCode( 'attribute vec4 color2;' );
+
+				this.addVertexFinalCode( 'vColor2 = color2;' );
+
+			}
+
+			if ( this.requires.position ) {
+
+				this.addVaryCode( 'varying vec3 vPosition;' );
+
+				this.addVertexFinalCode( 'vPosition = transformed;' );
+
+			}
+
+			if ( this.requires.worldPosition ) {
+
+				this.addVaryCode( 'varying vec3 vWPosition;' );
+
+				this.addVertexFinalCode( 'vWPosition = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;' );
+
+			}
+
+			if ( this.requires.normal ) {
+
+				this.addVaryCode( 'varying vec3 vObjectNormal;' );
+
+				this.addVertexFinalCode( 'vObjectNormal = normal;' );
+
+			}
+
+			if ( this.requires.worldNormal ) {
+
+				this.addVaryCode( 'varying vec3 vWNormal;' );
+
+				this.addVertexFinalCode( 'vWNormal = inverseTransformDirection( transformedNormal, viewMatrix ).xyz;' );
+
+			}
+
+			return this;
+
+		},
+
+		buildShader: function ( shader, node ) {
+
+			this.resultCode[ shader ] = node.build( this.setShader( shader ), 'v4' );
+
+		},
+
+		setMaterial: function ( material, renderer ) {
+
+			this.material = material;
+			this.renderer = renderer;
+
+			this.requires.lights = material.lights;
+			this.requires.fog = material.fog;
+
+			this.mergeDefines( material.defines );
+
+			return this;
+
+		},
+
+		addFlow: function ( slot, cache, context ) {
+
+			return this.addSlot( slot ).addCache( cache ).addContext( context );
+
+		},
+
+		removeFlow: function () {
+
+			return this.removeSlot().removeCache().removeContext();
+
+		},
+
+		addCache: function ( name ) {
+
+			this.cache = name || '';
+			this.caches.push( this.cache );
+
+			return this;
+
+		},
+
+		removeCache: function () {
+
+			this.caches.pop();
+			this.cache = this.caches[ this.caches.length - 1 ] || '';
+
+			return this;
+
+		},
+
+		addContext: function ( context ) {
+
+			this.context = Object.assign( {}, this.context, context );
+			this.context.extra = this.context.extra || {};
+
+			this.contexts.push( this.context );
+
+			return this;
+
+		},
+
+		removeContext: function () {
+
+			this.contexts.pop();
+			this.context = this.contexts[ this.contexts.length - 1 ] || {};
+
+			return this;
+
+		},
+
+		addSlot: function ( name ) {
+
+			this.slot = name || '';
+			this.slots.push( this.slot );
+
+			return this;
+
+		},
+
+		removeSlot: function () {
+
+			this.slots.pop();
+			this.slot = this.slots[ this.slots.length - 1 ] || '';
+
+			return this;
+
+		},
+
+
+		addVertexCode: function ( code ) {
+
+			this.addCode( code, 'vertex' );
+
+		},
+
+		addFragmentCode: function ( code ) {
+
+			this.addCode( code, 'fragment' );
+
+		},
+
+		addCode: function ( code, shader ) {
+
+			this.code[ shader || this.shader ] += code + '\n';
+
+		},
+
+
+		addVertexNodeCode: function ( code ) {
+
+			this.addNodeCode( code, 'vertex' );
+
+		},
+
+		addFragmentNodeCode: function ( code ) {
+
+			this.addNodeCode( code, 'fragment' );
+
+		},
+
+		addNodeCode: function ( code, shader ) {
+
+			this.nodeCode[ shader || this.shader ] += code + '\n';
+
+		},
+
+		clearNodeCode: function ( shader ) {
+
+			shader = shader || this.shader;
+
+			var code = this.nodeCode[ shader ];
+
+			this.nodeCode[ shader ] = '';
+
+			return code;
+
+		},
+
+		clearVertexNodeCode: function ( ) {
+
+			return this.clearNodeCode( 'vertex' );
+
+		},
+
+		clearFragmentNodeCode: function ( ) {
+
+			return this.clearNodeCode( 'fragment' );
+
+		},
+
+		addVertexFinalCode: function ( code ) {
+
+			this.addFinalCode( code, 'vertex' );
+
+		},
+
+		addFragmentFinalCode: function ( code ) {
+
+			this.addFinalCode( code, 'fragment' );
+
+		},
+
+		addFinalCode: function ( code, shader ) {
+
+			this.finalCode[ shader || this.shader ] += code + '\n';
+
+		},
+
+
+		addVertexParsCode: function ( code ) {
+
+			this.addParsCode( code, 'vertex' );
+
+		},
+
+		addFragmentParsCode: function ( code ) {
+
+			this.addParsCode( code, 'fragment' );
+
+		},
+
+		addParsCode: function ( code, shader ) {
+
+			this.parsCode[ shader || this.shader ] += code + '\n';
+
+		},
+
+
+		addVaryCode: function ( code ) {
+
+			this.addVertexParsCode( code );
+			this.addFragmentParsCode( code );
+
+		},
+
+
+		isCache: function ( name ) {
+
+			return this.caches.indexOf( name ) !== - 1;
+
+		},
+
+		isSlot: function ( name ) {
+
+			return this.slots.indexOf( name ) !== - 1;
+
+		},
+
+		define: function ( name, value ) {
+
+			this.defines[ name ] = value === undefined ? 1 : value;
+
+		},
+
+		require: function ( name ) {
+
+			this.requires[ name ] = true;
+
+		},
+
+		isDefined: function ( name ) {
+
+			return this.defines[ name ] !== undefined;
+
+		},
+
+		getVar: function ( uuid, type, ns, shader, prefix, label ) {
+			if ( shader === void 0 ) shader = 'varying';
+			if ( prefix === void 0 ) prefix = 'V';
+			if ( label === void 0 ) label = '';
+
+
+			var vars = this.getVars( shader ),
+				data = vars[ uuid ];
+
+			if ( ! data ) {
+
+				var index = vars.length,
+					name = ns ? ns : 'node' + prefix + index + ( label ? '_' + label : '' );
+
+				data = { name: name, type: type };
+
+				vars.push( data );
+				vars[ uuid ] = data;
+
+			}
+
+			return data;
+
+		},
+
+		getTempVar: function ( uuid, type, ns, label ) {
+
+			return this.getVar( uuid, type, ns, this.shader, 'T', label );
+
+		},
+
+		getAttribute: function ( name, type ) {
+
+			if ( ! this.attributes[ name ] ) {
+
+				var varying = this.getVar( name, type );
+
+				this.addVertexParsCode( 'attribute ' + type + ' ' + name + ';' );
+				this.addVertexFinalCode( varying.name + ' = ' + name + ';' );
+
+				this.attributes[ name ] = { varying: varying, name: name, type: type };
+
+			}
+
+			return this.attributes[ name ];
+
+		},
+
+		getParsCode: function ( shader ) {
+
+			return [
+				this.prefixCode,
+				this.getVarListCode( this.getVars( 'varying' ), 'varying' ),
+				this.getVarListCode( this.inputs.uniforms[ shader ], 'uniform' ),
+				this.getIncludesCode( 'consts', shader ),
+				this.getIncludesCode( 'structs', shader ),
+				this.getIncludesCode( 'functions', shader )
+			].join( "\n" );
+
+		},
+		
+		getMainCode: function ( shader ) {
+
+			return [
+				this.getVarListCode( this.getVars( shader ) ),
+				this.code[ shader ],
+				this.resultCode[ shader ],
+				this.finalCode[ shader ] ].join( "\n" );
+
+		},
+
+		getCode: function ( shader ) {
+
+			return [
+				this.prefixCode,
+				this.includesCode,
+				this.parsCode[ shader ],
+				this.getVarListCode( this.getVars( 'varying' ), 'varying' ),
+				this.getVarListCode( this.inputs.uniforms[ shader ], 'uniform' ),
+				this.getIncludesCode( 'consts', shader ),
+				this.getIncludesCode( 'structs', shader ),
+				this.getIncludesCode( 'functions', shader ),
+				'void main() {',
+				this.getVarListCode( this.getVars( shader ) ),
+				this.code[ shader ],
+				this.resultCode[ shader ],
+				this.finalCode[ shader ],
+				'}'
+			].join( "\n" );
+
+		},
+
+		getVarListCode: function ( vars, prefix ) {
+
+			prefix = prefix || '';
+
+			var code = '';
+
+			for ( var i = 0, l = vars.length; i < l; ++ i ) {
+
+				var nVar = vars[ i ],
+					type = nVar.type,
+					name = nVar.name;
+
+				var formatType = this.getFormatByType( type );
+
+				if ( formatType === undefined ) {
+
+					throw new Error( "Node pars " + formatType + " not found." );
+
+				}
+
+				code += prefix + ' ' + formatType + ' ' + name + ';\n';
+
+			}
+
+			return code;
+
+		},
+
+		getVars: function ( shader ) {
+
+			return this.inputs.vars[ shader || this.shader ];
+
+		},
+
+		getNodeData: function ( node ) {
+
+			var uuid = node.isNode ? node.uuid : node;
+
+			return this.nodeData[ uuid ] = this.nodeData[ uuid ] || {};
+
+		},
+
+		createUniform: function ( shader, type, node, ns, needsUpdate, label ) {
+
+			var uniforms = this.inputs.uniforms,
+				index = uniforms.list.length;
+
+			var uniform = new NodeUniform( {
+				type: type,
+				name: ns ? ns : 'nodeU' + index + ( label ? '_' + label : '' ),
+				node: node,
+				needsUpdate: needsUpdate
+			} );
+
+			uniforms.list.push( uniform );
+
+			uniforms[ shader ].push( uniform );
+			uniforms[ shader ][ uniform.name ] = uniform;
+
+			this.uniforms[ uniform.name ] = uniform;
+
+			return uniform;
+
+		},
+
+		createVertexUniform: function ( type, node, ns, needsUpdate, label ) {
+
+			return this.createUniform( 'vertex', type, node, ns, needsUpdate, label );
+
+		},
+
+		createFragmentUniform: function ( type, node, ns, needsUpdate, label ) {
+
+			return this.createUniform( 'fragment', type, node, ns, needsUpdate, label );
+
+		},
+
+		include: function ( node, parent, source ) {
+
+			var includesStruct;
+
+			node = typeof node === 'string' ? NodeLib.get( node ) : node;
+
+			if ( this.context.include === false ) {
+
+				return node.name;
+
+			}
+
+
+			if ( node instanceof FunctionNode ) {
+
+				includesStruct = this.includes.functions;
+
+			} else if ( node instanceof ConstNode ) {
+
+				includesStruct = this.includes.consts;
+
+			} else if ( node instanceof StructNode ) {
+
+				includesStruct = this.includes.structs;
+
+			}
+
+			var includes = includesStruct[ this.shader ] = includesStruct[ this.shader ] || [];
+
+			if ( node ) {
+
+				var included = includes[ node.name ];
+
+				if ( ! included ) {
+
+					included = includes[ node.name ] = {
+						node: node,
+						deps: []
+					};
+
+					includes.push( included );
+
+					included.src = node.build( this, 'source' );
+
+				}
+
+				if ( node instanceof FunctionNode && parent && includes[ parent.name ] && includes[ parent.name ].deps.indexOf( node ) == - 1 ) {
+
+					includes[ parent.name ].deps.push( node );
+
+					if ( node.includes && node.includes.length ) {
+
+						var i = 0;
+
+						do {
+
+							this.include( node.includes[ i ++ ], parent );
+
+						} while ( i < node.includes.length );
+
+					}
+
+				}
+
+				if ( source ) {
+
+					included.src = source;
+
+				}
+
+				return node.name;
+
+			} else {
+
+				throw new Error( "Include not found." );
+
+			}
+
+		},
+
+		colorToVectorProperties: function ( color ) {
+
+			return color.replace( 'r', 'x' ).replace( 'g', 'y' ).replace( 'b', 'z' ).replace( 'a', 'w' );
+
+		},
+
+		colorToVector: function ( color ) {
+
+			return color.replace( /c/g, 'v3' );
+
+		},
+
+		getIncludes: function ( type, shader ) {
+
+			return this.includes[ type ][ shader || this.shader ];
+
+		},
+
+		getIncludesCode: function () {
+
+			function sortByPosition( a, b ) {
+
+				return a.deps.length - b.deps.length;
+
+			}
+
+			return function getIncludesCode( type, shader ) {
+
+				var includes = this.getIncludes( type, shader );
+
+				if ( ! includes ) { return ''; }
+
+				var code = '',
+					includes = includes.sort( sortByPosition );
+
+				for ( var i = 0; i < includes.length; i ++ ) {
+
+					if ( includes[ i ].src ) { code += includes[ i ].src + '\n'; }
+
+				}
+
+				return code;
+
+			};
+
+		}(),
+
+		getConstructorFromLength: function ( len ) {
+
+			return constructors[ len - 1 ];
+
+		},
+
+		isTypeMatrix: function ( format ) {
+
+			return /^m/.test( format );
+
+		},
+
+		getTypeLength: function ( type ) {
+
+			if ( type === 'f' ) { return 1; }
+
+			return parseInt( this.colorToVector( type ).substr( 1 ) );
+
+		},
+
+		getTypeFromLength: function ( len ) {
+
+			if ( len === 1 ) { return 'f'; }
+
+			return 'v' + len;
+
+		},
+
+		format: function ( code, from, to ) {
+
+			var typeToType = this.colorToVector( to + ' <- ' + from );
+
+			switch ( typeToType ) {
+
+				case 'f <- v2' : return code + '.x';
+				case 'f <- v3' : return code + '.x';
+				case 'f <- v4' : return code + '.x';
+				case 'f <- i' :
+				case 'f <- b' :	return 'float( ' + code + ' )';
+
+				case 'v2 <- f' : return 'vec2( ' + code + ' )';
+				case 'v2 <- v3': return code + '.xy';
+				case 'v2 <- v4': return code + '.xy';
+				case 'v2 <- i' :
+				case 'v2 <- b' : return 'vec2( float( ' + code + ' ) )';
+
+				case 'v3 <- f' : return 'vec3( ' + code + ' )';
+				case 'v3 <- v2': return 'vec3( ' + code + ', 0.0 )';
+				case 'v3 <- v4': return code + '.xyz';
+				case 'v3 <- i' :
+				case 'v3 <- b' : return 'vec2( float( ' + code + ' ) )';
+
+				case 'v4 <- f' : return 'vec4( ' + code + ' )';
+				case 'v4 <- v2': return 'vec4( ' + code + ', 0.0, 1.0 )';
+				case 'v4 <- v3': return 'vec4( ' + code + ', 1.0 )';
+				case 'v4 <- i' :
+				case 'v4 <- b' : return 'vec4( float( ' + code + ' ) )';
+
+				case 'i <- f' :
+				case 'i <- b' : return 'int( ' + code + ' )';
+				case 'i <- v2' : return 'int( ' + code + '.x )';
+				case 'i <- v3' : return 'int( ' + code + '.x )';
+				case 'i <- v4' : return 'int( ' + code + '.x )';
+
+				case 'b <- f' : return '( ' + code + ' != 0.0 )';
+				case 'b <- v2' : return '( ' + code + ' != vec2( 0.0 ) )';
+				case 'b <- v3' : return '( ' + code + ' != vec3( 0.0 ) )';
+				case 'b <- v4' : return '( ' + code + ' != vec4( 0.0 ) )';
+				case 'b <- i' : return '( ' + code + ' != 0 )';
+
+			}
+
+			return code;
+
+		},
+
+		getTypeByFormat: function ( format ) {
+
+			return convertFormatToType[ format ] || format;
+
+		},
+
+		getFormatByType: function ( type ) {
+
+			return convertTypeToFormat[ type ] || type;
+
+		},
+
+		getUuid: function ( uuid, useCache ) {
+
+			useCache = useCache !== undefined ? useCache : true;
+
+			if ( useCache && this.cache ) { uuid = this.cache + '-' + uuid; }
+
+			return uuid;
+
+		},
+
+		getElementByIndex: function ( index ) {
+
+			return elements[ index ];
+
+		},
+
+		getIndexByElement: function ( elm ) {
+
+			return elements.indexOf( elm );
+
+		},
+
+		getType: function ( value ) {
+
+			if ( typeof value === 'number' ) { return 'f' }
+			else if ( value.isColor ) { return 'c'; }
+
+		},
+
+		isShader: function ( shader ) {
+
+			return this.shader === shader;
+
+		},
+
+		setShader: function ( shader ) {
+
+			this.shader = shader;
+
+			return this;
+
+		},
+
+		mergeDefines: function ( defines ) {
+
+			for ( var name in defines ) {
+
+				this.defines[ name ] = defines[ name ];
+
+			}
+
+			return this.defines;
+
+		},
+
+		mergeUniform: function ( uniforms ) {
+
+			for ( var name in uniforms ) {
+
+				this.uniforms[ name ] = uniforms[ name ];
+
+			}
+
+			return this.uniforms;
+
+		},
+
+		getTextureEncodingFromMap: function ( map ) {
+
+			var encoding;
+
+			if ( ! map ) {
+
+				encoding = LinearEncoding;
+
+			} else if ( map.isTexture ) {
+
+				encoding = map.encoding;
+
+			} else if ( map.isWebGLRenderTarget ) {
+
+				console.warn( "THREE.WebGLPrograms.getTextureEncodingFromMap: don't use render targets as textures. Use their .texture property instead." );
+				encoding = map.texture.encoding;
+
+			}
+
+			if ( encoding === LinearEncoding && this.context.gamma ) {
+
+				encoding = GammaEncoding;
+
+			}
+
+			return encoding;
+
+		}
+
+	};
+
+	/**
 	 * @author mrdoob / http://mrdoob.com/
 	 */
 
@@ -18443,6 +20754,12 @@
 			ShadowMaterial: 'shadow',
 			SpriteMaterial: 'sprite'
 		};
+
+		// sequence is important
+
+		var propertyNames = [
+			"color", "diffuse", "metalness", "roughness"
+		];
 
 		var parameterNames = [
 			"precision", "isWebGL2", "supportsVertexTextures", "outputEncoding", "instancing", "numMultiviewViews",
@@ -18549,6 +20866,80 @@
 
 		}
 
+		function getNodes( material, shaderobject ) {
+
+			var i;
+			var nodes = [];
+			var uniforms = shaderobject.uniforms;
+
+			for ( i = 0; i < propertyNames.length; i ++ ) {
+
+				var property = propertyNames[ i ],
+					value = material[ property ],
+					uniform = uniforms[ property ];
+
+				if ( value !== undefined && value !== null && value.isNode ) {
+
+					uniform.needsUpdate = false;
+
+					nodes.push( {
+						property: property,
+						value: value
+					} );
+
+				}
+
+			}
+
+			if ( nodes.length > 0 ) {
+				
+				var builder = new NodeBuilder();
+				var code = '';
+				
+				// 1 step - analyze
+				
+				builder.setShader( 'fragment' );
+				
+				for ( i = 0; i < nodes.length; i ++ ) {
+					
+					nodes[i].value.analyze( builder );
+					
+				}
+				
+				// 2 step - build / code generation
+				
+				for ( i = 0; i < nodes.length; i ++ ) {
+					
+					var node = nodes[i];
+					
+					var flow = node.value.flow( builder, builder.getType( uniforms[ node.property ].value ) );
+					
+					if (flow.code) {
+						
+						code += "\t" + (flow.code) + ";\n";
+						
+					}
+					
+					code += "\t" + (node.property) + " = " + (flow.result) + ";\n";
+					
+				}
+				
+				// 3 step - update uniforms
+				
+				Object.assign( uniforms, builder.uniforms );
+
+				material.defines.USE_UV = '';
+
+				return {
+					nodes: nodes,
+					parsCode: builder.getParsCode( 'fragment' ),
+					code: code
+				};
+
+			}
+
+		}
+
 		this.getParameters = function ( material, lights, shadows, scene, nClipPlanes, nClipIntersection, object ) {
 
 			var fog = scene.fog;
@@ -18578,6 +20969,8 @@
 			var shaderobject = getShaderObject( material, shaderID );
 			material.onBeforeCompile( shaderobject, renderer );
 
+			var nodes = getNodes( material, shaderobject );
+
 			var currentRenderTarget = renderer.getRenderTarget();
 			var numMultiviewViews = currentRenderTarget && currentRenderTarget.isWebGLMultiviewRenderTarget ? currentRenderTarget.numViews : 0;
 
@@ -18592,6 +20985,8 @@
 				vertexShader: shaderobject.vertexShader,
 				fragmentShader: shaderobject.fragmentShader,
 				defines: material.defines,
+
+				nodes: nodes,
 
 				isRawShaderMaterial: material.isRawShaderMaterial,
 				isShaderMaterial: material.isShaderMaterial,
@@ -24970,35 +27365,33 @@
 
 				if ( materialProperties.program === undefined ) {
 
-					material.needsUpdate = true;
+					initMaterial( material, scene, object );
 
 				} else if ( material.fog && materialProperties.fog !== fog ) {
 
-					material.needsUpdate = true;
+					initMaterial( material, scene, object );
 
 				} else if ( materialProperties.environment !== environment ) {
 
-					material.needsUpdate = true;
+					initMaterial( material, scene, object );
 
 				} else if ( materialProperties.needsLights && ( materialProperties.lightsStateVersion !== lights.state.version ) ) {
 
-					material.needsUpdate = true;
+					initMaterial( material, scene, object );
 
 				} else if ( materialProperties.numClippingPlanes !== undefined &&
 					( materialProperties.numClippingPlanes !== _clipping.numPlanes ||
 					materialProperties.numIntersection !== _clipping.numIntersection ) ) {
 
-					material.needsUpdate = true;
+					initMaterial( material, scene, object );
 
 				} else if ( materialProperties.outputEncoding !== _this.outputEncoding ) {
 
-					material.needsUpdate = true;
+					initMaterial( material, scene, object );
 
 				}
 
-			}
-
-			if ( material.version !== materialProperties.__version ) {
+			} else {
 
 				initMaterial( material, scene, object );
 				materialProperties.__version = material.version;
@@ -25196,91 +27589,9 @@
 
 				}
 
-				// refresh uniforms common to several materials
+				// refresh uniforms common to materials
 
-				if ( fog && material.fog ) {
-
-					refreshUniformsFog( m_uniforms, fog );
-
-				}
-
-				if ( material.isMeshBasicMaterial ) {
-
-					refreshUniformsCommon( m_uniforms, material );
-
-				} else if ( material.isMeshLambertMaterial ) {
-
-					refreshUniformsCommon( m_uniforms, material );
-					refreshUniformsLambert( m_uniforms, material );
-
-				} else if ( material.isMeshToonMaterial ) {
-
-					refreshUniformsCommon( m_uniforms, material );
-					refreshUniformsToon( m_uniforms, material );
-
-				} else if ( material.isMeshPhongMaterial ) {
-
-					refreshUniformsCommon( m_uniforms, material );
-					refreshUniformsPhong( m_uniforms, material );
-
-				} else if ( material.isMeshStandardMaterial ) {
-
-					refreshUniformsCommon( m_uniforms, material, environment );
-
-					if ( material.isMeshPhysicalMaterial ) {
-
-						refreshUniformsPhysical( m_uniforms, material, environment );
-
-					} else {
-
-						refreshUniformsStandard( m_uniforms, material, environment );
-
-					}
-
-				} else if ( material.isMeshMatcapMaterial ) {
-
-					refreshUniformsCommon( m_uniforms, material );
-					refreshUniformsMatcap( m_uniforms, material );
-
-				} else if ( material.isMeshDepthMaterial ) {
-
-					refreshUniformsCommon( m_uniforms, material );
-					refreshUniformsDepth( m_uniforms, material );
-
-				} else if ( material.isMeshDistanceMaterial ) {
-
-					refreshUniformsCommon( m_uniforms, material );
-					refreshUniformsDistance( m_uniforms, material );
-
-				} else if ( material.isMeshNormalMaterial ) {
-
-					refreshUniformsCommon( m_uniforms, material );
-					refreshUniformsNormal( m_uniforms, material );
-
-				} else if ( material.isLineBasicMaterial ) {
-
-					refreshUniformsLine( m_uniforms, material );
-
-					if ( material.isLineDashedMaterial ) {
-
-						refreshUniformsDash( m_uniforms, material );
-
-					}
-
-				} else if ( material.isPointsMaterial ) {
-
-					refreshUniformsPoints( m_uniforms, material );
-
-				} else if ( material.isSpriteMaterial ) {
-
-					refreshUniformsSprites( m_uniforms, material );
-
-				} else if ( material.isShadowMaterial ) {
-
-					m_uniforms.color.value.copy( material.color );
-					m_uniforms.opacity.value = material.opacity;
-
-				}
+				refreshUniforms( m_uniforms, material, scene );
 
 				// RectAreaLight Texture
 				// TODO (mrdoob): Find a nicer implementation
@@ -25332,564 +27643,35 @@
 
 		// Uniforms (refresh uniforms objects)
 
-		function refreshUniformsCommon( uniforms, material, environment ) {
+		function refreshUniforms( uniforms, material, scene ) {
 
-			uniforms.opacity.value = material.opacity;
+			for ( var property in uniforms ) {
 
-			if ( material.color ) {
+				var uniform = uniforms[ property ];
 
-				uniforms.diffuse.value.copy( material.color );
+				if ( uniform.needsUpdate !== false ) {
 
-			}
+					if ( uniform.onUpdate ) {
 
-			if ( material.emissive ) {
+						uniform.onUpdate( uniforms, material, _this, scene );
 
-				uniforms.emissive.value.copy( material.emissive ).multiplyScalar( material.emissiveIntensity );
+					} else if ( material[ property ] !== undefined ) {
 
-			}
+						var value = material[ property ];
 
-			if ( material.map ) {
+						if ( value !== null && ( value.isVector2 || value.isVector3 || value.isVector4 || value.isMatrix3 || value.isMatrix4 ) ) {
 
-				uniforms.map.value = material.map;
+							uniform.value.copy( value );
 
-			}
+						} else {
 
-			if ( material.alphaMap ) {
+							uniform.value = value;
 
-				uniforms.alphaMap.value = material.alphaMap;
+						}
 
-			}
-
-			if ( material.specularMap ) {
-
-				uniforms.specularMap.value = material.specularMap;
-
-			}
-
-			var envMap = material.envMap || environment;
-
-			if ( envMap ) {
-
-				uniforms.envMap.value = envMap;
-
-				// don't flip CubeTexture envMaps, flip everything else:
-				//  WebGLCubeRenderTarget will be flipped for backwards compatibility
-				//  WebGLCubeRenderTarget.texture will be flipped because it's a Texture and NOT a CubeTexture
-				// this check must be handled differently, or removed entirely, if WebGLCubeRenderTarget uses a CubeTexture in the future
-				uniforms.flipEnvMap.value = envMap.isCubeTexture ? - 1 : 1;
-
-				uniforms.reflectivity.value = material.reflectivity;
-				uniforms.refractionRatio.value = material.refractionRatio;
-
-				uniforms.maxMipLevel.value = properties.get( envMap ).__maxMipLevel;
-
-			}
-
-			if ( material.lightMap ) {
-
-				uniforms.lightMap.value = material.lightMap;
-				uniforms.lightMapIntensity.value = material.lightMapIntensity;
-
-			}
-
-			if ( material.aoMap ) {
-
-				uniforms.aoMap.value = material.aoMap;
-				uniforms.aoMapIntensity.value = material.aoMapIntensity;
-
-			}
-
-			// uv repeat and offset setting priorities
-			// 1. color map
-			// 2. specular map
-			// 3. normal map
-			// 4. bump map
-			// 5. alpha map
-			// 6. emissive map
-
-			var uvScaleMap;
-
-			if ( material.map ) {
-
-				uvScaleMap = material.map;
-
-			} else if ( material.specularMap ) {
-
-				uvScaleMap = material.specularMap;
-
-			} else if ( material.displacementMap ) {
-
-				uvScaleMap = material.displacementMap;
-
-			} else if ( material.normalMap ) {
-
-				uvScaleMap = material.normalMap;
-
-			} else if ( material.bumpMap ) {
-
-				uvScaleMap = material.bumpMap;
-
-			} else if ( material.roughnessMap ) {
-
-				uvScaleMap = material.roughnessMap;
-
-			} else if ( material.metalnessMap ) {
-
-				uvScaleMap = material.metalnessMap;
-
-			} else if ( material.alphaMap ) {
-
-				uvScaleMap = material.alphaMap;
-
-			} else if ( material.emissiveMap ) {
-
-				uvScaleMap = material.emissiveMap;
-
-			}
-
-			if ( uvScaleMap !== undefined ) {
-
-				// backwards compatibility
-				if ( uvScaleMap.isWebGLRenderTarget ) {
-
-					uvScaleMap = uvScaleMap.texture;
+					}
 
 				}
-
-				if ( uvScaleMap.matrixAutoUpdate === true ) {
-
-					uvScaleMap.updateMatrix();
-
-				}
-
-				uniforms.uvTransform.value.copy( uvScaleMap.matrix );
-
-			}
-
-			// uv repeat and offset setting priorities for uv2
-			// 1. ao map
-			// 2. light map
-
-			var uv2ScaleMap;
-
-			if ( material.aoMap ) {
-
-				uv2ScaleMap = material.aoMap;
-
-			} else if ( material.lightMap ) {
-
-				uv2ScaleMap = material.lightMap;
-
-			}
-
-			if ( uv2ScaleMap !== undefined ) {
-
-				// backwards compatibility
-				if ( uv2ScaleMap.isWebGLRenderTarget ) {
-
-					uv2ScaleMap = uv2ScaleMap.texture;
-
-				}
-
-				if ( uv2ScaleMap.matrixAutoUpdate === true ) {
-
-					uv2ScaleMap.updateMatrix();
-
-				}
-
-				uniforms.uv2Transform.value.copy( uv2ScaleMap.matrix );
-
-			}
-
-		}
-
-		function refreshUniformsLine( uniforms, material ) {
-
-			uniforms.diffuse.value.copy( material.color );
-			uniforms.opacity.value = material.opacity;
-
-		}
-
-		function refreshUniformsDash( uniforms, material ) {
-
-			uniforms.dashSize.value = material.dashSize;
-			uniforms.totalSize.value = material.dashSize + material.gapSize;
-			uniforms.scale.value = material.scale;
-
-		}
-
-		function refreshUniformsPoints( uniforms, material ) {
-
-			uniforms.diffuse.value.copy( material.color );
-			uniforms.opacity.value = material.opacity;
-			uniforms.size.value = material.size * _pixelRatio;
-			uniforms.scale.value = _height * 0.5;
-
-			if ( material.map ) {
-
-				uniforms.map.value = material.map;
-
-			}
-
-			if ( material.alphaMap ) {
-
-				uniforms.alphaMap.value = material.alphaMap;
-
-			}
-
-			// uv repeat and offset setting priorities
-			// 1. color map
-			// 2. alpha map
-
-			var uvScaleMap;
-
-			if ( material.map ) {
-
-				uvScaleMap = material.map;
-
-			} else if ( material.alphaMap ) {
-
-				uvScaleMap = material.alphaMap;
-
-			}
-
-			if ( uvScaleMap !== undefined ) {
-
-				if ( uvScaleMap.matrixAutoUpdate === true ) {
-
-					uvScaleMap.updateMatrix();
-
-				}
-
-				uniforms.uvTransform.value.copy( uvScaleMap.matrix );
-
-			}
-
-		}
-
-		function refreshUniformsSprites( uniforms, material ) {
-
-			uniforms.diffuse.value.copy( material.color );
-			uniforms.opacity.value = material.opacity;
-			uniforms.rotation.value = material.rotation;
-
-			if ( material.map ) {
-
-				uniforms.map.value = material.map;
-
-			}
-
-			if ( material.alphaMap ) {
-
-				uniforms.alphaMap.value = material.alphaMap;
-
-			}
-
-			// uv repeat and offset setting priorities
-			// 1. color map
-			// 2. alpha map
-
-			var uvScaleMap;
-
-			if ( material.map ) {
-
-				uvScaleMap = material.map;
-
-			} else if ( material.alphaMap ) {
-
-				uvScaleMap = material.alphaMap;
-
-			}
-
-			if ( uvScaleMap !== undefined ) {
-
-				if ( uvScaleMap.matrixAutoUpdate === true ) {
-
-					uvScaleMap.updateMatrix();
-
-				}
-
-				uniforms.uvTransform.value.copy( uvScaleMap.matrix );
-
-			}
-
-		}
-
-		function refreshUniformsFog( uniforms, fog ) {
-
-			uniforms.fogColor.value.copy( fog.color );
-
-			if ( fog.isFog ) {
-
-				uniforms.fogNear.value = fog.near;
-				uniforms.fogFar.value = fog.far;
-
-			} else if ( fog.isFogExp2 ) {
-
-				uniforms.fogDensity.value = fog.density;
-
-			}
-
-		}
-
-		function refreshUniformsLambert( uniforms, material ) {
-
-			if ( material.emissiveMap ) {
-
-				uniforms.emissiveMap.value = material.emissiveMap;
-
-			}
-
-		}
-
-		function refreshUniformsPhong( uniforms, material ) {
-
-			uniforms.specular.value.copy( material.specular );
-			uniforms.shininess.value = Math.max( material.shininess, 1e-4 ); // to prevent pow( 0.0, 0.0 )
-
-			if ( material.emissiveMap ) {
-
-				uniforms.emissiveMap.value = material.emissiveMap;
-
-			}
-
-			if ( material.bumpMap ) {
-
-				uniforms.bumpMap.value = material.bumpMap;
-				uniforms.bumpScale.value = material.bumpScale;
-				if ( material.side === BackSide ) { uniforms.bumpScale.value *= - 1; }
-
-			}
-
-			if ( material.normalMap ) {
-
-				uniforms.normalMap.value = material.normalMap;
-				uniforms.normalScale.value.copy( material.normalScale );
-				if ( material.side === BackSide ) { uniforms.normalScale.value.negate(); }
-
-			}
-
-			if ( material.displacementMap ) {
-
-				uniforms.displacementMap.value = material.displacementMap;
-				uniforms.displacementScale.value = material.displacementScale;
-				uniforms.displacementBias.value = material.displacementBias;
-
-			}
-
-		}
-
-		function refreshUniformsToon( uniforms, material ) {
-
-			uniforms.specular.value.copy( material.specular );
-			uniforms.shininess.value = Math.max( material.shininess, 1e-4 ); // to prevent pow( 0.0, 0.0 )
-
-			if ( material.gradientMap ) {
-
-				uniforms.gradientMap.value = material.gradientMap;
-
-			}
-
-			if ( material.emissiveMap ) {
-
-				uniforms.emissiveMap.value = material.emissiveMap;
-
-			}
-
-			if ( material.bumpMap ) {
-
-				uniforms.bumpMap.value = material.bumpMap;
-				uniforms.bumpScale.value = material.bumpScale;
-				if ( material.side === BackSide ) { uniforms.bumpScale.value *= - 1; }
-
-			}
-
-			if ( material.normalMap ) {
-
-				uniforms.normalMap.value = material.normalMap;
-				uniforms.normalScale.value.copy( material.normalScale );
-				if ( material.side === BackSide ) { uniforms.normalScale.value.negate(); }
-
-			}
-
-			if ( material.displacementMap ) {
-
-				uniforms.displacementMap.value = material.displacementMap;
-				uniforms.displacementScale.value = material.displacementScale;
-				uniforms.displacementBias.value = material.displacementBias;
-
-			}
-
-		}
-
-		function refreshUniformsStandard( uniforms, material, environment ) {
-
-			uniforms.roughness.value = material.roughness;
-			uniforms.metalness.value = material.metalness;
-
-			if ( material.roughnessMap ) {
-
-				uniforms.roughnessMap.value = material.roughnessMap;
-
-			}
-
-			if ( material.metalnessMap ) {
-
-				uniforms.metalnessMap.value = material.metalnessMap;
-
-			}
-
-			if ( material.emissiveMap ) {
-
-				uniforms.emissiveMap.value = material.emissiveMap;
-
-			}
-
-			if ( material.bumpMap ) {
-
-				uniforms.bumpMap.value = material.bumpMap;
-				uniforms.bumpScale.value = material.bumpScale;
-				if ( material.side === BackSide ) { uniforms.bumpScale.value *= - 1; }
-
-			}
-
-			if ( material.normalMap ) {
-
-				uniforms.normalMap.value = material.normalMap;
-				uniforms.normalScale.value.copy( material.normalScale );
-				if ( material.side === BackSide ) { uniforms.normalScale.value.negate(); }
-
-			}
-
-			if ( material.displacementMap ) {
-
-				uniforms.displacementMap.value = material.displacementMap;
-				uniforms.displacementScale.value = material.displacementScale;
-				uniforms.displacementBias.value = material.displacementBias;
-
-			}
-
-			if ( material.envMap || environment ) {
-
-				//uniforms.envMap.value = material.envMap; // part of uniforms common
-				uniforms.envMapIntensity.value = material.envMapIntensity;
-
-			}
-
-		}
-
-		function refreshUniformsPhysical( uniforms, material, environment ) {
-
-			refreshUniformsStandard( uniforms, material, environment );
-
-			uniforms.reflectivity.value = material.reflectivity; // also part of uniforms common
-
-			uniforms.clearcoat.value = material.clearcoat;
-			uniforms.clearcoatRoughness.value = material.clearcoatRoughness;
-			if ( material.sheen ) { uniforms.sheen.value.copy( material.sheen ); }
-
-			if ( material.clearcoatNormalMap ) {
-
-				uniforms.clearcoatNormalScale.value.copy( material.clearcoatNormalScale );
-				uniforms.clearcoatNormalMap.value = material.clearcoatNormalMap;
-
-				if ( material.side === BackSide ) {
-
-					uniforms.clearcoatNormalScale.value.negate();
-
-				}
-
-			}
-
-			uniforms.transparency.value = material.transparency;
-
-		}
-
-		function refreshUniformsMatcap( uniforms, material ) {
-
-			if ( material.matcap ) {
-
-				uniforms.matcap.value = material.matcap;
-
-			}
-
-			if ( material.bumpMap ) {
-
-				uniforms.bumpMap.value = material.bumpMap;
-				uniforms.bumpScale.value = material.bumpScale;
-				if ( material.side === BackSide ) { uniforms.bumpScale.value *= - 1; }
-
-			}
-
-			if ( material.normalMap ) {
-
-				uniforms.normalMap.value = material.normalMap;
-				uniforms.normalScale.value.copy( material.normalScale );
-				if ( material.side === BackSide ) { uniforms.normalScale.value.negate(); }
-
-			}
-
-			if ( material.displacementMap ) {
-
-				uniforms.displacementMap.value = material.displacementMap;
-				uniforms.displacementScale.value = material.displacementScale;
-				uniforms.displacementBias.value = material.displacementBias;
-
-			}
-
-		}
-
-		function refreshUniformsDepth( uniforms, material ) {
-
-			if ( material.displacementMap ) {
-
-				uniforms.displacementMap.value = material.displacementMap;
-				uniforms.displacementScale.value = material.displacementScale;
-				uniforms.displacementBias.value = material.displacementBias;
-
-			}
-
-		}
-
-		function refreshUniformsDistance( uniforms, material ) {
-
-			if ( material.displacementMap ) {
-
-				uniforms.displacementMap.value = material.displacementMap;
-				uniforms.displacementScale.value = material.displacementScale;
-				uniforms.displacementBias.value = material.displacementBias;
-
-			}
-
-			uniforms.referencePosition.value.copy( material.referencePosition );
-			uniforms.nearDistance.value = material.nearDistance;
-			uniforms.farDistance.value = material.farDistance;
-
-		}
-
-		function refreshUniformsNormal( uniforms, material ) {
-
-			if ( material.bumpMap ) {
-
-				uniforms.bumpMap.value = material.bumpMap;
-				uniforms.bumpScale.value = material.bumpScale;
-				if ( material.side === BackSide ) { uniforms.bumpScale.value *= - 1; }
-
-			}
-
-			if ( material.normalMap ) {
-
-				uniforms.normalMap.value = material.normalMap;
-				uniforms.normalScale.value.copy( material.normalScale );
-				if ( material.side === BackSide ) { uniforms.normalScale.value.negate(); }
-
-			}
-
-			if ( material.displacementMap ) {
-
-				uniforms.displacementMap.value = material.displacementMap;
-				uniforms.displacementScale.value = material.displacementScale;
-				uniforms.displacementBias.value = material.displacementBias;
 
 			}
 
@@ -28203,7 +29985,7 @@
 	 * @author Mugen87 / https://github.com/Mugen87
 	 *
 	 * Parametric Surfaces Geometry
-	 * based on the brilliant article by @prideout http://prideout.net/blog/?p=44
+	 * based on the brilliant article by @prideout https://prideout.net/blog/old/blog/index.html@p=44.html
 	 */
 
 	// ParametricGeometry
@@ -30149,8 +31931,8 @@
 	// if one belongs to the outer ring and another to a hole, it merges it into a single ring
 	function splitPolygon( a, b ) {
 
-		var a2 = new Node( a.i, a.x, a.y ),
-			b2 = new Node( b.i, b.x, b.y ),
+		var a2 = new Node$1( a.i, a.x, a.y ),
+			b2 = new Node$1( b.i, b.x, b.y ),
 			an = a.next,
 			bp = b.prev;
 
@@ -30173,7 +31955,7 @@
 	// create a node and optionally link it with previous one (in a circular doubly linked list)
 	function insertNode( i, x, y, last ) {
 
-		var p = new Node( i, x, y );
+		var p = new Node$1( i, x, y );
 
 		if ( ! last ) {
 
@@ -30203,7 +31985,7 @@
 
 	}
 
-	function Node( i, x, y ) {
+	function Node$1( i, x, y ) {
 
 		// vertex index in coordinates array
 		this.i = i;
@@ -32511,7 +34293,6 @@
 
 
 	var Geometries = /*#__PURE__*/Object.freeze({
-		__proto__: null,
 		WireframeGeometry: WireframeGeometry,
 		ParametricGeometry: ParametricGeometry,
 		ParametricBufferGeometry: ParametricBufferGeometry,
@@ -33540,7 +35321,6 @@
 
 
 	var Materials = /*#__PURE__*/Object.freeze({
-		__proto__: null,
 		ShadowMaterial: ShadowMaterial,
 		SpriteMaterial: SpriteMaterial,
 		RawShaderMaterial: RawShaderMaterial,
@@ -33560,6 +35340,4966 @@
 		LineBasicMaterial: LineBasicMaterial,
 		Material: Material
 	});
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function InputNode( type, params ) {
+
+		params = params || {};
+		params.shared = params.shared !== undefined ? params.shared : false;
+
+		TempNode.call( this, type, params );
+
+		this.readonly = false;
+
+	}
+
+	InputNode.prototype = Object.create( TempNode.prototype );
+	InputNode.prototype.constructor = InputNode;
+
+	InputNode.prototype.setReadonly = function ( value ) {
+
+		this.readonly = value;
+
+		return this;
+
+	};
+
+	InputNode.prototype.getReadonly = function ( /* builder */ ) {
+
+		return this.readonly;
+
+	};
+
+	InputNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		if ( source.readonly !== undefined ) { this.readonly = source.readonly; }
+
+		return this;
+
+	};
+
+	InputNode.prototype.createJSONNode = function ( meta ) {
+
+		var data = TempNode.prototype.createJSONNode.call( this, meta );
+
+		if ( this.readonly === true ) { data.readonly = this.readonly; }
+
+		return data;
+
+	};
+
+	InputNode.prototype.generate = function ( builder, output, uuid, type, ns, needsUpdate ) {
+
+		uuid = builder.getUuid( uuid || this.getUuid() );
+		type = type || this.getType( builder );
+
+		var data = builder.getNodeData( uuid ),
+			readonly = this.getReadonly( builder ) && this.generateReadonly !== undefined;
+
+		if ( readonly ) {
+
+			return this.generateReadonly( builder, output, uuid, type, ns, needsUpdate );
+
+		} else {
+
+			if ( builder.isShader( 'vertex' ) ) {
+
+				if ( ! data.vertex ) {
+
+					data.vertex = builder.createVertexUniform( type, this, ns, needsUpdate, this.getLabel() );
+
+				}
+
+				return builder.format( data.vertex.name, type, output );
+
+			} else {
+
+				if ( ! data.fragment ) {
+
+					data.fragment = builder.createFragmentUniform( type, this, ns, needsUpdate, this.getLabel() );
+
+				}
+
+				return builder.format( data.fragment.name, type, output );
+
+			}
+
+		}
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function VarNode( type, value ) {
+
+		Node.call( this, type );
+
+		this.value = value;
+
+	}
+
+	VarNode.prototype = Object.create( Node.prototype );
+	VarNode.prototype.constructor = VarNode;
+	VarNode.prototype.nodeType = "Var";
+
+	VarNode.prototype.getType = function ( builder ) {
+
+		return builder.getTypeByFormat( this.type );
+
+	};
+
+	VarNode.prototype.generate = function ( builder, output ) {
+
+		var varying = builder.getVar( this.uuid, this.type );
+
+		if ( this.value && builder.isShader( 'vertex' ) ) {
+
+			builder.addNodeCode( varying.name + ' = ' + this.value.build( builder, this.getType( builder ) ) + ';' );
+
+		}
+
+		return builder.format( varying.name, this.getType( builder ), output );
+
+	};
+
+	VarNode.prototype.copy = function ( source ) {
+
+		Node.prototype.copy.call( this, source );
+
+		this.type = source.type;
+		this.value = source.value;
+
+		return this;
+
+	};
+
+	VarNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.type = this.type;
+
+			if ( this.value ) { data.value = this.value.toJSON( meta ).uuid; }
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function AttributeNode( name, type ) {
+
+		Node.call( this, type );
+
+		this.name = name;
+
+	}
+
+	AttributeNode.prototype = Object.create( Node.prototype );
+	AttributeNode.prototype.constructor = AttributeNode;
+	AttributeNode.prototype.nodeType = "Attribute";
+
+	AttributeNode.prototype.getAttributeType = function ( builder ) {
+
+		return typeof this.type === 'number' ? builder.getConstructorFromLength( this.type ) : this.type;
+
+	};
+
+	AttributeNode.prototype.getType = function ( builder ) {
+
+		var type = this.getAttributeType( builder );
+
+		return builder.getTypeByFormat( type );
+
+	};
+
+	AttributeNode.prototype.generate = function ( builder, output ) {
+
+		var type = this.getAttributeType( builder );
+
+		var attribute = builder.getAttribute( this.name, type ),
+			name = builder.isShader( 'vertex' ) ? this.name : attribute.varying.name;
+
+		return builder.format( name, this.getType( builder ), output );
+
+	};
+
+	AttributeNode.prototype.copy = function ( source ) {
+
+		Node.prototype.copy.call( this, source );
+
+		this.type = source.type;
+
+		return this;
+
+	};
+
+	AttributeNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.type = this.type;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function ExpressionNode( src, type, keywords, extensions, includes ) {
+
+		FunctionNode.call( this, src, includes, extensions, keywords, type );
+
+	}
+
+	ExpressionNode.prototype = Object.create( FunctionNode.prototype );
+	ExpressionNode.prototype.constructor = ExpressionNode;
+	ExpressionNode.prototype.nodeType = "Expression";
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function FunctionCallNode( func, inputs ) {
+
+		TempNode.call( this );
+
+		this.setFunction( func, inputs );
+
+	}
+
+	FunctionCallNode.prototype = Object.create( TempNode.prototype );
+	FunctionCallNode.prototype.constructor = FunctionCallNode;
+	FunctionCallNode.prototype.nodeType = "FunctionCall";
+
+	FunctionCallNode.prototype.setFunction = function ( func, inputs ) {
+
+		this.value = func;
+		this.inputs = inputs || [];
+
+	};
+
+	FunctionCallNode.prototype.getFunction = function () {
+
+		return this.value;
+
+	};
+
+	FunctionCallNode.prototype.getType = function ( builder ) {
+
+		return this.value.getType( builder );
+
+	};
+
+	FunctionCallNode.prototype.generate = function ( builder, output ) {
+
+		var type = this.getType( builder ),
+			func = this.value;
+
+		var code = func.build( builder, output ) + '( ',
+			params = [];
+
+		for ( var i = 0; i < func.inputs.length; i ++ ) {
+
+			var inpt = func.inputs[ i ],
+				param = this.inputs[ i ] || this.inputs[ inpt.name ];
+
+			params.push( param.build( builder, builder.getTypeByFormat( inpt.type ) ) );
+
+		}
+
+		code += params.join( ', ' ) + ' )';
+
+		return builder.format( code, type, output );
+
+	};
+
+	FunctionCallNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		for ( var prop in source.inputs ) {
+
+			this.inputs[ prop ] = source.inputs[ prop ];
+
+		}
+
+		this.value = source.value;
+
+		return this;
+
+	};
+
+	FunctionCallNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			var func = this.value;
+
+			data = this.createJSONNode( meta );
+
+			data.value = this.value.toJSON( meta ).uuid;
+
+			if ( func.inputs.length ) {
+
+				data.inputs = {};
+
+				for ( var i = 0; i < func.inputs.length; i ++ ) {
+
+					var inpt = func.inputs[ i ],
+						node = this.inputs[ i ] || this.inputs[ inpt.name ];
+
+					data.inputs[ inpt.name ] = node.toJSON( meta ).uuid;
+
+				}
+
+			}
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function NodeFrame( time ) {
+
+		this.time = time !== undefined ? time : 0;
+
+		this.id = 0;
+
+	}
+
+	NodeFrame.prototype = {
+
+		constructor: NodeFrame,
+
+		update: function ( delta ) {
+
+			++ this.id;
+
+			this.time += delta;
+			this.delta = delta;
+
+			return this;
+
+		},
+
+		setRenderer: function ( renderer ) {
+
+			this.renderer = renderer;
+
+			return this;
+
+		},
+
+		setRenderTexture: function ( renderTexture ) {
+
+			this.renderTexture = renderTexture;
+
+			return this;
+
+		},
+
+		updateNode: function ( node ) {
+
+			if ( node.frameId === this.id ) { return this; }
+
+			node.updateFrame( this );
+
+			node.frameId = this.id;
+
+			return this;
+
+		}
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function BoolNode( value ) {
+
+		InputNode.call( this, 'b' );
+
+		this.value = Boolean( value );
+
+	}
+
+	BoolNode.prototype = Object.create( InputNode.prototype );
+	BoolNode.prototype.constructor = BoolNode;
+	BoolNode.prototype.nodeType = "Bool";
+
+	BoolNode.prototype.generateReadonly = function ( builder, output, uuid, type/*, ns, needsUpdate */ ) {
+
+		return builder.format( this.value, type, output );
+
+	};
+
+	BoolNode.prototype.copy = function ( source ) {
+
+		InputNode.prototype.copy.call( this, source );
+
+		this.value = source.value;
+
+		return this;
+
+	};
+
+	BoolNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.value = this.value;
+
+			if ( this.readonly === true ) { data.readonly = true; }
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function IntNode( value ) {
+
+		InputNode.call( this, 'i' );
+
+		this.value = Math.floor( value || 0 );
+
+	}
+
+	IntNode.prototype = Object.create( InputNode.prototype );
+	IntNode.prototype.constructor = IntNode;
+	IntNode.prototype.nodeType = "Int";
+
+	IntNode.prototype.generateReadonly = function ( builder, output, uuid, type/*, ns, needsUpdate */ ) {
+
+		return builder.format( this.value, type, output );
+
+	};
+
+	IntNode.prototype.copy = function ( source ) {
+
+		InputNode.prototype.copy.call( this, source );
+
+		this.value = source.value;
+
+		return this;
+
+	};
+
+	IntNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.value = this.value;
+
+			if ( this.readonly === true ) { data.readonly = true; }
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function FloatNode( value ) {
+
+		InputNode.call( this, 'f' );
+
+		this.value = value || 0;
+
+	}
+
+	FloatNode.prototype = Object.create( InputNode.prototype );
+	FloatNode.prototype.constructor = FloatNode;
+	FloatNode.prototype.nodeType = "Float";
+
+	FloatNode.prototype.generateReadonly = function ( builder, output, uuid, type/*, ns, needsUpdate */ ) {
+
+		return builder.format( this.value + ( this.value % 1 ? '' : '.0' ), type, output );
+
+	};
+
+	FloatNode.prototype.copy = function ( source ) {
+
+		InputNode.prototype.copy.call( this, source );
+
+		this.value = source.value;
+
+		return this;
+
+	};
+
+	FloatNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.value = this.value;
+
+			if ( this.readonly === true ) { data.readonly = true; }
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function Vector2Node( x, y ) {
+
+		InputNode.call( this, 'v2' );
+
+		this.value = x instanceof Vector2 ? x : new Vector2( x, y );
+
+	}
+
+	Vector2Node.prototype = Object.create( InputNode.prototype );
+	Vector2Node.prototype.constructor = Vector2Node;
+	Vector2Node.prototype.nodeType = "Vector2";
+
+	NodeUtils.addShortcuts( Vector2Node.prototype, 'value', [ 'x', 'y' ] );
+
+	Vector2Node.prototype.generateReadonly = function ( builder, output, uuid, type/*, ns, needsUpdate*/ ) {
+
+		return builder.format( "vec2( " + this.x + ", " + this.y + " )", type, output );
+
+	};
+
+	Vector2Node.prototype.copy = function ( source ) {
+
+		InputNode.prototype.copy.call( this, source );
+
+		this.value.copy( source );
+
+		return this;
+
+	};
+
+	Vector2Node.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.x = this.x;
+			data.y = this.y;
+
+			if ( this.readonly === true ) { data.readonly = true; }
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function Vector3Node( x, y, z ) {
+
+		InputNode.call( this, 'v3' );
+
+		this.value = x instanceof Vector3 ? x : new Vector3( x, y, z );
+
+	}
+
+	Vector3Node.prototype = Object.create( InputNode.prototype );
+	Vector3Node.prototype.constructor = Vector3Node;
+	Vector3Node.prototype.nodeType = "Vector3";
+
+	NodeUtils.addShortcuts( Vector3Node.prototype, 'value', [ 'x', 'y', 'z' ] );
+
+	Vector3Node.prototype.generateReadonly = function ( builder, output, uuid, type/*, ns, needsUpdate*/ ) {
+
+		return builder.format( "vec3( " + this.x + ", " + this.y + ", " + this.z + " )", type, output );
+
+	};
+
+	Vector3Node.prototype.copy = function ( source ) {
+
+		InputNode.prototype.copy.call( this, source );
+
+		this.value.copy( source );
+
+		return this;
+
+	};
+
+	Vector3Node.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.x = this.x;
+			data.y = this.y;
+			data.z = this.z;
+
+			if ( this.readonly === true ) { data.readonly = true; }
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function Vector4Node( x, y, z, w ) {
+
+		InputNode.call( this, 'v4' );
+
+		this.value = x instanceof Vector4 ? x : new Vector4( x, y, z, w );
+
+	}
+
+	Vector4Node.prototype = Object.create( InputNode.prototype );
+	Vector4Node.prototype.constructor = Vector4Node;
+	Vector4Node.prototype.nodeType = "Vector4";
+
+	NodeUtils.addShortcuts( Vector4Node.prototype, 'value', [ 'x', 'y', 'z', 'w' ] );
+
+	Vector4Node.prototype.generateReadonly = function ( builder, output, uuid, type/*, ns, needsUpdate*/ ) {
+
+		return builder.format( "vec4( " + this.x + ", " + this.y + ", " + this.z + ", " + this.w + " )", type, output );
+
+	};
+
+	Vector4Node.prototype.copy = function ( source ) {
+
+		InputNode.prototype.copy.call( this, source );
+
+		this.value.copy( source );
+
+		return this;
+
+	};
+
+	Vector4Node.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.x = this.x;
+			data.y = this.y;
+			data.z = this.z;
+			data.w = this.w;
+
+			if ( this.readonly === true ) { data.readonly = true; }
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function ColorNode( color, g, b ) {
+
+		InputNode.call( this, 'c' );
+
+		this.value = color instanceof Color ? color : new Color( color || 0, g, b );
+
+	}
+
+	ColorNode.prototype = Object.create( InputNode.prototype );
+	ColorNode.prototype.constructor = ColorNode;
+	ColorNode.prototype.nodeType = "Color";
+
+	NodeUtils.addShortcuts( ColorNode.prototype, 'value', [ 'r', 'g', 'b' ] );
+
+	ColorNode.prototype.generateReadonly = function ( builder, output, uuid, type/*, ns, needsUpdate */ ) {
+
+		return builder.format( "vec3( " + this.r + ", " + this.g + ", " + this.b + " )", type, output );
+
+	};
+
+	ColorNode.prototype.copy = function ( source ) {
+
+		InputNode.prototype.copy.call( this, source );
+
+		this.value.copy( source );
+
+		return this;
+
+	};
+
+	ColorNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.r = this.r;
+			data.g = this.g;
+			data.b = this.b;
+
+			if ( this.readonly === true ) { data.readonly = true; }
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function Matrix3Node( matrix ) {
+
+		InputNode.call( this, 'm3' );
+
+		this.value = matrix || new Matrix3();
+
+	}
+
+	Matrix3Node.prototype = Object.create( InputNode.prototype );
+	Matrix3Node.prototype.constructor = Matrix3Node;
+	Matrix3Node.prototype.nodeType = "Matrix3";
+
+	Object.defineProperties( Matrix3Node.prototype, {
+
+		elements: {
+
+			set: function ( val ) {
+
+				this.value.elements = val;
+
+			},
+
+			get: function () {
+
+				return this.value.elements;
+
+			}
+
+		}
+
+	} );
+
+	Matrix3Node.prototype.generateReadonly = function ( builder, output, uuid, type/*, ns, needsUpdate */ ) {
+
+		return builder.format( "mat3( " + this.value.elements.join( ", " ) + " )", type, output );
+
+	};
+
+
+	Matrix3Node.prototype.copy = function ( source ) {
+
+		InputNode.prototype.copy.call( this, source );
+
+		this.value.fromArray( source.elements );
+
+		return this;
+
+	};
+
+	Matrix3Node.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.elements = this.value.elements.concat();
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function Matrix4Node( matrix ) {
+
+		InputNode.call( this, 'm4' );
+
+		this.value = matrix || new Matrix4();
+
+	}
+
+	Matrix4Node.prototype = Object.create( InputNode.prototype );
+	Matrix4Node.prototype.constructor = Matrix4Node;
+	Matrix4Node.prototype.nodeType = "Matrix4";
+
+	Object.defineProperties( Matrix4Node.prototype, {
+
+		elements: {
+
+			set: function ( val ) {
+
+				this.value.elements = val;
+
+			},
+
+			get: function () {
+
+				return this.value.elements;
+
+			}
+
+		}
+
+	} );
+
+	Matrix4Node.prototype.generateReadonly = function ( builder, output, uuid, type /*, ns, needsUpdate */ ) {
+
+		return builder.format( "mat4( " + this.value.elements.join( ", " ) + " )", type, output );
+
+	};
+
+	Matrix4Node.prototype.copy = function ( source ) {
+
+		InputNode.prototype.copy.call( this, source );
+
+		this.scope.value.fromArray( source.elements );
+
+		return this;
+
+	};
+
+	Matrix4Node.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.elements = this.value.elements.concat();
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function UVNode( index ) {
+
+		TempNode.call( this, 'v2', { shared: false } );
+
+		this.index = index || 0;
+
+	}
+
+	UVNode.prototype = Object.create( TempNode.prototype );
+	UVNode.prototype.constructor = UVNode;
+	UVNode.prototype.nodeType = "UV";
+
+	UVNode.prototype.generate = function ( builder, output ) {
+
+		builder.requires.uv[ this.index ] = true;
+
+		var uvIndex = this.index > 0 ? this.index + 1 : '';
+		var result = builder.isShader( 'vertex' ) ? 'uv' + uvIndex : 'vUv' + uvIndex;
+
+		return builder.format( result, this.getType( builder ), output );
+
+	};
+
+	UVNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.index = source.index;
+
+		return this;
+
+	};
+
+	UVNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.index = this.index;
+
+		}
+
+		return data;
+
+	};
+
+	NodeLib.addKeyword( 'uv', function () {
+
+		return new UVNode();
+
+	} );
+
+	NodeLib.addKeyword( 'uv2', function () {
+
+		return new UVNode( 1 );
+
+	} );
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function ColorSpaceNode( input, method ) {
+
+		TempNode.call( this, 'v4' );
+
+		this.input = input;
+
+		this.method = method || ColorSpaceNode.LINEAR_TO_LINEAR;
+
+	}
+
+	ColorSpaceNode.Nodes = ( function () {
+
+		// For a discussion of what this is, please read this: http://lousodrome.net/blog/light/2013/05/26/gamma-correct-and-hdr-rendering-in-a-32-bits-buffer/
+
+		var LinearToLinear = new FunctionNode( [
+			"vec4 LinearToLinear( in vec4 value ) {",
+
+			"	return value;",
+
+			"}"
+		].join( "\n" ) );
+
+		var GammaToLinear = new FunctionNode( [
+			"vec4 GammaToLinear( in vec4 value, in float gammaFactor ) {",
+
+			"	return vec4( pow( value.xyz, vec3( gammaFactor ) ), value.w );",
+
+			"}"
+		].join( "\n" ) );
+
+		var LinearToGamma = new FunctionNode( [
+			"vec4 LinearToGamma( in vec4 value, in float gammaFactor ) {",
+
+			"	return vec4( pow( value.xyz, vec3( 1.0 / gammaFactor ) ), value.w );",
+
+			"}"
+		].join( "\n" ) );
+
+		var sRGBToLinear = new FunctionNode( [
+			"vec4 sRGBToLinear( in vec4 value ) {",
+
+			"	return vec4( mix( pow( value.rgb * 0.9478672986 + vec3( 0.0521327014 ), vec3( 2.4 ) ), value.rgb * 0.0773993808, vec3( lessThanEqual( value.rgb, vec3( 0.04045 ) ) ) ), value.w );",
+
+			"}"
+		].join( "\n" ) );
+
+		var LinearTosRGB = new FunctionNode( [
+			"vec4 LinearTosRGB( in vec4 value ) {",
+
+			"	return vec4( mix( pow( value.rgb, vec3( 0.41666 ) ) * 1.055 - vec3( 0.055 ), value.rgb * 12.92, vec3( lessThanEqual( value.rgb, vec3( 0.0031308 ) ) ) ), value.w );",
+
+			"}"
+		].join( "\n" ) );
+
+		var RGBEToLinear = new FunctionNode( [
+			"vec4 RGBEToLinear( in vec4 value ) {",
+
+			"	return vec4( value.rgb * exp2( value.a * 255.0 - 128.0 ), 1.0 );",
+
+			"}"
+		].join( "\n" ) );
+
+		var LinearToRGBE = new FunctionNode( [
+			"vec4 LinearToRGBE( in vec4 value ) {",
+
+			"	float maxComponent = max( max( value.r, value.g ), value.b );",
+			"	float fExp = clamp( ceil( log2( maxComponent ) ), -128.0, 127.0 );",
+			"	return vec4( value.rgb / exp2( fExp ), ( fExp + 128.0 ) / 255.0 );",
+			//  return vec4( value.brg, ( 3.0 + 128.0 ) / 256.0 );
+
+			"}"
+		].join( "\n" ) );
+
+		// reference: http://iwasbeingirony.blogspot.ca/2010/06/difference-between-rgbm-and-rgbd.html
+
+		var RGBMToLinear = new FunctionNode( [
+			"vec3 RGBMToLinear( in vec4 value, in float maxRange ) {",
+
+			"	return vec4( value.xyz * value.w * maxRange, 1.0 );",
+
+			"}"
+		].join( "\n" ) );
+
+		var LinearToRGBM = new FunctionNode( [
+			"vec3 LinearToRGBM( in vec4 value, in float maxRange ) {",
+
+			"	float maxRGB = max( value.x, max( value.g, value.b ) );",
+			"	float M      = clamp( maxRGB / maxRange, 0.0, 1.0 );",
+			"	M            = ceil( M * 255.0 ) / 255.0;",
+			"	return vec4( value.rgb / ( M * maxRange ), M );",
+
+			"}"
+		].join( "\n" ) );
+
+		// reference: http://iwasbeingirony.blogspot.ca/2010/06/difference-between-rgbm-and-rgbd.html
+
+		var RGBDToLinear = new FunctionNode( [
+			"vec3 RGBDToLinear( in vec4 value, in float maxRange ) {",
+
+			"	return vec4( value.rgb * ( ( maxRange / 255.0 ) / value.a ), 1.0 );",
+
+			"}"
+		].join( "\n" ) );
+
+
+		var LinearToRGBD = new FunctionNode( [
+			"vec3 LinearToRGBD( in vec4 value, in float maxRange ) {",
+
+			"	float maxRGB = max( value.x, max( value.g, value.b ) );",
+			"	float D      = max( maxRange / maxRGB, 1.0 );",
+			"	D            = clamp( floor( D ) / 255.0, 0.0, 1.0 );",
+			"	return vec4( value.rgb * ( D * ( 255.0 / maxRange ) ), D );",
+
+			"}"
+		].join( "\n" ) );
+
+		// LogLuv reference: http://graphicrants.blogspot.ca/2009/04/rgbm-color-encoding.html
+
+		// M matrix, for encoding
+
+		var cLogLuvM = new ConstNode( "const mat3 cLogLuvM = mat3( 0.2209, 0.3390, 0.4184, 0.1138, 0.6780, 0.7319, 0.0102, 0.1130, 0.2969 );" );
+
+		var LinearToLogLuv = new FunctionNode( [
+			"vec4 LinearToLogLuv( in vec4 value ) {",
+
+			"	vec3 Xp_Y_XYZp = cLogLuvM * value.rgb;",
+			"	Xp_Y_XYZp = max(Xp_Y_XYZp, vec3(1e-6, 1e-6, 1e-6));",
+			"	vec4 vResult;",
+			"	vResult.xy = Xp_Y_XYZp.xy / Xp_Y_XYZp.z;",
+			"	float Le = 2.0 * log2(Xp_Y_XYZp.y) + 127.0;",
+			"	vResult.w = fract(Le);",
+			"	vResult.z = (Le - (floor(vResult.w*255.0))/255.0)/255.0;",
+			"	return vResult;",
+
+			"}"
+		].join( "\n" ), [ cLogLuvM ] );
+
+		// Inverse M matrix, for decoding
+
+		var cLogLuvInverseM = new ConstNode( "const mat3 cLogLuvInverseM = mat3( 6.0014, -2.7008, -1.7996, -1.3320, 3.1029, -5.7721, 0.3008, -1.0882, 5.6268 );" );
+
+		var LogLuvToLinear = new FunctionNode( [
+			"vec4 LogLuvToLinear( in vec4 value ) {",
+
+			"	float Le = value.z * 255.0 + value.w;",
+			"	vec3 Xp_Y_XYZp;",
+			"	Xp_Y_XYZp.y = exp2((Le - 127.0) / 2.0);",
+			"	Xp_Y_XYZp.z = Xp_Y_XYZp.y / value.y;",
+			"	Xp_Y_XYZp.x = value.x * Xp_Y_XYZp.z;",
+			"	vec3 vRGB = cLogLuvInverseM * Xp_Y_XYZp.rgb;",
+			"	return vec4( max(vRGB, 0.0), 1.0 );",
+
+			"}"
+		].join( "\n" ), [ cLogLuvInverseM ] );
+
+		return {
+			LinearToLinear: LinearToLinear,
+			GammaToLinear: GammaToLinear,
+			LinearToGamma: LinearToGamma,
+			sRGBToLinear: sRGBToLinear,
+			LinearTosRGB: LinearTosRGB,
+			RGBEToLinear: RGBEToLinear,
+			LinearToRGBE: LinearToRGBE,
+			RGBMToLinear: RGBMToLinear,
+			LinearToRGBM: LinearToRGBM,
+			RGBDToLinear: RGBDToLinear,
+			LinearToRGBD: LinearToRGBD,
+			cLogLuvM: cLogLuvM,
+			LinearToLogLuv: LinearToLogLuv,
+			cLogLuvInverseM: cLogLuvInverseM,
+			LogLuvToLinear: LogLuvToLinear
+		};
+
+	} )();
+
+	ColorSpaceNode.LINEAR_TO_LINEAR = 'LinearToLinear';
+
+	ColorSpaceNode.GAMMA_TO_LINEAR = 'GammaToLinear';
+	ColorSpaceNode.LINEAR_TO_GAMMA = 'LinearToGamma';
+
+	ColorSpaceNode.SRGB_TO_LINEAR = 'sRGBToLinear';
+	ColorSpaceNode.LINEAR_TO_SRGB = 'LinearTosRGB';
+
+	ColorSpaceNode.RGBE_TO_LINEAR = 'RGBEToLinear';
+	ColorSpaceNode.LINEAR_TO_RGBE = 'LinearToRGBE';
+
+	ColorSpaceNode.RGBM_TO_LINEAR = 'RGBMToLinear';
+	ColorSpaceNode.LINEAR_TO_RGBM = 'LinearToRGBM';
+
+	ColorSpaceNode.RGBD_TO_LINEAR = 'RGBDToLinear';
+	ColorSpaceNode.LINEAR_TO_RGBD = 'LinearToRGBD';
+
+	ColorSpaceNode.LINEAR_TO_LOG_LUV = 'LinearToLogLuv';
+	ColorSpaceNode.LOG_LUV_TO_LINEAR = 'LogLuvToLinear';
+
+	ColorSpaceNode.getEncodingComponents = function ( encoding ) {
+
+		switch ( encoding ) {
+
+			case LinearEncoding:
+				return [ 'Linear' ];
+			case sRGBEncoding:
+				return [ 'sRGB' ];
+			case RGBEEncoding:
+				return [ 'RGBE' ];
+			case RGBM7Encoding:
+				return [ 'RGBM', new FloatNode( 7.0 ).setReadonly( true ) ];
+			case RGBM16Encoding:
+				return [ 'RGBM', new FloatNode( 16.0 ).setReadonly( true ) ];
+			case RGBDEncoding:
+				return [ 'RGBD', new FloatNode( 256.0 ).setReadonly( true ) ];
+			case GammaEncoding:
+				return [ 'Gamma', new ExpressionNode( 'float( GAMMA_FACTOR )', 'f' ) ];
+
+		}
+
+	};
+
+	ColorSpaceNode.prototype = Object.create( TempNode.prototype );
+	ColorSpaceNode.prototype.constructor = ColorSpaceNode;
+	ColorSpaceNode.prototype.nodeType = "ColorSpace";
+
+	ColorSpaceNode.prototype.generate = function ( builder, output ) {
+
+		var input = this.input.build( builder, 'v4' );
+		var outputType = this.getType( builder );
+
+		var methodNode = ColorSpaceNode.Nodes[ this.method ];
+		var method = builder.include( methodNode );
+
+		if ( method === ColorSpaceNode.LINEAR_TO_LINEAR ) {
+
+			return builder.format( input, outputType, output );
+
+		} else {
+
+			if ( methodNode.inputs.length === 2 ) {
+
+				var factor = this.factor.build( builder, 'f' );
+
+				return builder.format( method + '( ' + input + ', ' + factor + ' )', outputType, output );
+
+			} else {
+
+				return builder.format( method + '( ' + input + ' )', outputType, output );
+
+			}
+
+		}
+
+	};
+
+	ColorSpaceNode.prototype.fromEncoding = function ( encoding ) {
+
+		var components = ColorSpaceNode.getEncodingComponents( encoding );
+
+		this.method = 'LinearTo' + components[ 0 ];
+		this.factor = components[ 1 ];
+
+	};
+
+	ColorSpaceNode.prototype.fromDecoding = function ( encoding ) {
+
+		var components = ColorSpaceNode.getEncodingComponents( encoding );
+
+		this.method = components[ 0 ] + 'ToLinear';
+		this.factor = components[ 1 ];
+
+	};
+
+	ColorSpaceNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.input = source.input;
+		this.method = source.method;
+
+		return this;
+
+	};
+
+	ColorSpaceNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.input = this.input.toJSON( meta ).uuid;
+			data.method = this.method;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function TextureNode( value, uv, bias, project ) {
+
+		InputNode.call( this, 'v4', { shared: true } );
+
+		this.value = value;
+		this.uv = uv || new UVNode();
+		this.bias = bias;
+		this.project = project !== undefined ? project : false;
+
+	}
+
+	TextureNode.prototype = Object.create( InputNode.prototype );
+	TextureNode.prototype.constructor = TextureNode;
+	TextureNode.prototype.nodeType = "Texture";
+
+	TextureNode.prototype.getTexture = function ( builder, output ) {
+
+		return InputNode.prototype.generate.call( this, builder, output, this.value.uuid, 't' );
+
+	};
+
+	TextureNode.prototype.generate = function ( builder, output ) {
+
+		if ( output === 'sampler2D' ) {
+
+			return this.getTexture( builder, output );
+
+		}
+
+		var tex = this.getTexture( builder, output ),
+			uv = this.uv.build( builder, this.project ? 'v4' : 'v2' ),
+			bias = this.bias ? this.bias.build( builder, 'f' ) : undefined;
+
+		if ( bias === undefined && builder.context.bias ) {
+
+			bias = builder.context.bias.setTexture( this ).build( builder, 'f' );
+
+		}
+
+		var method, code;
+
+		if ( this.project ) { method = 'texture2DProj'; }
+		else { method = bias ? 'tex2DBias' : 'tex2D'; }
+
+		if ( bias ) { code = method + '( ' + tex + ', ' + uv + ', ' + bias + ' )'; }
+		else { code = method + '( ' + tex + ', ' + uv + ' )'; }
+
+		// add a custom context for fix incompatibility with the core
+		// include ColorSpace function only for vertex shader (in fragment shader color space functions is added automatically by core)
+		// this should be removed in the future
+		// context.include is used to include or not functions if used FunctionNode
+		// context.ignoreCache =: not create temp variables nodeT0..9 to optimize the code
+		var context = { include: builder.isShader( 'vertex' ), ignoreCache: true };
+		var outputType = this.getType( builder );
+
+		builder.addContext( context );
+
+		this.colorSpace = this.colorSpace || new ColorSpaceNode( new ExpressionNode( '', outputType ) );
+		this.colorSpace.fromDecoding( builder.getTextureEncodingFromMap( this.value ) );
+		this.colorSpace.input.parse( code );
+
+		code = this.colorSpace.build( builder, outputType );
+
+		// end custom context
+
+		builder.removeContext();
+
+		return builder.format( code, outputType, output );
+
+	};
+
+	TextureNode.prototype.copy = function ( source ) {
+
+		InputNode.prototype.copy.call( this, source );
+
+		if ( source.value ) { this.value = source.value; }
+
+		this.uv = source.uv;
+
+		if ( source.bias ) { this.bias = source.bias; }
+		if ( source.project !== undefined ) { this.project = source.project; }
+
+		return this;
+
+	};
+
+	TextureNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			if ( this.value ) { data.value = this.value.uuid; }
+
+			data.uv = this.uv.toJSON( meta ).uuid;
+			data.project = this.project;
+
+			if ( this.bias ) { data.bias = this.bias.toJSON( meta ).uuid; }
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function PositionNode( scope ) {
+
+		TempNode.call( this, 'v3' );
+
+		this.scope = scope || PositionNode.LOCAL;
+
+	}
+
+	PositionNode.LOCAL = 'local';
+	PositionNode.WORLD = 'world';
+	PositionNode.VIEW = 'view';
+	PositionNode.PROJECTION = 'projection';
+
+	PositionNode.prototype = Object.create( TempNode.prototype );
+	PositionNode.prototype.constructor = PositionNode;
+	PositionNode.prototype.nodeType = "Position";
+
+	PositionNode.prototype.getType = function ( ) {
+
+		switch ( this.scope ) {
+
+			case PositionNode.PROJECTION:
+
+				return 'v4';
+
+		}
+
+		return this.type;
+
+	};
+
+	PositionNode.prototype.getShared = function ( /* builder */ ) {
+
+		switch ( this.scope ) {
+
+			case PositionNode.LOCAL:
+			case PositionNode.WORLD:
+
+				return false;
+
+		}
+
+		return true;
+
+	};
+
+	PositionNode.prototype.generate = function ( builder, output ) {
+
+		var result;
+
+		switch ( this.scope ) {
+
+			case PositionNode.LOCAL:
+
+				if ( builder.isShader( 'vertex' ) ) {
+
+					result = 'transformed';
+
+				} else {
+
+					builder.requires.position = true;
+
+					result = 'vPosition';
+
+				}
+
+				break;
+
+			case PositionNode.WORLD:
+
+				if ( builder.isShader( 'vertex' ) ) {
+
+					return '( modelMatrix * vec4( transformed, 1.0 ) ).xyz';
+
+				} else {
+
+					builder.requires.worldPosition = true;
+
+					result = 'vWPosition';
+
+				}
+
+				break;
+
+			case PositionNode.VIEW:
+
+				result = builder.isShader( 'vertex' ) ? '-mvPosition.xyz' : 'vViewPosition';
+
+				break;
+
+			case PositionNode.PROJECTION:
+
+				result = builder.isShader( 'vertex' ) ? '( projectionMatrix * modelViewMatrix * vec4( position, 1.0 ) )' : 'vec4( 0.0 )';
+
+				break;
+
+		}
+
+		return builder.format( result, this.getType( builder ), output );
+
+	};
+
+	PositionNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.scope = source.scope;
+
+		return this;
+
+	};
+
+	PositionNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.scope = this.scope;
+
+		}
+
+		return data;
+
+	};
+
+	NodeLib.addKeyword( 'position', function () {
+
+		return new PositionNode();
+
+	} );
+
+	NodeLib.addKeyword( 'worldPosition', function () {
+
+		return new PositionNode( PositionNode.WORLD );
+
+	} );
+
+	NodeLib.addKeyword( 'viewPosition', function () {
+
+		return new PositionNode( PositionNode.VIEW );
+
+	} );
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function NormalNode( scope ) {
+
+		TempNode.call( this, 'v3' );
+
+		this.scope = scope || NormalNode.VIEW;
+
+	}
+
+	NormalNode.LOCAL = 'local';
+	NormalNode.WORLD = 'world';
+	NormalNode.VIEW = 'view';
+
+	NormalNode.prototype = Object.create( TempNode.prototype );
+	NormalNode.prototype.constructor = NormalNode;
+	NormalNode.prototype.nodeType = "Normal";
+
+	NormalNode.prototype.getShared = function () {
+
+		// if shared is false, TempNode will not create temp variable (for optimization)
+
+		return this.scope === NormalNode.WORLD;
+
+	};
+
+	NormalNode.prototype.generate = function ( builder, output ) {
+
+		var result;
+
+		switch ( this.scope ) {
+
+			case NormalNode.VIEW:
+
+				if ( builder.isShader( 'vertex' ) ) { result = 'transformedNormal'; }
+				else { result = 'geometryNormal'; }
+
+				break;
+
+			case NormalNode.LOCAL:
+
+				if ( builder.isShader( 'vertex' ) ) {
+
+					result = 'objectNormal';
+
+				} else {
+
+					builder.requires.normal = true;
+
+					result = 'vObjectNormal';
+
+				}
+
+				break;
+
+			case NormalNode.WORLD:
+
+				if ( builder.isShader( 'vertex' ) ) {
+
+					result = 'inverseTransformDirection( transformedNormal, viewMatrix ).xyz';
+
+				} else {
+
+					builder.requires.worldNormal = true;
+
+					result = 'vWNormal';
+
+				}
+
+				break;
+
+		}
+
+		return builder.format( result, this.getType( builder ), output );
+
+	};
+
+	NormalNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.scope = source.scope;
+
+		return this;
+
+	};
+
+	NormalNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.scope = this.scope;
+
+		}
+
+		return data;
+
+	};
+
+	NodeLib.addKeyword( 'viewNormal', function () {
+
+		return new NormalNode( NormalNode.VIEW );
+
+	} );
+
+	NodeLib.addKeyword( 'localNormal', function () {
+
+		return new NormalNode( NormalNode.NORMAL );
+
+	} );
+
+	NodeLib.addKeyword( 'worldNormal', function () {
+
+		return new NormalNode( NormalNode.WORLD );
+
+	} );
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function ReflectNode( scope ) {
+
+		TempNode.call( this, 'v3' );
+
+		this.scope = scope || ReflectNode.CUBE;
+
+	}
+
+	ReflectNode.CUBE = 'cube';
+	ReflectNode.SPHERE = 'sphere';
+	ReflectNode.VECTOR = 'vector';
+
+	ReflectNode.prototype = Object.create( TempNode.prototype );
+	ReflectNode.prototype.constructor = ReflectNode;
+	ReflectNode.prototype.nodeType = "Reflect";
+
+	ReflectNode.prototype.getUnique = function ( builder ) {
+
+		return ! builder.context.viewNormal;
+
+	};
+
+	ReflectNode.prototype.getType = function ( /* builder */ ) {
+
+		switch ( this.scope ) {
+
+			case ReflectNode.SPHERE:
+
+				return 'v2';
+
+		}
+
+		return this.type;
+
+	};
+
+	ReflectNode.prototype.generate = function ( builder, output ) {
+
+		var isUnique = this.getUnique( builder );
+
+		if ( builder.isShader( 'fragment' ) ) {
+
+			var result;
+
+			switch ( this.scope ) {
+
+				case ReflectNode.VECTOR:
+
+					var viewNormalNode = builder.context.viewNormal || new NormalNode( NormalNode.VIEW );
+					var roughnessNode = builder.context.roughness;
+
+					var viewNormal = viewNormalNode.build( builder, 'v3' );
+					var viewPosition = new PositionNode( PositionNode.VIEW ).build( builder, 'v3' );
+					var roughness = roughnessNode ? roughnessNode.build( builder, 'f' ) : undefined;
+
+					var method = "reflect( -normalize( " + viewPosition + " ), " + viewNormal + " )";
+
+					if ( roughness ) {
+
+						// Mixing the reflection with the normal is more accurate and keeps rough objects from gathering light from behind their tangent plane.
+						method = "normalize( mix( " + method + ", " + viewNormal + ", " + roughness + " * " + roughness + " ) )";
+
+					}
+
+					var code = "inverseTransformDirection( " + method + ", viewMatrix )";
+
+					if ( isUnique ) {
+
+						builder.addNodeCode( ("vec3 reflectVec = " + code + ";") );
+
+						result = 'reflectVec';
+
+					} else {
+
+						result = code;
+
+					}
+
+					break;
+
+				case ReflectNode.CUBE:
+
+					var reflectVec = new ReflectNode( ReflectNode.VECTOR ).build( builder, 'v3' );
+
+					var code = 'vec3( -' + reflectVec + '.x, ' + reflectVec + '.yz )';
+
+					if ( isUnique ) {
+
+						builder.addNodeCode( ("vec3 reflectCubeVec = " + code + ";") );
+
+						result = 'reflectCubeVec';
+
+					} else {
+
+						result = code;
+
+					}
+
+					break;
+
+				case ReflectNode.SPHERE:
+
+					var reflectVec = new ReflectNode( ReflectNode.VECTOR ).build( builder, 'v3' );
+
+					var code = 'normalize( ( viewMatrix * vec4( ' + reflectVec + ', 0.0 ) ).xyz + vec3( 0.0, 0.0, 1.0 ) ).xy * 0.5 + 0.5';
+
+					if ( isUnique ) {
+
+						builder.addNodeCode( ("vec2 reflectSphereVec = " + code + ";") );
+
+						result = 'reflectSphereVec';
+
+					} else {
+
+						result = code;
+
+					}
+
+					break;
+
+			}
+
+			return builder.format( result, this.getType( builder ), output );
+
+		} else {
+
+			console.warn( "THREE.ReflectNode is not compatible with " + builder.shader + " shader." );
+
+			return builder.format( 'vec3( 0.0 )', this.type, output );
+
+		}
+
+	};
+
+	ReflectNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.scope = this.scope;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function CubeTextureNode( value, uv, bias ) {
+
+		InputNode.call( this, 'v4', { shared: true } );
+
+		this.value = value;
+		this.uv = uv || new ReflectNode();
+		this.bias = bias;
+
+	}
+
+	CubeTextureNode.prototype = Object.create( InputNode.prototype );
+	CubeTextureNode.prototype.constructor = CubeTextureNode;
+	CubeTextureNode.prototype.nodeType = "CubeTexture";
+
+	CubeTextureNode.prototype.getTexture = function ( builder, output ) {
+
+		return InputNode.prototype.generate.call( this, builder, output, this.value.uuid, 'tc' );
+
+	};
+
+	CubeTextureNode.prototype.generate = function ( builder, output ) {
+
+		if ( output === 'samplerCube' ) {
+
+			return this.getTexture( builder, output );
+
+		}
+
+		var cubetex = this.getTexture( builder, output );
+		var uv = this.uv.build( builder, 'v3' );
+		var bias = this.bias ? this.bias.build( builder, 'f' ) : undefined;
+
+		if ( bias === undefined && builder.context.bias ) {
+
+			bias = builder.context.bias.setTexture( this ).build( builder, 'f' );
+
+		}
+
+		var code;
+
+		if ( bias ) { code = 'texCubeBias( ' + cubetex + ', ' + uv + ', ' + bias + ' )'; }
+		else { code = 'texCube( ' + cubetex + ', ' + uv + ' )'; }
+
+		// add a custom context for fix incompatibility with the core
+		// include ColorSpace function only for vertex shader (in fragment shader color space functions is added automatically by core)
+		// this should be removed in the future
+		// context.include =: is used to include or not functions if used FunctionNode
+		// context.ignoreCache =: not create variables temp nodeT0..9 to optimize the code
+		var context = { include: builder.isShader( 'vertex' ), ignoreCache: true };
+		var outputType = this.getType( builder );
+
+		builder.addContext( context );
+
+		this.colorSpace = this.colorSpace || new ColorSpaceNode( new ExpressionNode( '', outputType ) );
+		this.colorSpace.fromDecoding( builder.getTextureEncodingFromMap( this.value ) );
+		this.colorSpace.input.parse( code );
+
+		code = this.colorSpace.build( builder, outputType );
+
+		// end custom context
+
+		builder.removeContext();
+
+		return builder.format( code, outputType, output );
+
+	};
+
+	CubeTextureNode.prototype.copy = function ( source ) {
+
+		InputNode.prototype.copy.call( this, source );
+
+		if ( source.value ) { this.value = source.value; }
+
+		this.uv = source.uv;
+
+		if ( source.bias ) { this.bias = source.bias; }
+
+		return this;
+
+	};
+
+	CubeTextureNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.value = this.value.uuid;
+			data.uv = this.uv.toJSON( meta ).uuid;
+
+			if ( this.bias ) { data.bias = this.bias.toJSON( meta ).uuid; }
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function ScreenNode( uv ) {
+
+		TextureNode.call( this, undefined, uv );
+
+	}
+
+	ScreenNode.prototype = Object.create( TextureNode.prototype );
+	ScreenNode.prototype.constructor = ScreenNode;
+	ScreenNode.prototype.nodeType = "Screen";
+
+	ScreenNode.prototype.getUnique = function () {
+
+		return true;
+
+	};
+
+	ScreenNode.prototype.getTexture = function ( builder, output ) {
+
+		return InputNode.prototype.generate.call( this, builder, output, this.getUuid(), 't', 'renderTexture' );
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function OperatorNode( a, b, op ) {
+
+		TempNode.call( this );
+
+		this.a = a;
+		this.b = b;
+		this.op = op;
+
+	}
+
+	OperatorNode.ADD = '+';
+	OperatorNode.SUB = '-';
+	OperatorNode.MUL = '*';
+	OperatorNode.DIV = '/';
+
+	OperatorNode.prototype = Object.create( TempNode.prototype );
+	OperatorNode.prototype.constructor = OperatorNode;
+	OperatorNode.prototype.nodeType = "Operator";
+
+	OperatorNode.prototype.getType = function ( builder ) {
+
+		var a = this.a.getType( builder ),
+			b = this.b.getType( builder );
+
+		if ( builder.isTypeMatrix( a ) ) {
+
+			return 'v4';
+
+		} else if ( builder.getTypeLength( b ) > builder.getTypeLength( a ) ) {
+
+			// use the greater length vector
+
+			return b;
+
+		}
+
+		return a;
+
+	};
+
+	OperatorNode.prototype.generate = function ( builder, output ) {
+
+		var type = this.getType( builder );
+
+		var a = this.a.build( builder, type ),
+			b = this.b.build( builder, type );
+
+		return builder.format( '( ' + a + ' ' + this.op + ' ' + b + ' )', type, output );
+
+	};
+
+	OperatorNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.a = source.a;
+		this.b = source.b;
+		this.op = source.op;
+
+		return this;
+
+	};
+
+	OperatorNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.a = this.a.toJSON( meta ).uuid;
+			data.b = this.b.toJSON( meta ).uuid;
+			data.op = this.op;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function ReflectorNode( mirror ) {
+
+		TempNode.call( this, 'v4' );
+
+		if ( mirror ) { this.setMirror( mirror ); }
+
+	}
+
+	ReflectorNode.prototype = Object.create( TempNode.prototype );
+	ReflectorNode.prototype.constructor = ReflectorNode;
+	ReflectorNode.prototype.nodeType = "Reflector";
+
+	ReflectorNode.prototype.setMirror = function ( mirror ) {
+
+		this.mirror = mirror;
+
+		this.textureMatrix = new Matrix4Node( this.mirror.material.uniforms.textureMatrix.value );
+
+		this.localPosition = new PositionNode( PositionNode.LOCAL );
+
+		this.uv = new OperatorNode( this.textureMatrix, this.localPosition, OperatorNode.MUL );
+		this.uvResult = new OperatorNode( null, this.uv, OperatorNode.ADD );
+
+		this.texture = new TextureNode( this.mirror.material.uniforms.tDiffuse.value, this.uv, null, true );
+
+	};
+
+	ReflectorNode.prototype.generate = function ( builder, output ) {
+
+		if ( builder.isShader( 'fragment' ) ) {
+
+			this.uvResult.a = this.offset;
+			this.texture.uv = this.offset ? this.uvResult : this.uv;
+
+			if ( output === 'sampler2D' ) {
+
+				return this.texture.build( builder, output );
+
+			}
+
+			return builder.format( this.texture.build( builder, this.type ), this.type, output );
+
+		} else {
+
+			console.warn( "THREE.ReflectorNode is not compatible with " + builder.shader + " shader." );
+
+			return builder.format( 'vec4( 0.0 )', this.type, output );
+
+		}
+
+	};
+
+	ReflectorNode.prototype.copy = function ( source ) {
+
+		InputNode.prototype.copy.call( this, source );
+
+		this.scope.mirror = source.mirror;
+
+		return this;
+
+	};
+
+	ReflectorNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.mirror = this.mirror.uuid;
+
+			if ( this.offset ) { data.offset = this.offset.toJSON( meta ).uuid; }
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function PropertyNode( object, property, type ) {
+
+		InputNode.call( this, type );
+
+		this.object = object;
+		this.property = property;
+
+	}
+
+	PropertyNode.prototype = Object.create( InputNode.prototype );
+	PropertyNode.prototype.constructor = PropertyNode;
+	PropertyNode.prototype.nodeType = "Property";
+
+	Object.defineProperties( PropertyNode.prototype, {
+
+		value: {
+
+			get: function () {
+
+				return this.object[ this.property ];
+
+			},
+
+			set: function ( val ) {
+
+				this.object[ this.property ] = val;
+
+			}
+
+		}
+
+	} );
+
+	PropertyNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.value = this.value;
+			data.property = this.property;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	var vertexDict = [ 'color', 'color2' ],
+		fragmentDict = [ 'vColor', 'vColor2' ];
+
+	function ColorsNode( index ) {
+
+		TempNode.call( this, 'v4', { shared: false } );
+
+		this.index = index || 0;
+
+	}
+
+	ColorsNode.prototype = Object.create( TempNode.prototype );
+	ColorsNode.prototype.constructor = ColorsNode;
+	ColorsNode.prototype.nodeType = "Colors";
+
+	ColorsNode.prototype.generate = function ( builder, output ) {
+
+		builder.requires.color[ this.index ] = true;
+
+		var result = builder.isShader( 'vertex' ) ? vertexDict[ this.index ] : fragmentDict[ this.index ];
+
+		return builder.format( result, this.getType( builder ), output );
+
+	};
+
+	ColorsNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.index = source.index;
+
+		return this;
+
+	};
+
+	ColorsNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.index = this.index;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function CameraNode( scope, camera ) {
+
+		TempNode.call( this, 'v3' );
+
+		this.setScope( scope || CameraNode.POSITION );
+		this.setCamera( camera );
+
+	}
+
+	CameraNode.Nodes = ( function () {
+
+		var depthColor = new FunctionNode( [
+			"float depthColor( float mNear, float mFar ) {",
+
+			"	#ifdef USE_LOGDEPTHBUF_EXT",
+
+			"		float depth = gl_FragDepthEXT / gl_FragCoord.w;",
+
+			"	#else",
+
+			"		float depth = gl_FragCoord.z / gl_FragCoord.w;",
+
+			"	#endif",
+
+			"	return 1.0 - smoothstep( mNear, mFar, depth );",
+
+			"}"
+		].join( "\n" ) );
+
+		return {
+			depthColor: depthColor
+		};
+
+	} )();
+
+	CameraNode.POSITION = 'position';
+	CameraNode.DEPTH = 'depth';
+	CameraNode.TO_VERTEX = 'toVertex';
+
+	CameraNode.prototype = Object.create( TempNode.prototype );
+	CameraNode.prototype.constructor = CameraNode;
+	CameraNode.prototype.nodeType = "Camera";
+
+	CameraNode.prototype.setCamera = function ( camera ) {
+
+		this.camera = camera;
+		this.updateFrame = camera !== undefined ? this.onUpdateFrame : undefined;
+
+	};
+
+	CameraNode.prototype.setScope = function ( scope ) {
+
+		switch ( this.scope ) {
+
+			case CameraNode.DEPTH:
+
+				delete this.near;
+				delete this.far;
+
+				break;
+
+		}
+
+		this.scope = scope;
+
+		switch ( scope ) {
+
+			case CameraNode.DEPTH:
+
+				var camera = this.camera;
+
+				this.near = new FloatNode( camera ? camera.near : 1 );
+				this.far = new FloatNode( camera ? camera.far : 1200 );
+
+				break;
+
+		}
+
+	};
+
+	CameraNode.prototype.getType = function ( /* builder */ ) {
+
+		switch ( this.scope ) {
+
+			case CameraNode.DEPTH:
+
+				return 'f';
+
+		}
+
+		return this.type;
+
+	};
+
+	CameraNode.prototype.getUnique = function ( /* builder */ ) {
+
+		switch ( this.scope ) {
+
+			case CameraNode.DEPTH:
+			case CameraNode.TO_VERTEX:
+
+				return true;
+
+		}
+
+		return false;
+
+	};
+
+	CameraNode.prototype.getShared = function ( /* builder */ ) {
+
+		switch ( this.scope ) {
+
+			case CameraNode.POSITION:
+
+				return false;
+
+		}
+
+		return true;
+
+	};
+
+	CameraNode.prototype.generate = function ( builder, output ) {
+
+		var result;
+
+		switch ( this.scope ) {
+
+			case CameraNode.POSITION:
+
+				result = 'cameraPosition';
+
+				break;
+
+			case CameraNode.DEPTH:
+
+				var depthColor = builder.include( CameraNode.Nodes.depthColor );
+
+				result = depthColor + '( ' + this.near.build( builder, 'f' ) + ', ' + this.far.build( builder, 'f' ) + ' )';
+
+				break;
+
+			case CameraNode.TO_VERTEX:
+
+				result = 'normalize( ' + new PositionNode( PositionNode.WORLD ).build( builder, 'v3' ) + ' - cameraPosition )';
+
+				break;
+
+		}
+
+		return builder.format( result, this.getType( builder ), output );
+
+	};
+
+	CameraNode.prototype.onUpdateFrame = function ( /* frame */ ) {
+
+		switch ( this.scope ) {
+
+			case CameraNode.DEPTH:
+
+				var camera = this.camera;
+
+				this.near.value = camera.near;
+				this.far.value = camera.far;
+
+				break;
+
+		}
+
+	};
+
+	CameraNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.setScope( source.scope );
+
+		if ( source.camera ) {
+
+			this.setCamera( source.camera );
+
+		}
+
+		switch ( source.scope ) {
+
+			case CameraNode.DEPTH:
+
+				this.near.number = source.near;
+				this.far.number = source.far;
+
+				break;
+
+		}
+
+		return this;
+
+	};
+
+	CameraNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.scope = this.scope;
+
+			if ( this.camera ) { data.camera = this.camera.uuid; }
+
+			switch ( this.scope ) {
+
+				case CameraNode.DEPTH:
+
+					data.near = this.near.value;
+					data.far = this.far.value;
+
+					break;
+
+			}
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function LightNode( scope ) {
+
+		TempNode.call( this, 'v3', { shared: false } );
+
+		this.scope = scope || LightNode.TOTAL;
+
+	}
+
+	LightNode.TOTAL = 'total';
+
+	LightNode.prototype = Object.create( TempNode.prototype );
+	LightNode.prototype.constructor = LightNode;
+	LightNode.prototype.nodeType = "Light";
+
+	LightNode.prototype.generate = function ( builder, output ) {
+
+		if ( builder.isCache( 'light' ) ) {
+
+			return builder.format( 'reflectedLight.directDiffuse', this.type, output );
+
+		} else {
+
+			console.warn( "THREE.LightNode is only compatible in \"light\" channel." );
+
+			return builder.format( 'vec3( 0.0 )', this.type, output );
+
+		}
+
+	};
+
+	LightNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.scope = source.scope;
+
+		return this;
+
+	};
+
+	LightNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.scope = this.scope;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function ResolutionNode() {
+
+		Vector2Node.call( this );
+
+		this.size = new Vector2();
+
+	}
+
+	ResolutionNode.prototype = Object.create( Vector2Node.prototype );
+	ResolutionNode.prototype.constructor = ResolutionNode;
+	ResolutionNode.prototype.nodeType = "Resolution";
+
+	ResolutionNode.prototype.updateFrame = function ( frame ) {
+
+		if ( frame.renderer ) {
+
+			frame.renderer.getSize( this.size );
+
+			var pixelRatio = frame.renderer.getPixelRatio();
+
+			this.x = this.size.width * pixelRatio;
+			this.y = this.size.height * pixelRatio;
+
+		} else {
+
+			console.warn( "ResolutionNode need a renderer in NodeFrame" );
+
+		}
+
+	};
+
+	ResolutionNode.prototype.copy = function ( source ) {
+
+		Vector2Node.prototype.copy.call( this, source );
+
+		this.renderer = source.renderer;
+
+		return this;
+
+	};
+
+	ResolutionNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.renderer = this.renderer.uuid;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function ScreenUVNode( resolution ) {
+
+		TempNode.call( this, 'v2' );
+
+		this.resolution = resolution || new ResolutionNode();
+
+	}
+
+	ScreenUVNode.prototype = Object.create( TempNode.prototype );
+	ScreenUVNode.prototype.constructor = ScreenUVNode;
+	ScreenUVNode.prototype.nodeType = "ScreenUV";
+
+	ScreenUVNode.prototype.generate = function ( builder, output ) {
+
+		var result;
+
+		if ( builder.isShader( 'fragment' ) ) {
+
+			result = '( gl_FragCoord.xy / ' + this.resolution.build( builder, 'v2' ) + ')';
+
+		} else {
+
+			console.warn( "THREE.ScreenUVNode is not compatible with " + builder.shader + " shader." );
+
+			result = 'vec2( 0.0 )';
+
+		}
+
+		return builder.format( result, this.getType( builder ), output );
+
+	};
+
+	ScreenUVNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.resolution = source.resolution;
+
+		return this;
+
+	};
+
+	ScreenUVNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.resolution = this.resolution.toJSON( meta ).uuid;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function MathNode( a, bOrMethod, cOrMethod, method ) {
+
+		TempNode.call( this );
+
+		this.a = a;
+		typeof bOrMethod !== 'string' ? this.b = bOrMethod : method = bOrMethod;
+		typeof cOrMethod !== 'string' ? this.c = cOrMethod : method = cOrMethod;
+
+		this.method = method;
+
+	}
+
+	// 1 input
+
+	MathNode.RAD = 'radians';
+	MathNode.DEG = 'degrees';
+	MathNode.EXP = 'exp';
+	MathNode.EXP2 = 'exp2';
+	MathNode.LOG = 'log';
+	MathNode.LOG2 = 'log2';
+	MathNode.SQRT = 'sqrt';
+	MathNode.INV_SQRT = 'inversesqrt';
+	MathNode.FLOOR = 'floor';
+	MathNode.CEIL = 'ceil';
+	MathNode.NORMALIZE = 'normalize';
+	MathNode.FRACT = 'fract';
+	MathNode.SATURATE = 'saturate';
+	MathNode.SIN = 'sin';
+	MathNode.COS = 'cos';
+	MathNode.TAN = 'tan';
+	MathNode.ASIN = 'asin';
+	MathNode.ACOS = 'acos';
+	MathNode.ARCTAN = 'atan';
+	MathNode.ABS = 'abs';
+	MathNode.SIGN = 'sign';
+	MathNode.LENGTH = 'length';
+	MathNode.NEGATE = 'negate';
+	MathNode.INVERT = 'invert';
+
+	// 2 inputs
+
+	MathNode.MIN = 'min';
+	MathNode.MAX = 'max';
+	MathNode.MOD = 'mod';
+	MathNode.STEP = 'step';
+	MathNode.REFLECT = 'reflect';
+	MathNode.DISTANCE = 'distance';
+	MathNode.DOT = 'dot';
+	MathNode.CROSS = 'cross';
+	MathNode.POW = 'pow';
+
+	// 3 inputs
+
+	MathNode.MIX = 'mix';
+	MathNode.CLAMP = 'clamp';
+	MathNode.REFRACT = 'refract';
+	MathNode.SMOOTHSTEP = 'smoothstep';
+	MathNode.FACEFORWARD = 'faceforward';
+
+	MathNode.prototype = Object.create( TempNode.prototype );
+	MathNode.prototype.constructor = MathNode;
+	MathNode.prototype.nodeType = "Math";
+
+	MathNode.prototype.getNumInputs = function ( /*builder*/ ) {
+
+		switch ( this.method ) {
+
+			case MathNode.MIX:
+			case MathNode.CLAMP:
+			case MathNode.REFRACT:
+			case MathNode.SMOOTHSTEP:
+			case MathNode.FACEFORWARD:
+
+				return 3;
+
+			case MathNode.MIN:
+			case MathNode.MAX:
+			case MathNode.MOD:
+			case MathNode.STEP:
+			case MathNode.REFLECT:
+			case MathNode.DISTANCE:
+			case MathNode.DOT:
+			case MathNode.CROSS:
+			case MathNode.POW:
+
+				return 2;
+
+			default:
+
+				return 1;
+
+		}
+
+	};
+
+	MathNode.prototype.getInputType = function ( builder ) {
+
+		var a = builder.getTypeLength( this.a.getType( builder ) );
+		var b = this.b ? builder.getTypeLength( this.b.getType( builder ) ) : 0;
+		var c = this.c ? builder.getTypeLength( this.c.getType( builder ) ) : 0;
+
+		if ( a > b && a > c ) {
+
+			return this.a.getType( builder );
+
+		} else if ( b > c ) {
+
+			return this.b.getType( builder );
+
+		}
+
+		return this.c.getType( builder );
+
+	};
+
+	MathNode.prototype.getType = function ( builder ) {
+
+		switch ( this.method ) {
+
+			case MathNode.LENGTH:
+			case MathNode.DISTANCE:
+			case MathNode.DOT:
+
+				return 'f';
+
+			case MathNode.CROSS:
+
+				return 'v3';
+
+		}
+
+		return this.getInputType( builder );
+
+	};
+
+	MathNode.prototype.generate = function ( builder, output ) {
+
+		var a, b, c,
+			al = this.a ? builder.getTypeLength( this.a.getType( builder ) ) : 0,
+			bl = this.b ? builder.getTypeLength( this.b.getType( builder ) ) : 0,
+			cl = this.c ? builder.getTypeLength( this.c.getType( builder ) ) : 0,
+			inputType = this.getInputType( builder ),
+			nodeType = this.getType( builder );
+
+		switch ( this.method ) {
+
+			// 1 input
+
+			case MathNode.NEGATE:
+
+				return builder.format( '( -' + this.a.build( builder, inputType ) + ' )', inputType, output );
+
+			case MathNode.INVERT:
+
+				return builder.format( '( 1.0 - ' + this.a.build( builder, inputType ) + ' )', inputType, output );
+
+				// 2 inputs
+
+			case MathNode.CROSS:
+
+				a = this.a.build( builder, 'v3' );
+				b = this.b.build( builder, 'v3' );
+
+				break;
+
+			case MathNode.STEP:
+
+				a = this.a.build( builder, al === 1 ? 'f' : inputType );
+				b = this.b.build( builder, inputType );
+
+				break;
+
+			case MathNode.MIN:
+			case MathNode.MAX:
+			case MathNode.MOD:
+
+				a = this.a.build( builder, inputType );
+				b = this.b.build( builder, bl === 1 ? 'f' : inputType );
+
+				break;
+
+				// 3 inputs
+
+			case MathNode.REFRACT:
+
+				a = this.a.build( builder, inputType );
+				b = this.b.build( builder, inputType );
+				c = this.c.build( builder, 'f' );
+
+				break;
+
+			case MathNode.MIX:
+
+				a = this.a.build( builder, inputType );
+				b = this.b.build( builder, inputType );
+				c = this.c.build( builder, cl === 1 ? 'f' : inputType );
+
+				break;
+
+				// default
+
+			default:
+
+				a = this.a.build( builder, inputType );
+				if ( this.b ) { b = this.b.build( builder, inputType ); }
+				if ( this.c ) { c = this.c.build( builder, inputType ); }
+
+				break;
+
+		}
+
+		// build function call
+
+		var params = [];
+		params.push( a );
+		if ( b ) { params.push( b ); }
+		if ( c ) { params.push( c ); }
+
+		var numInputs = this.getNumInputs( builder );
+
+		if ( params.length !== numInputs ) {
+
+			throw Error( ("Arguments not match used in \"" + (this.method) + "\". Require " + numInputs + ", currently " + (params.length) + ".") );
+
+		}
+
+		return builder.format( this.method + '( ' + params.join( ', ' ) + ' )', nodeType, output );
+
+	};
+
+	MathNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.a = source.a;
+		this.b = source.b;
+		this.c = source.c;
+		this.method = source.method;
+
+		return this;
+
+	};
+
+	MathNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.a = this.a.toJSON( meta ).uuid;
+			if ( this.b ) { data.b = this.b.toJSON( meta ).uuid; }
+			if ( this.c ) { data.c = this.c.toJSON( meta ).uuid; }
+
+			data.method = this.method;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function CondNode( a, b, op, ifNode, elseNode ) {
+
+		TempNode.call( this );
+
+		this.a = a;
+		this.b = b;
+
+		this.op = op;
+
+		this.ifNode = ifNode;
+		this.elseNode = elseNode;
+
+	}
+
+	CondNode.EQUAL = '==';
+	CondNode.NOT_EQUAL = '!=';
+	CondNode.GREATER = '>';
+	CondNode.GREATER_EQUAL = '>=';
+	CondNode.LESS = '<';
+	CondNode.LESS_EQUAL = '<=';
+
+	CondNode.prototype = Object.create( TempNode.prototype );
+	CondNode.prototype.constructor = CondNode;
+	CondNode.prototype.nodeType = "Cond";
+
+	CondNode.prototype.getType = function ( builder ) {
+
+		if ( this.ifNode ) {
+
+			var ifType = this.ifNode.getType( builder );
+			var elseType = this.elseNode.getType( builder );
+
+			if ( builder.getTypeLength( elseType ) > builder.getTypeLength( ifType ) ) {
+
+				return elseType;
+
+			}
+
+			return ifType;
+
+		}
+
+		return 'b';
+
+	};
+
+	CondNode.prototype.getCondType = function ( builder ) {
+
+		if ( builder.getTypeLength( this.b.getType( builder ) ) > builder.getTypeLength( this.a.getType( builder ) ) ) {
+
+			return this.b.getType( builder );
+
+		}
+
+		return this.a.getType( builder );
+
+	};
+
+	CondNode.prototype.generate = function ( builder, output ) {
+
+		var type = this.getType( builder ),
+			condType = this.getCondType( builder ),
+			a = this.a.build( builder, condType ),
+			b = this.b.build( builder, condType ),
+			code;
+
+		if ( this.ifNode ) {
+
+			var ifCode = this.ifNode.build( builder, type ),
+				elseCode = this.elseNode.build( builder, type );
+
+			code = '( ' + [ a, this.op, b, '?', ifCode, ':', elseCode ].join( ' ' ) + ' )';
+
+		} else {
+
+			code = '( ' + a + ' ' + this.op + ' ' + b + ' )';
+
+		}
+
+		return builder.format( code, this.getType( builder ), output );
+
+	};
+
+	CondNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.a = source.a;
+		this.b = source.b;
+
+		this.op = source.op;
+
+		this.ifNode = source.ifNode;
+		this.elseNode = source.elseNode;
+
+		return this;
+
+	};
+
+	CondNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.a = this.a.toJSON( meta ).uuid;
+			data.b = this.b.toJSON( meta ).uuid;
+
+			data.op = this.op;
+
+			if ( data.ifNode ) { data.ifNode = this.ifNode.toJSON( meta ).uuid; }
+			if ( data.elseNode ) { data.elseNode = this.elseNode.toJSON( meta ).uuid; }
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function NoiseNode( uv ) {
+
+		TempNode.call( this, 'f' );
+
+		this.uv = uv || new UVNode();
+
+	}
+
+	NoiseNode.prototype = Object.create( TempNode.prototype );
+	NoiseNode.prototype.constructor = NoiseNode;
+	NoiseNode.prototype.nodeType = "Noise";
+
+	NoiseNode.Nodes = ( function () {
+
+		var snoise = new FunctionNode( [
+			"float snoise(vec2 co) {",
+
+			"	return fract( sin( dot( co.xy, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 );",
+
+			"}"
+		].join( "\n" ) );
+
+		return {
+			snoise: snoise
+		};
+
+	} )();
+
+	NoiseNode.prototype.generate = function ( builder, output ) {
+
+		var snoise = builder.include( NoiseNode.Nodes.snoise );
+
+		return builder.format( snoise + '( ' + this.uv.build( builder, 'v2' ) + ' )', this.getType( builder ), output );
+
+	};
+
+	NoiseNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.uv = source.uv;
+
+		return this;
+
+	};
+
+	NoiseNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.uv = this.uv.toJSON( meta ).uuid;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function CheckerNode( uv ) {
+
+		TempNode.call( this, 'f' );
+
+		this.uv = uv || new UVNode();
+
+	}
+
+	CheckerNode.prototype = Object.create( TempNode.prototype );
+	CheckerNode.prototype.constructor = CheckerNode;
+	CheckerNode.prototype.nodeType = "Noise";
+
+	CheckerNode.Nodes = ( function () {
+
+		// https://github.com/mattdesl/glsl-checker/blob/master/index.glsl
+
+		var checker = new FunctionNode( [
+			"float checker( vec2 uv ) {",
+
+			"	float cx = floor( uv.x );",
+			"	float cy = floor( uv.y ); ",
+			"	float result = mod( cx + cy, 2.0 );",
+
+			"	return sign( result );",
+
+			"}"
+		].join( "\n" ) );
+
+		return {
+			checker: checker
+		};
+
+	} )();
+
+	CheckerNode.prototype.generate = function ( builder, output ) {
+
+		var snoise = builder.include( CheckerNode.Nodes.checker );
+
+		return builder.format( snoise + '( ' + this.uv.build( builder, 'v2' ) + ' )', this.getType( builder ), output );
+
+	};
+
+	CheckerNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.uv = source.uv;
+
+		return this;
+
+	};
+
+	CheckerNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.uv = this.uv.toJSON( meta ).uuid;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function TextureCubeUVNode( value, uv, bias ) {
+
+		TempNode.call( this, 'v4' );
+
+		this.value = value,
+		this.uv = uv;
+		this.bias = bias;
+
+	}
+
+	TextureCubeUVNode.Nodes = ( function () {
+
+		var TextureCubeUVData = new StructNode(
+			"struct TextureCubeUVData {\n\t\t\tvec4 tl;\n\t\t\tvec4 tr;\n\t\t\tvec4 br;\n\t\t\tvec4 bl;\n\t\t\tvec2 f;\n\t\t}" );
+
+		var cubeUV_maxMipLevel = new ConstNode( "float cubeUV_maxMipLevel 8.0", true );
+		var cubeUV_minMipLevel = new ConstNode( "float cubeUV_minMipLevel 4.0", true );
+		var cubeUV_maxTileSize = new ConstNode( "float cubeUV_maxTileSize 256.0", true );
+		var cubeUV_minTileSize = new ConstNode( "float cubeUV_minTileSize 16.0", true );
+
+		// These shader functions convert between the UV coordinates of a single face of
+		// a cubemap, the 0-5 integer index of a cube face, and the direction vector for
+		// sampling a textureCube (not generally normalized).
+
+		var getFace = new FunctionNode(
+			"float getFace(vec3 direction) {\n\t\t\t\tvec3 absDirection = abs(direction);\n\t\t\t\tfloat face = -1.0;\n\t\t\t\tif (absDirection.x > absDirection.z) {\n\t\t\t\t\tif (absDirection.x > absDirection.y)\n\t\t\t\t\t\tface = direction.x > 0.0 ? 0.0 : 3.0;\n\t\t\t\t\telse\n\t\t\t\t\t\tface = direction.y > 0.0 ? 1.0 : 4.0;\n\t\t\t\t} else {\n\t\t\t\t\tif (absDirection.z > absDirection.y)\n\t\t\t\t\t\tface = direction.z > 0.0 ? 2.0 : 5.0;\n\t\t\t\t\telse\n\t\t\t\t\t\tface = direction.y > 0.0 ? 1.0 : 4.0;\n\t\t\t\t}\n\t\t\t\treturn face;\n\t\t}" );
+		getFace.useKeywords = false;
+
+		var getUV = new FunctionNode(
+			"vec2 getUV(vec3 direction, float face) {\n\t\t\t\tvec2 uv;\n\t\t\t\tif (face == 0.0) {\n\t\t\t\t\tuv = vec2(-direction.z, direction.y) / abs(direction.x);\n\t\t\t\t} else if (face == 1.0) {\n\t\t\t\t\tuv = vec2(direction.x, -direction.z) / abs(direction.y);\n\t\t\t\t} else if (face == 2.0) {\n\t\t\t\t\tuv = direction.xy / abs(direction.z);\n\t\t\t\t} else if (face == 3.0) {\n\t\t\t\t\tuv = vec2(direction.z, direction.y) / abs(direction.x);\n\t\t\t\t} else if (face == 4.0) {\n\t\t\t\t\tuv = direction.xz / abs(direction.y);\n\t\t\t\t} else {\n\t\t\t\t\tuv = vec2(-direction.x, direction.y) / abs(direction.z);\n\t\t\t\t}\n\t\t\t\treturn 0.5 * (uv + 1.0);\n\t\t}" );
+		getUV.useKeywords = false;
+
+		var bilinearCubeUV = new FunctionNode(
+			"TextureCubeUVData bilinearCubeUV(sampler2D envMap, vec3 direction, float mipInt) {\n\t\t\tfloat face = getFace(direction);\n\t\t\tfloat filterInt = max(cubeUV_minMipLevel - mipInt, 0.0);\n\t\t\tmipInt = max(mipInt, cubeUV_minMipLevel);\n\t\t\tfloat faceSize = exp2(mipInt);\n\t\t\tfloat texelSize = 1.0 / (3.0 * cubeUV_maxTileSize);\n\t\t\tvec2 uv = getUV(direction, face) * (faceSize - 1.0);\n\t\t\tvec2 f = fract(uv);\n\t\t\tuv += 0.5 - f;\n\t\t\tif (face > 2.0) {\n\t\t\t\tuv.y += faceSize;\n\t\t\t\tface -= 3.0;\n\t\t\t}\n\t\t\tuv.x += face * faceSize;\n\t\t\tif(mipInt < cubeUV_maxMipLevel){\n\t\t\t\tuv.y += 2.0 * cubeUV_maxTileSize;\n\t\t\t}\n\t\t\tuv.y += filterInt * 2.0 * cubeUV_minTileSize;\n\t\t\tuv.x += 3.0 * max(0.0, cubeUV_maxTileSize - 2.0 * faceSize);\n\t\t\tuv *= texelSize;\n\t\t\tvec4 tl = texture2D(envMap, uv);\n\t\t\tuv.x += texelSize;\n\t\t\tvec4 tr = texture2D(envMap, uv);\n\t\t\tuv.y += texelSize;\n\t\t\tvec4 br = texture2D(envMap, uv);\n\t\t\tuv.x -= texelSize;\n\t\t\tvec4 bl = texture2D(envMap, uv);\n\n\t\t\treturn TextureCubeUVData( tl, tr, br, bl, f );\n\t\t}", [ TextureCubeUVData, getFace, getUV, cubeUV_maxMipLevel, cubeUV_minMipLevel, cubeUV_maxTileSize, cubeUV_minTileSize ] );
+		bilinearCubeUV.useKeywords = false;
+
+		// These defines must match with PMREMGenerator
+
+		var r0 = new ConstNode( "float r0 1.0", true );
+		var v0 = new ConstNode( "float v0 0.339", true );
+		var m0 = new ConstNode( "float m0 -2.0", true );
+		var r1 = new ConstNode( "float r1 0.8", true );
+		var v1 = new ConstNode( "float v1 0.276", true );
+		var m1 = new ConstNode( "float m1 -1.0", true );
+		var r4 = new ConstNode( "float r4 0.4", true );
+		var v4 = new ConstNode( "float v4 0.046", true );
+		var m4 = new ConstNode( "float m4 2.0", true );
+		var r5 = new ConstNode( "float r5 0.305", true );
+		var v5 = new ConstNode( "float v5 0.016", true );
+		var m5 = new ConstNode( "float m5 3.0", true );
+		var r6 = new ConstNode( "float r6 0.21", true );
+		var v6 = new ConstNode( "float v6 0.0038", true );
+		var m6 = new ConstNode( "float m6 4.0", true );
+
+		var defines = [ r0, v0, m0, r1, v1, m1, r4, v4, m4, r5, v5, m5, r6, v6, m6 ];
+
+		var roughnessToMip = new FunctionNode(
+			"float roughnessToMip(float roughness) {\n\t\t\tfloat mip = 0.0;\n\t\t\tif (roughness >= r1) {\n\t\t\t\tmip = (r0 - roughness) * (m1 - m0) / (r0 - r1) + m0;\n\t\t\t} else if (roughness >= r4) {\n\t\t\t\tmip = (r1 - roughness) * (m4 - m1) / (r1 - r4) + m1;\n\t\t\t} else if (roughness >= r5) {\n\t\t\t\tmip = (r4 - roughness) * (m5 - m4) / (r4 - r5) + m4;\n\t\t\t} else if (roughness >= r6) {\n\t\t\t\tmip = (r5 - roughness) * (m6 - m5) / (r5 - r6) + m5;\n\t\t\t} else {\n\t\t\t\tmip = -2.0 * log2(1.16 * roughness);// 1.16 = 1.79^0.25\n\t\t\t}\n\t\t\treturn mip;\n\t\t}", defines );
+
+		return {
+			bilinearCubeUV: bilinearCubeUV,
+			roughnessToMip: roughnessToMip,
+			m0: m0,
+			cubeUV_maxMipLevel: cubeUV_maxMipLevel
+		};
+
+	} )();
+
+	TextureCubeUVNode.prototype = Object.create( TempNode.prototype );
+	TextureCubeUVNode.prototype.constructor = TextureCubeUVNode;
+	TextureCubeUVNode.prototype.nodeType = "TextureCubeUV";
+
+	TextureCubeUVNode.prototype.bilinearCubeUV = function ( builder, texture, uv, mipInt ) {
+
+		var bilinearCubeUV = new FunctionCallNode( TextureCubeUVNode.Nodes.bilinearCubeUV, [ texture, uv, mipInt ] );
+
+		this.colorSpaceTL = this.colorSpaceTL || new ColorSpaceNode( new ExpressionNode( '', 'v4' ) );
+		this.colorSpaceTL.fromDecoding( builder.getTextureEncodingFromMap( this.value.value ) );
+		this.colorSpaceTL.input.parse( bilinearCubeUV.build( builder ) + '.tl' );
+
+		this.colorSpaceTR = this.colorSpaceTR || new ColorSpaceNode( new ExpressionNode( '', 'v4' ) );
+		this.colorSpaceTR.fromDecoding( builder.getTextureEncodingFromMap( this.value.value ) );
+		this.colorSpaceTR.input.parse( bilinearCubeUV.build( builder ) + '.tr' );
+
+		this.colorSpaceBL = this.colorSpaceBL || new ColorSpaceNode( new ExpressionNode( '', 'v4' ) );
+		this.colorSpaceBL.fromDecoding( builder.getTextureEncodingFromMap( this.value.value ) );
+		this.colorSpaceBL.input.parse( bilinearCubeUV.build( builder ) + '.bl' );
+
+		this.colorSpaceBR = this.colorSpaceBR || new ColorSpaceNode( new ExpressionNode( '', 'v4' ) );
+		this.colorSpaceBR.fromDecoding( builder.getTextureEncodingFromMap( this.value.value ) );
+		this.colorSpaceBR.input.parse( bilinearCubeUV.build( builder ) + '.br' );
+
+		// add a custom context for fix incompatibility with the core
+		// include ColorSpace function only for vertex shader (in fragment shader color space functions is added automatically by core)
+		// this should be removed in the future
+		// context.include =: is used to include or not functions if used FunctionNode
+		// context.ignoreCache =: not create temp variables nodeT0..9 to optimize the code
+		var context = { include: builder.isShader( 'vertex' ), ignoreCache: true };
+
+		builder.addContext( context );
+
+		this.colorSpaceTLExp = new ExpressionNode( this.colorSpaceTL.build( builder, 'v4' ), 'v4' );
+		this.colorSpaceTRExp = new ExpressionNode( this.colorSpaceTR.build( builder, 'v4' ), 'v4' );
+		this.colorSpaceBLExp = new ExpressionNode( this.colorSpaceBL.build( builder, 'v4' ), 'v4' );
+		this.colorSpaceBRExp = new ExpressionNode( this.colorSpaceBR.build( builder, 'v4' ), 'v4' );
+
+		// end custom context
+
+		builder.removeContext();
+
+		// --
+
+		var output = new ExpressionNode( "mix( mix( cubeUV_TL, cubeUV_TR, cubeUV.f.x ), mix( cubeUV_BL, cubeUV_BR, cubeUV.f.x ), cubeUV.f.y )", 'v4' );
+		output.keywords[ 'cubeUV_TL' ] = this.colorSpaceTLExp;
+		output.keywords[ 'cubeUV_TR' ] = this.colorSpaceTRExp;
+		output.keywords[ 'cubeUV_BL' ] = this.colorSpaceBLExp;
+		output.keywords[ 'cubeUV_BR' ] = this.colorSpaceBRExp;
+		output.keywords[ 'cubeUV' ] = bilinearCubeUV;
+
+		return output;
+
+	};
+
+	TextureCubeUVNode.prototype.generate = function ( builder, output ) {
+
+		if ( builder.isShader( 'fragment' ) ) {
+
+			var uv = this.uv;
+			var bias = this.bias || builder.context.roughness;
+
+			var mipV = new FunctionCallNode( TextureCubeUVNode.Nodes.roughnessToMip, [ bias ] );
+			var mip = new MathNode( mipV, TextureCubeUVNode.Nodes.m0, TextureCubeUVNode.Nodes.cubeUV_maxMipLevel, MathNode.CLAMP );
+			var mipInt	= new MathNode( mip, MathNode.FLOOR );
+			var mipF	= new MathNode( mip, MathNode.FRACT );
+
+			var color0 = this.bilinearCubeUV( builder, this.value, uv, mipInt );
+			var color1 = this.bilinearCubeUV( builder, this.value, uv, new OperatorNode(
+				mipInt,
+				new FloatNode( 1 ).setReadonly( true ),
+				OperatorNode.ADD
+			) );
+
+			var color1Mix = new MathNode( color0, color1, mipF, MathNode.MIX );
+
+			/*
+			// TODO: Optimize this in the future
+			var cond = new CondNode(
+				mipF,
+				new FloatNode( 0 ).setReadonly( true ),
+				CondNode.EQUAL,
+				color0, // if
+				color1Mix	// else
+			);
+			*/
+
+			return builder.format( color1Mix.build( builder ), 'v4', output );
+
+		} else {
+
+			console.warn( "THREE.TextureCubeUVNode is not compatible with " + builder.shader + " shader." );
+
+			return builder.format( 'vec4( 0.0 )', this.getType( builder ), output );
+
+		}
+
+	};
+
+	TextureCubeUVNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.value = this.value.toJSON( meta ).uuid;
+			data.uv = this.uv.toJSON( meta ).uuid;
+			data.bias = this.bias.toJSON( meta ).uuid;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function TextureCubeNode( value, uv, bias ) {
+
+		TempNode.call( this, 'v4' );
+
+		this.value = value;
+
+		this.radianceNode = new TextureCubeUVNode(
+			this.value,
+			uv || new ReflectNode( ReflectNode.VECTOR ),
+			// bias should be replaced in builder.context in build process
+			bias
+		);
+
+		this.irradianceNode = new TextureCubeUVNode(
+			this.value,
+			new NormalNode( NormalNode.WORLD ),
+			new FloatNode( 1 ).setReadonly( true )
+		);
+
+	}
+
+	TextureCubeNode.prototype = Object.create( TempNode.prototype );
+	TextureCubeNode.prototype.constructor = TextureCubeNode;
+	TextureCubeNode.prototype.nodeType = "TextureCube";
+
+	TextureCubeNode.prototype.generate = function ( builder, output ) {
+
+		if ( builder.isShader( 'fragment' ) ) {
+
+			builder.require( 'irradiance' );
+
+			if ( builder.context.bias ) {
+
+				builder.context.bias.setTexture( this.value );
+
+			}
+
+			var scopeNode = builder.slot === 'irradiance' ? this.irradianceNode : this.radianceNode;
+
+			return scopeNode.build( builder, output );
+
+		} else {
+
+			console.warn( "THREE.TextureCubeNode is not compatible with " + builder.shader + " shader." );
+
+			return builder.format( 'vec4( 0.0 )', this.getType( builder ), output );
+
+		}
+
+	};
+
+	TextureCubeNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.value = source.value;
+
+		return this;
+
+	};
+
+	TextureCubeNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.value = this.value.toJSON( meta ).uuid;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function NormalMapNode( value, scale ) {
+
+		TempNode.call( this, 'v3' );
+
+		this.value = value;
+		this.scale = scale || new Vector2Node( 1, 1 );
+
+	}
+
+	NormalMapNode.Nodes = ( function () {
+
+		var perturbNormal2Arb = new FunctionNode(
+
+			// Per-Pixel Tangent Space Normal Mapping
+			// http://hacksoflife.blogspot.ch/2009/11/per-pixel-tangent-space-normal-mapping.html
+
+			"vec3 perturbNormal2Arb( vec3 eye_pos, vec3 surf_norm, vec3 map, vec2 vUv, vec2 normalScale ) {\n\n\t\t// Workaround for Adreno 3XX dFd*( vec3 ) bug. See #9988\n\n\t\tvec3 q0 = vec3( dFdx( eye_pos.x ), dFdx( eye_pos.y ), dFdx( eye_pos.z ) );\n\t\tvec3 q1 = vec3( dFdy( eye_pos.x ), dFdy( eye_pos.y ), dFdy( eye_pos.z ) );\n\t\tvec2 st0 = dFdx( vUv.st );\n\t\tvec2 st1 = dFdy( vUv.st );\n\n\t\tfloat scale = sign( st1.t * st0.s - st0.t * st1.s ); // we do not care about the magnitude\n\n\t\tvec3 S = normalize( ( q0 * st1.t - q1 * st0.t ) * scale );\n\t\tvec3 T = normalize( ( - q0 * st1.s + q1 * st0.s ) * scale );\n\t\tvec3 N = normalize( surf_norm );\n\n\t\tvec3 mapN = map * 2.0 - 1.0;\n\n\t\tmapN.xy *= normalScale;\n\n\t\t#ifdef DOUBLE_SIDED\n\n\t\t\t// Workaround for Adreno GPUs gl_FrontFacing bug. See #15850 and #10331\n\n\t\t\tif ( dot( cross( S, T ), N ) < 0.0 ) mapN.xy *= - 1.0;\n\n\t\t#else\n\n\t\t\tmapN.xy *= ( float( gl_FrontFacing ) * 2.0 - 1.0 );\n\n\t\t#endif\n\n\t\tmat3 tsn = mat3( S, T, N );\n\t\treturn normalize( tsn * mapN );\n\n\t}", null, { derivatives: true } );
+
+		return {
+			perturbNormal2Arb: perturbNormal2Arb
+		};
+
+	} )();
+
+	NormalMapNode.prototype = Object.create( TempNode.prototype );
+	NormalMapNode.prototype.constructor = NormalMapNode;
+	NormalMapNode.prototype.nodeType = "NormalMap";
+
+	NormalMapNode.prototype.generate = function ( builder, output ) {
+
+		if ( builder.isShader( 'fragment' ) ) {
+
+			var perturbNormal2Arb = builder.include( NormalMapNode.Nodes.perturbNormal2Arb );
+
+			this.normal = this.normal || new NormalNode();
+			this.position = this.position || new PositionNode( PositionNode.VIEW );
+			this.uv = this.uv || new UVNode();
+
+			var scale = this.scale.build( builder, 'v2' );
+
+			if ( builder.material.side === BackSide ) {
+
+				scale = '-' + scale;
+
+			}
+
+			return builder.format( perturbNormal2Arb + '( -' + this.position.build( builder, 'v3' ) + ', ' +
+				this.normal.build( builder, 'v3' ) + ', ' +
+				this.value.build( builder, 'v3' ) + ', ' +
+				this.uv.build( builder, 'v2' ) + ', ' +
+				scale + ' )', this.getType( builder ), output );
+
+		} else {
+
+			console.warn( "THREE.NormalMapNode is not compatible with " + builder.shader + " shader." );
+
+			return builder.format( 'vec3( 0.0 )', this.getType( builder ), output );
+
+		}
+
+	};
+
+	NormalMapNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.value = source.value;
+		this.scale = source.scale;
+
+		return this;
+
+	};
+
+	NormalMapNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.value = this.value.toJSON( meta ).uuid;
+			data.scale = this.scale.toJSON( meta ).uuid;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function BumpMapNode( value, scale ) {
+
+		TempNode.call( this, 'v3' );
+
+		this.value = value;
+		this.scale = scale || new FloatNode( 1 );
+
+		this.toNormalMap = false;
+
+	}
+
+	BumpMapNode.Nodes = ( function () {
+
+		var dHdxy_fwd = new FunctionNode( [
+
+			// Bump Mapping Unparametrized Surfaces on the GPU by Morten S. Mikkelsen
+			// http://api.unrealengine.com/attachments/Engine/Rendering/LightingAndShadows/BumpMappingWithoutTangentSpace/mm_sfgrad_bump.pdf
+
+			// Evaluate the derivative of the height w.r.t. screen-space using forward differencing (listing 2)
+
+			"vec2 dHdxy_fwd( sampler2D bumpMap, vec2 vUv, float bumpScale ) {",
+
+			// Workaround for Adreno 3XX dFd*( vec3 ) bug. See #9988
+
+			"	vec2 dSTdx = dFdx( vUv );",
+			"	vec2 dSTdy = dFdy( vUv );",
+
+			"	float Hll = bumpScale * texture2D( bumpMap, vUv ).x;",
+			"	float dBx = bumpScale * texture2D( bumpMap, vUv + dSTdx ).x - Hll;",
+			"	float dBy = bumpScale * texture2D( bumpMap, vUv + dSTdy ).x - Hll;",
+
+			"	return vec2( dBx, dBy );",
+
+			"}"
+
+		].join( "\n" ), null, { derivatives: true } );
+
+		var perturbNormalArb = new FunctionNode( [
+
+			"vec3 perturbNormalArb( vec3 surf_pos, vec3 surf_norm, vec2 dHdxy ) {",
+
+			// Workaround for Adreno 3XX dFd*( vec3 ) bug. See #9988
+
+			"	vec3 vSigmaX = vec3( dFdx( surf_pos.x ), dFdx( surf_pos.y ), dFdx( surf_pos.z ) );",
+			"	vec3 vSigmaY = vec3( dFdy( surf_pos.x ), dFdy( surf_pos.y ), dFdy( surf_pos.z ) );",
+			"	vec3 vN = surf_norm;", // normalized
+
+			"	vec3 R1 = cross( vSigmaY, vN );",
+			"	vec3 R2 = cross( vN, vSigmaX );",
+
+			"	float fDet = dot( vSigmaX, R1 );",
+
+			"	fDet *= ( float( gl_FrontFacing ) * 2.0 - 1.0 );",
+
+			"	vec3 vGrad = sign( fDet ) * ( dHdxy.x * R1 + dHdxy.y * R2 );",
+
+			"	return normalize( abs( fDet ) * surf_norm - vGrad );",
+
+			"}"
+
+		].join( "\n" ), [ dHdxy_fwd ], { derivatives: true } );
+
+		var bumpToNormal = new FunctionNode( [
+			"vec3 bumpToNormal( sampler2D bumpMap, vec2 uv, float scale ) {",
+
+			"	vec2 dSTdx = dFdx( uv );",
+			"	vec2 dSTdy = dFdy( uv );",
+
+			"	float Hll = texture2D( bumpMap, uv ).x;",
+			"	float dBx = texture2D( bumpMap, uv + dSTdx ).x - Hll;",
+			"	float dBy = texture2D( bumpMap, uv + dSTdy ).x - Hll;",
+
+			"	return vec3( .5 - ( dBx * scale ), .5 - ( dBy * scale ), 1.0 );",
+
+			"}"
+		].join( "\n" ), null, { derivatives: true } );
+
+		return {
+			dHdxy_fwd: dHdxy_fwd,
+			perturbNormalArb: perturbNormalArb,
+			bumpToNormal: bumpToNormal
+		};
+
+	} )();
+
+	BumpMapNode.prototype = Object.create( TempNode.prototype );
+	BumpMapNode.prototype.constructor = BumpMapNode;
+	BumpMapNode.prototype.nodeType = "BumpMap";
+
+	BumpMapNode.prototype.generate = function ( builder, output ) {
+
+		if ( builder.isShader( 'fragment' ) ) {
+
+			if ( this.toNormalMap ) {
+
+				var bumpToNormal = builder.include( BumpMapNode.Nodes.bumpToNormal );
+
+				return builder.format( bumpToNormal + '( ' + this.value.build( builder, 'sampler2D' ) + ', ' +
+					this.value.uv.build( builder, 'v2' ) + ', ' +
+					this.scale.build( builder, 'f' ) + ' )', this.getType( builder ), output );
+
+			} else {
+
+				var derivativeHeight = builder.include( BumpMapNode.Nodes.dHdxy_fwd ),
+					perturbNormalArb = builder.include( BumpMapNode.Nodes.perturbNormalArb );
+
+				this.normal = this.normal || new NormalNode();
+				this.position = this.position || new PositionNode( PositionNode.VIEW );
+
+				var derivativeHeightCode = derivativeHeight + '( ' + this.value.build( builder, 'sampler2D' ) + ', ' +
+					this.value.uv.build( builder, 'v2' ) + ', ' +
+					this.scale.build( builder, 'f' ) + ' )';
+
+				return builder.format( perturbNormalArb + '( -' + this.position.build( builder, 'v3' ) + ', ' +
+					this.normal.build( builder, 'v3' ) + ', ' +
+					derivativeHeightCode + ' )', this.getType( builder ), output );
+
+			}
+
+		} else {
+
+			console.warn( "THREE.BumpMapNode is not compatible with " + builder.shader + " shader." );
+
+			return builder.format( 'vec3( 0.0 )', this.getType( builder ), output );
+
+		}
+
+	};
+
+	BumpMapNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.value = source.value;
+		this.scale = source.scale;
+
+		return this;
+
+	};
+
+	BumpMapNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.value = this.value.toJSON( meta ).uuid;
+			data.scale = this.scale.toJSON( meta ).uuid;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function BypassNode( code, value ) {
+
+		Node.call( this );
+
+		this.code = code;
+		this.value = value;
+
+	}
+
+	BypassNode.prototype = Object.create( Node.prototype );
+	BypassNode.prototype.constructor = BypassNode;
+	BypassNode.prototype.nodeType = "Bypass";
+
+	BypassNode.prototype.getType = function ( builder ) {
+
+		if ( this.value ) {
+
+			return this.value.getType( builder );
+
+		} else if ( builder.isShader( 'fragment' ) ) {
+
+			return 'f';
+
+		}
+
+		return 'void';
+
+	};
+
+	BypassNode.prototype.generate = function ( builder, output ) {
+
+		var code = this.code.build( builder, output ) + ';';
+
+		builder.addNodeCode( code );
+
+		if ( builder.isShader( 'vertex' ) ) {
+
+			if ( this.value ) {
+
+				return this.value.build( builder, output );
+
+			}
+
+		} else {
+
+			return this.value ? this.value.build( builder, output ) : builder.format( '0.0', 'f', output );
+
+		}
+
+	};
+
+	BypassNode.prototype.copy = function ( source ) {
+
+		Node.prototype.copy.call( this, source );
+
+		this.code = source.code;
+		this.value = source.value;
+
+		return this;
+
+	};
+
+	BypassNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.code = this.code.toJSON( meta ).uuid;
+
+			if ( this.value ) { data.value = this.value.toJSON( meta ).uuid; }
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	var inputs = NodeUtils.elements;
+
+	function JoinNode( x, y, z, w ) {
+
+		TempNode.call( this, 'f' );
+
+		this.x = x;
+		this.y = y;
+		this.z = z;
+		this.w = w;
+
+	}
+
+	JoinNode.prototype = Object.create( TempNode.prototype );
+	JoinNode.prototype.constructor = JoinNode;
+	JoinNode.prototype.nodeType = "Join";
+
+	JoinNode.prototype.getNumElements = function () {
+
+		var i = inputs.length;
+
+		while ( i -- ) {
+
+			if ( this[ inputs[ i ] ] !== undefined ) {
+
+				++ i;
+
+				break;
+
+			}
+
+		}
+
+		return Math.max( i, 2 );
+
+	};
+
+	JoinNode.prototype.getType = function ( builder ) {
+
+		return builder.getTypeFromLength( this.getNumElements() );
+
+	};
+
+	JoinNode.prototype.generate = function ( builder, output ) {
+
+		var type = this.getType( builder ),
+			length = this.getNumElements(),
+			outputs = [];
+
+		for ( var i = 0; i < length; i ++ ) {
+
+			var elm = this[ inputs[ i ] ];
+
+			outputs.push( elm ? elm.build( builder, 'f' ) : '0.0' );
+
+		}
+
+		var code = ( length > 1 ? builder.getConstructorFromLength( length ) : '' ) + '( ' + outputs.join( ', ' ) + ' )';
+
+		return builder.format( code, type, output );
+
+	};
+
+	JoinNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		for ( var prop in source.inputs ) {
+
+			this[ prop ] = source.inputs[ prop ];
+
+		}
+
+		return this;
+
+	};
+
+	JoinNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.inputs = {};
+
+			var length = this.getNumElements();
+
+			for ( var i = 0; i < length; i ++ ) {
+
+				var elm = this[ inputs[ i ] ];
+
+				if ( elm ) {
+
+					data.inputs[ inputs[ i ] ] = elm.toJSON( meta ).uuid;
+
+				}
+
+			}
+
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function SwitchNode( node, components ) {
+
+		Node.call( this );
+
+		this.node = node;
+		this.components = components || 'x';
+
+	}
+
+	SwitchNode.prototype = Object.create( Node.prototype );
+	SwitchNode.prototype.constructor = SwitchNode;
+	SwitchNode.prototype.nodeType = "Switch";
+
+	SwitchNode.prototype.getType = function ( builder ) {
+
+		return builder.getTypeFromLength( this.components.length );
+
+	};
+
+	SwitchNode.prototype.generate = function ( builder, output ) {
+
+		var type = this.node.getType( builder ),
+			node = this.node.build( builder, type ),
+			inputLength = builder.getTypeLength( type ) - 1;
+
+		if ( inputLength > 0 ) {
+
+			// get max length
+
+			var outputLength = 0,
+				components = builder.colorToVectorProperties( this.components );
+
+			var i, len = components.length;
+
+			for ( i = 0; i < len; i ++ ) {
+
+				outputLength = Math.max( outputLength, builder.getIndexByElement( components.charAt( i ) ) );
+
+			}
+
+			if ( outputLength > inputLength ) { outputLength = inputLength; }
+
+			// split
+
+			node += '.';
+
+			for ( i = 0; i < len; i ++ ) {
+
+				var elm = components.charAt( i );
+				var idx = builder.getIndexByElement( components.charAt( i ) );
+
+				if ( idx > outputLength ) { idx = outputLength; }
+
+				node += builder.getElementByIndex( idx );
+
+			}
+
+			return builder.format( node, this.getType( builder ), output );
+
+		} else {
+
+			// join
+
+			return builder.format( node, type, output );
+
+		}
+
+	};
+
+	SwitchNode.prototype.copy = function ( source ) {
+
+		Node.prototype.copy.call( this, source );
+
+		this.node = source.node;
+		this.components = source.components;
+
+		return this;
+
+	};
+
+	SwitchNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.node = this.node.toJSON( meta ).uuid;
+			data.components = this.components;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function TimerNode( scale, scope, timeScale ) {
+
+		FloatNode.call( this );
+
+		this.scale = scale !== undefined ? scale : 1;
+		this.scope = scope || TimerNode.GLOBAL;
+
+		this.timeScale = timeScale !== undefined ? timeScale : scale !== undefined;
+
+	}
+
+	TimerNode.GLOBAL = 'global';
+	TimerNode.LOCAL = 'local';
+	TimerNode.DELTA = 'delta';
+
+	TimerNode.prototype = Object.create( FloatNode.prototype );
+	TimerNode.prototype.constructor = TimerNode;
+	TimerNode.prototype.nodeType = "Timer";
+
+	TimerNode.prototype.getReadonly = function () {
+
+		// never use TimerNode as readonly but aways as "uniform"
+
+		return false;
+
+	};
+
+	TimerNode.prototype.getUnique = function () {
+
+		// share TimerNode "uniform" input if is used on more time with others TimerNode
+
+		return this.timeScale && ( this.scope === TimerNode.GLOBAL || this.scope === TimerNode.DELTA );
+
+	};
+
+	TimerNode.prototype.updateFrame = function ( frame ) {
+
+		var scale = this.timeScale ? this.scale : 1;
+
+		switch ( this.scope ) {
+
+			case TimerNode.LOCAL:
+
+				this.value += frame.delta * scale;
+
+				break;
+
+			case TimerNode.DELTA:
+
+				this.value = frame.delta * scale;
+
+				break;
+
+			default:
+
+				this.value = frame.time * scale;
+
+		}
+
+	};
+
+	TimerNode.prototype.copy = function ( source ) {
+
+		FloatNode.prototype.copy.call( this, source );
+
+		this.scope = source.scope;
+		this.scale = source.scale;
+
+		this.timeScale = source.timeScale;
+
+		return this;
+
+	};
+
+	TimerNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.scope = this.scope;
+			data.scale = this.scale;
+
+			data.timeScale = this.timeScale;
+
+		}
+
+		return data;
+
+	};
+
+	NodeLib.addKeyword( 'time', function () {
+
+		return new TimerNode();
+
+	} );
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function UVTransformNode( uv, position ) {
+
+		ExpressionNode.call( this, "( uvTransform * vec3( uvNode, 1 ) ).xy", "vec2" );
+
+		this.uv = uv || new UVNode();
+		this.position = position || new Matrix3Node();
+
+	}
+
+	UVTransformNode.prototype = Object.create( ExpressionNode.prototype );
+	UVTransformNode.prototype.constructor = UVTransformNode;
+	UVTransformNode.prototype.nodeType = "UVTransform";
+
+	UVTransformNode.prototype.generate = function ( builder, output ) {
+
+		this.keywords[ "uvNode" ] = this.uv;
+		this.keywords[ "uvTransform" ] = this.position;
+
+		return ExpressionNode.prototype.generate.call( this, builder, output );
+
+	};
+
+	UVTransformNode.prototype.setUvTransform = function ( tx, ty, sx, sy, rotation, cx, cy ) {
+
+		cx = cx !== undefined ? cx : .5;
+		cy = cy !== undefined ? cy : .5;
+
+		this.position.value.setUvTransform( tx, ty, sx, sy, rotation, cx, cy );
+
+	};
+
+	UVTransformNode.prototype.copy = function ( source ) {
+
+		ExpressionNode.prototype.copy.call( this, source );
+
+		this.uv = source.uv;
+		this.position = source.position;
+
+		return this;
+
+	};
+
+	UVTransformNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.uv = this.uv.toJSON( meta ).uuid;
+			data.position = this.position.toJSON( meta ).uuid;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function MaxMIPLevelNode( texture ) {
+
+		FloatNode.call( this );
+
+		this.texture = texture;
+
+		this.maxMIPLevel = 0;
+
+	}
+
+	MaxMIPLevelNode.prototype = Object.create( FloatNode.prototype );
+	MaxMIPLevelNode.prototype.constructor = MaxMIPLevelNode;
+	MaxMIPLevelNode.prototype.nodeType = "MaxMIPLevel";
+
+	Object.defineProperties( MaxMIPLevelNode.prototype, {
+
+		value: {
+
+			get: function () {
+
+				if ( this.maxMIPLevel === 0 ) {
+
+					var image = this.texture.value.image;
+
+					if ( Array.isArray( image ) ) { image = image[ 0 ]; }
+
+					this.maxMIPLevel = image !== undefined ? Math.log( Math.max( image.width, image.height ) ) * Math.LOG2E : 0;
+
+				}
+
+				return this.maxMIPLevel;
+
+			},
+
+			set: function () { }
+
+		}
+
+	} );
+
+	MaxMIPLevelNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.texture = this.texture.uuid;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function SpecularMIPLevelNode( roughness, texture ) {
+
+		TempNode.call( this, 'f' );
+
+		this.roughness = roughness;
+		this.texture = texture;
+
+		this.maxMIPLevel = undefined;
+
+	}
+
+	SpecularMIPLevelNode.Nodes = ( function () {
+
+		var getSpecularMIPLevel = new FunctionNode( [
+			// taken from here: http://casual-effects.blogspot.ca/2011/08/plausible-environment-lighting-in-two.html
+			"float getSpecularMIPLevel( const in float roughness, const in float maxMIPLevelScalar ) {",
+
+			"	float sigma = PI * roughness * roughness / ( 1.0 + roughness );",
+			"	float desiredMIPLevel = maxMIPLevelScalar + log2( sigma );",
+
+			// clamp to allowable LOD ranges.
+			"	return clamp( desiredMIPLevel, 0.0, maxMIPLevelScalar );",
+
+			"}"
+		].join( "\n" ) );
+
+		return {
+			getSpecularMIPLevel: getSpecularMIPLevel
+		};
+
+	} )();
+
+	SpecularMIPLevelNode.prototype = Object.create( TempNode.prototype );
+	SpecularMIPLevelNode.prototype.constructor = SpecularMIPLevelNode;
+	SpecularMIPLevelNode.prototype.nodeType = "SpecularMIPLevel";
+
+	SpecularMIPLevelNode.prototype.setTexture = function ( texture ) {
+
+		this.texture = texture;
+
+		return this;
+
+	};
+
+	SpecularMIPLevelNode.prototype.generate = function ( builder, output ) {
+
+		if ( builder.isShader( 'fragment' ) ) {
+
+			this.maxMIPLevel = this.maxMIPLevel || new MaxMIPLevelNode();
+			this.maxMIPLevel.texture = this.texture;
+
+			var getSpecularMIPLevel = builder.include( SpecularMIPLevelNode.Nodes.getSpecularMIPLevel );
+
+			return builder.format( getSpecularMIPLevel + '( ' + this.roughness.build( builder, 'f' ) + ', ' + this.maxMIPLevel.build( builder, 'f' ) + ' )', this.type, output );
+
+		} else {
+
+			console.warn( "THREE.SpecularMIPLevelNode is not compatible with " + builder.shader + " shader." );
+
+			return builder.format( '0.0', this.type, output );
+
+		}
+
+	};
+
+	SpecularMIPLevelNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.texture = source.texture;
+		this.roughness = source.roughness;
+
+		return this;
+
+	};
+
+	SpecularMIPLevelNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.texture = this.texture;
+			data.roughness = this.roughness;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function SubSlotNode( slots ) {
+
+		TempNode.call( this );
+
+		this.slots = slots || {};
+
+	}
+
+	SubSlotNode.prototype = Object.create( TempNode.prototype );
+	SubSlotNode.prototype.constructor = SubSlotNode;
+	SubSlotNode.prototype.nodeType = "SubSlot";
+
+	SubSlotNode.prototype.getType = function ( builder, output ) {
+
+		return output;
+
+	};
+
+	SubSlotNode.prototype.generate = function ( builder, output ) {
+
+		if ( this.slots[ builder.slot ] ) {
+
+			return this.slots[ builder.slot ].build( builder, output );
+
+		}
+
+		return builder.format( '0.0', 'f', output );
+
+	};
+
+	SubSlotNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		for ( var prop in source.slots ) {
+
+			this.slots[ prop ] = source.slots[ prop ];
+
+		}
+
+		return this;
+
+	};
+
+	SubSlotNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.slots = {};
+
+			for ( var prop in this.slots ) {
+
+				var slot = this.slots[ prop ];
+
+				if ( slot ) {
+
+					data.slots[ prop ] = slot.toJSON( meta ).uuid;
+
+				}
+
+			}
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function BlurNode( value, uv, radius, size ) {
+
+		TempNode.call( this, 'v4' );
+
+		this.value = value;
+		this.uv = uv || new UVNode();
+		this.radius = radius || new Vector2Node( 1, 1 );
+
+		this.size = size;
+
+		this.blurX = true;
+		this.blurY = true;
+
+		this.horizontal = new FloatNode( 1 / 64 );
+		this.vertical = new FloatNode( 1 / 64 );
+
+	}
+
+	BlurNode.Nodes = ( function () {
+
+		var blurX = new FunctionNode( [
+			"vec4 blurX( sampler2D texture, vec2 uv, float s ) {",
+			"	vec4 sum = vec4( 0.0 );",
+			"	sum += texture2D( texture, vec2( uv.x - 4.0 * s, uv.y ) ) * 0.051;",
+			"	sum += texture2D( texture, vec2( uv.x - 3.0 * s, uv.y ) ) * 0.0918;",
+			"	sum += texture2D( texture, vec2( uv.x - 2.0 * s, uv.y ) ) * 0.12245;",
+			"	sum += texture2D( texture, vec2( uv.x - 1.0 * s, uv.y ) ) * 0.1531;",
+			"	sum += texture2D( texture, vec2( uv.x, uv.y ) ) * 0.1633;",
+			"	sum += texture2D( texture, vec2( uv.x + 1.0 * s, uv.y ) ) * 0.1531;",
+			"	sum += texture2D( texture, vec2( uv.x + 2.0 * s, uv.y ) ) * 0.12245;",
+			"	sum += texture2D( texture, vec2( uv.x + 3.0 * s, uv.y ) ) * 0.0918;",
+			"	sum += texture2D( texture, vec2( uv.x + 4.0 * s, uv.y ) ) * 0.051;",
+			"	return sum * .667;",
+			"}"
+		].join( "\n" ) );
+
+		var blurY = new FunctionNode( [
+			"vec4 blurY( sampler2D texture, vec2 uv, float s ) {",
+			"	vec4 sum = vec4( 0.0 );",
+			"	sum += texture2D( texture, vec2( uv.x, uv.y - 4.0 * s ) ) * 0.051;",
+			"	sum += texture2D( texture, vec2( uv.x, uv.y - 3.0 * s ) ) * 0.0918;",
+			"	sum += texture2D( texture, vec2( uv.x, uv.y - 2.0 * s ) ) * 0.12245;",
+			"	sum += texture2D( texture, vec2( uv.x, uv.y - 1.0 * s ) ) * 0.1531;",
+			"	sum += texture2D( texture, vec2( uv.x, uv.y ) ) * 0.1633;",
+			"	sum += texture2D( texture, vec2( uv.x, uv.y + 1.0 * s ) ) * 0.1531;",
+			"	sum += texture2D( texture, vec2( uv.x, uv.y + 2.0 * s ) ) * 0.12245;",
+			"	sum += texture2D( texture, vec2( uv.x, uv.y + 3.0 * s ) ) * 0.0918;",
+			"	sum += texture2D( texture, vec2( uv.x, uv.y + 4.0 * s ) ) * 0.051;",
+			"	return sum * .667;",
+			"}"
+		].join( "\n" ) );
+
+		return {
+			blurX: blurX,
+			blurY: blurY
+		};
+
+	} )();
+
+
+	BlurNode.prototype = Object.create( TempNode.prototype );
+	BlurNode.prototype.constructor = BlurNode;
+	BlurNode.prototype.nodeType = "Blur";
+
+	BlurNode.prototype.updateFrame = function ( /* frame */ ) {
+
+		if ( this.size ) {
+
+			this.horizontal.value = this.radius.x / this.size.x;
+			this.vertical.value = this.radius.y / this.size.y;
+
+		} else if ( this.value.value && this.value.value.image ) {
+
+			var image = this.value.value.image;
+
+			this.horizontal.value = this.radius.x / image.width;
+			this.vertical.value = this.radius.y / image.height;
+
+		}
+
+	};
+
+	BlurNode.prototype.generate = function ( builder, output ) {
+
+		if ( builder.isShader( 'fragment' ) ) {
+
+			var blurCode = [], code;
+
+			var blurX = builder.include( BlurNode.Nodes.blurX ),
+				blurY = builder.include( BlurNode.Nodes.blurY );
+
+			if ( this.blurX ) {
+
+				blurCode.push( blurX + '( ' + this.value.build( builder, 'sampler2D' ) + ', ' + this.uv.build( builder, 'v2' ) + ', ' + this.horizontal.build( builder, 'f' ) + ' )' );
+
+			}
+
+			if ( this.blurY ) {
+
+				blurCode.push( blurY + '( ' + this.value.build( builder, 'sampler2D' ) + ', ' + this.uv.build( builder, 'v2' ) + ', ' + this.vertical.build( builder, 'f' ) + ' )' );
+
+			}
+
+			if ( blurCode.length == 2 ) { code = '( ' + blurCode.join( ' + ' ) + ' / 2.0 )'; }
+			else if ( blurCode.length ) { code = '( ' + blurCode[ 0 ] + ' )'; }
+			else { code = 'vec4( 0.0 )'; }
+
+			return builder.format( code, this.getType( builder ), output );
+
+		} else {
+
+			console.warn( "THREE.BlurNode is not compatible with " + builder.shader + " shader." );
+
+			return builder.format( 'vec4( 0.0 )', this.getType( builder ), output );
+
+		}
+
+	};
+
+	BlurNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.value = source.value;
+		this.uv = source.uv;
+		this.radius = source.radius;
+
+		if ( source.size !== undefined ) { this.size = new Vector2( source.size.x, source.size.y ); }
+
+		this.blurX = source.blurX;
+		this.blurY = source.blurY;
+
+		return this;
+
+	};
+
+	BlurNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.value = this.value.toJSON( meta ).uuid;
+			data.uv = this.uv.toJSON( meta ).uuid;
+			data.radius = this.radius.toJSON( meta ).uuid;
+
+			if ( this.size ) { data.size = { x: this.size.x, y: this.size.y }; }
+
+			data.blurX = this.blurX;
+			data.blurY = this.blurY;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function LuminanceNode( rgb ) {
+
+		TempNode.call( this, 'f' );
+
+		this.rgb = rgb;
+
+	}
+
+	LuminanceNode.Nodes = ( function () {
+
+		var LUMA = new ConstNode( "vec3 LUMA vec3( 0.2125, 0.7154, 0.0721 )" );
+
+		var luminance = new FunctionNode( [
+			// Algorithm from Chapter 10 of Graphics Shaders
+			"float luminance( vec3 rgb ) {",
+
+			"	return dot( rgb, LUMA );",
+
+			"}"
+		].join( "\n" ), [ LUMA ] );
+
+		return {
+			LUMA: LUMA,
+			luminance: luminance
+		};
+
+	} )();
+
+	LuminanceNode.prototype = Object.create( TempNode.prototype );
+	LuminanceNode.prototype.constructor = LuminanceNode;
+	LuminanceNode.prototype.nodeType = "Luminance";
+
+	LuminanceNode.prototype.generate = function ( builder, output ) {
+
+		var luminance = builder.include( LuminanceNode.Nodes.luminance );
+
+		return builder.format( luminance + '( ' + this.rgb.build( builder, 'v3' ) + ' )', this.getType( builder ), output );
+
+	};
+
+	LuminanceNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.rgb = source.rgb;
+
+		return this;
+
+	};
+
+	LuminanceNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.rgb = this.rgb.toJSON( meta ).uuid;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function ColorAdjustmentNode( rgb, adjustment, method ) {
+
+		TempNode.call( this, 'v3' );
+
+		this.rgb = rgb;
+		this.adjustment = adjustment;
+
+		this.method = method || ColorAdjustmentNode.SATURATION;
+
+	}
+
+	ColorAdjustmentNode.Nodes = ( function () {
+
+		var hue = new FunctionNode( [
+			"vec3 hue(vec3 rgb, float adjustment) {",
+
+			"	const mat3 RGBtoYIQ = mat3(0.299, 0.587, 0.114, 0.595716, -0.274453, -0.321263, 0.211456, -0.522591, 0.311135);",
+			"	const mat3 YIQtoRGB = mat3(1.0, 0.9563, 0.6210, 1.0, -0.2721, -0.6474, 1.0, -1.107, 1.7046);",
+
+			"	vec3 yiq = RGBtoYIQ * rgb;",
+
+			"	float hue = atan(yiq.z, yiq.y) + adjustment;",
+			"	float chroma = sqrt(yiq.z * yiq.z + yiq.y * yiq.y);",
+
+			"	return YIQtoRGB * vec3(yiq.x, chroma * cos(hue), chroma * sin(hue));",
+
+			"}"
+		].join( "\n" ) );
+
+		var saturation = new FunctionNode( [
+			// Algorithm from Chapter 16 of OpenGL Shading Language
+			"vec3 saturation(vec3 rgb, float adjustment) {",
+
+			"	vec3 intensity = vec3( luminance( rgb ) );",
+
+			"	return mix( intensity, rgb, adjustment );",
+
+			"}"
+		].join( "\n" ), [ LuminanceNode.Nodes.luminance ] ); // include LuminanceNode function
+
+		var vibrance = new FunctionNode( [
+			// Shader by Evan Wallace adapted by @lo-th
+			"vec3 vibrance(vec3 rgb, float adjustment) {",
+
+			"	float average = (rgb.r + rgb.g + rgb.b) / 3.0;",
+
+			"	float mx = max(rgb.r, max(rgb.g, rgb.b));",
+			"	float amt = (mx - average) * (-3.0 * adjustment);",
+
+			"	return mix(rgb.rgb, vec3(mx), amt);",
+
+			"}"
+		].join( "\n" ) );
+
+		return {
+			hue: hue,
+			saturation: saturation,
+			vibrance: vibrance
+		};
+
+	} )();
+
+	ColorAdjustmentNode.SATURATION = 'saturation';
+	ColorAdjustmentNode.HUE = 'hue';
+	ColorAdjustmentNode.VIBRANCE = 'vibrance';
+	ColorAdjustmentNode.BRIGHTNESS = 'brightness';
+	ColorAdjustmentNode.CONTRAST = 'contrast';
+
+	ColorAdjustmentNode.prototype = Object.create( TempNode.prototype );
+	ColorAdjustmentNode.prototype.constructor = ColorAdjustmentNode;
+	ColorAdjustmentNode.prototype.nodeType = "ColorAdjustment";
+
+	ColorAdjustmentNode.prototype.generate = function ( builder, output ) {
+
+		var rgb = this.rgb.build( builder, 'v3' ),
+			adjustment = this.adjustment.build( builder, 'f' );
+
+		switch ( this.method ) {
+
+			case ColorAdjustmentNode.BRIGHTNESS:
+
+				return builder.format( '( ' + rgb + ' + ' + adjustment + ' )', this.getType( builder ), output );
+
+				break;
+
+			case ColorAdjustmentNode.CONTRAST:
+
+				return builder.format( '( ' + rgb + ' * ' + adjustment + ' )', this.getType( builder ), output );
+
+				break;
+
+		}
+
+		var method = builder.include( ColorAdjustmentNode.Nodes[ this.method ] );
+
+		return builder.format( method + '( ' + rgb + ', ' + adjustment + ' )', this.getType( builder ), output );
+
+	};
+
+	ColorAdjustmentNode.prototype.copy = function ( source ) {
+
+		TempNode.prototype.copy.call( this, source );
+
+		this.rgb = source.rgb;
+		this.adjustment = source.adjustment;
+		this.method = source.method;
+
+		return this;
+
+	};
+
+	ColorAdjustmentNode.prototype.toJSON = function ( meta ) {
+
+		var data = this.getJSONNode( meta );
+
+		if ( ! data ) {
+
+			data = this.createJSONNode( meta );
+
+			data.rgb = this.rgb.toJSON( meta ).uuid;
+			data.adjustment = this.adjustment.toJSON( meta ).uuid;
+			data.method = this.method;
+
+		}
+
+		return data;
+
+	};
+
+	/**
+	 * @author sunag / http://www.sunag.com.br/
+	 */
+
+	function NodeMaterial( vertex, fragment ) {
+
+		ShaderMaterial.call( this );
+
+		var self = this;
+
+		this.vertex = vertex;
+		this.fragment = fragment;
+
+		this.updaters = [];
+
+		// onBeforeCompile can't be in the prototype because onBeforeCompile.toString varies per material
+
+		this.onBeforeCompile = function ( shader, renderer ) {
+
+			var materialProperties = renderer.properties.get( this );
+
+			if ( this.version !== materialProperties.__version ) {
+
+				this.build( { renderer: renderer } );
+
+				shader.uniforms = this.uniforms;
+				shader.vertexShader = this.vertexShader;
+				shader.fragmentShader = this.fragmentShader;
+
+			}
+
+		};
+
+		// it fix the programCache and share the code with others materials
+
+		this.onBeforeCompile.toString = function () {
+
+			return self.needsCompile;
+
+		};
+
+	}
+
+	NodeMaterial.prototype = Object.create( ShaderMaterial.prototype );
+	NodeMaterial.prototype.constructor = NodeMaterial;
+	NodeMaterial.prototype.type = "NodeMaterial";
+
+	NodeMaterial.prototype.isNodeMaterial = true;
+
+	Object.defineProperties( NodeMaterial.prototype, {
+
+		properties: {
+
+			get: function () {
+
+				return this.fragment.properties;
+
+			}
+
+		},
+
+		needsUpdate: {
+
+			set: function ( value ) {
+
+				if ( value === true ) { this.version ++; }
+				this.needsCompile = value;
+
+			},
+
+			get: function () {
+
+				return this.needsCompile;
+
+			}
+
+		}
+
+	} );
+
+	NodeMaterial.prototype.updateFrame = function ( frame ) {
+
+		for ( var i = 0; i < this.updaters.length; ++ i ) {
+
+			frame.updateNode( this.updaters[ i ] );
+
+		}
+
+	};
+
+	NodeMaterial.prototype.build = function ( params ) {
+
+		params = params || {};
+
+		var builder = params.builder || new NodeBuilder();
+
+		builder.setMaterial( this, params.renderer );
+		builder.build( this.vertex, this.fragment );
+
+		this.vertexShader = builder.getCode( 'vertex' );
+		this.fragmentShader = builder.getCode( 'fragment' );
+
+		this.defines = builder.defines;
+		this.uniforms = builder.uniforms;
+		this.extensions = builder.extensions;
+		this.updaters = builder.updaters;
+
+		this.fog = builder.requires.fog;
+		this.lights = builder.requires.lights;
+
+		this.transparent = builder.requires.transparent || this.blending > NormalBlending;
+
+		return this;
+
+	};
+
+	NodeMaterial.prototype.copy = function ( source ) {
+
+		var uuid = this.uuid;
+
+		for ( var name in source ) {
+
+			this[ name ] = source[ name ];
+
+		}
+
+		this.uuid = uuid;
+
+		if ( source.userData !== undefined ) {
+
+			this.userData = JSON.parse( JSON.stringify( source.userData ) );
+
+		}
+
+		return this;
+
+	};
+
+	NodeMaterial.prototype.toJSON = function ( meta ) {
+
+		var isRootObject = ( meta === undefined || typeof meta === 'string' );
+
+		if ( isRootObject ) {
+
+			meta = {
+				nodes: {}
+			};
+
+		}
+
+		if ( meta && ! meta.materials ) { meta.materials = {}; }
+
+		if ( ! meta.materials[ this.uuid ] ) {
+
+			var data = {};
+
+			data.uuid = this.uuid;
+			data.type = this.type;
+
+			meta.materials[ data.uuid ] = data;
+
+			if ( this.name !== "" ) { data.name = this.name; }
+
+			if ( this.size !== undefined ) { data.size = this.size; }
+			if ( this.sizeAttenuation !== undefined ) { data.sizeAttenuation = this.sizeAttenuation; }
+
+			if ( this.blending !== NormalBlending ) { data.blending = this.blending; }
+			if ( this.flatShading === true ) { data.flatShading = this.flatShading; }
+			if ( this.side !== FrontSide ) { data.side = this.side; }
+			if ( this.vertexColors !== NoColors ) { data.vertexColors = this.vertexColors; }
+
+			if ( this.depthFunc !== LessEqualDepth ) { data.depthFunc = this.depthFunc; }
+			if ( this.depthTest === false ) { data.depthTest = this.depthTest; }
+			if ( this.depthWrite === false ) { data.depthWrite = this.depthWrite; }
+
+			if ( this.linewidth !== 1 ) { data.linewidth = this.linewidth; }
+			if ( this.dashSize !== undefined ) { data.dashSize = this.dashSize; }
+			if ( this.gapSize !== undefined ) { data.gapSize = this.gapSize; }
+			if ( this.scale !== undefined ) { data.scale = this.scale; }
+
+			if ( this.dithering === true ) { data.dithering = true; }
+
+			if ( this.wireframe === true ) { data.wireframe = this.wireframe; }
+			if ( this.wireframeLinewidth > 1 ) { data.wireframeLinewidth = this.wireframeLinewidth; }
+			if ( this.wireframeLinecap !== 'round' ) { data.wireframeLinecap = this.wireframeLinecap; }
+			if ( this.wireframeLinejoin !== 'round' ) { data.wireframeLinejoin = this.wireframeLinejoin; }
+
+			if ( this.alphaTest > 0 ) { data.alphaTest = this.alphaTest; }
+			if ( this.premultipliedAlpha === true ) { data.premultipliedAlpha = this.premultipliedAlpha; }
+
+			if ( this.morphTargets === true ) { data.morphTargets = true; }
+			if ( this.skinning === true ) { data.skinning = true; }
+
+			if ( this.visible === false ) { data.visible = false; }
+			if ( JSON.stringify( this.userData ) !== '{}' ) { data.userData = this.userData; }
+
+			data.fog = this.fog;
+			data.lights = this.lights;
+
+			data.vertex = this.vertex.toJSON( meta ).uuid;
+			data.fragment = this.fragment.toJSON( meta ).uuid;
+
+		}
+
+		meta.material = this.uuid;
+
+		return meta;
+
+	};
 
 	/**
 	 * @author tschw
@@ -37850,7 +44590,6 @@
 
 
 	var Curves = /*#__PURE__*/Object.freeze({
-		__proto__: null,
 		ArcCurve: ArcCurve,
 		CatmullRomCurve3: CatmullRomCurve3,
 		CubicBezierCurve: CubicBezierCurve,
@@ -47928,8 +54667,8 @@
 
 	function DynamicBufferAttribute( array, itemSize ) {
 
-		console.warn( 'THREE.DynamicBufferAttribute has been removed. Use new THREE.BufferAttribute().setDynamic( true ) instead.' );
-		return new BufferAttribute( array, itemSize ).setDynamic( true );
+		console.warn( 'THREE.DynamicBufferAttribute has been removed. Use new THREE.BufferAttribute().setUsage( THREE.DynamicDrawUsage ) instead.' );
+		return new BufferAttribute( array, itemSize ).setUsage( DynamicDrawUsage );
 
 	}
 
@@ -49546,8 +56285,8 @@
 
 	function WebGLRenderTargetCube( width, height, options ) {
 
-		console.warn( 'THREE.WebGLRenderTargetCube has been renamed to WebGLCubeRenderTarget.' );
-		return new WebGLCubeRenderTarget( width, height, options );
+		console.warn( 'THREE.WebGLRenderTargetCube( width, height, options ) is now WebGLCubeRenderTarget( size, options ).' );
+		return new WebGLCubeRenderTarget( width, options );
 
 	}
 
@@ -49893,6 +56632,7 @@
 	exports.ArcCurve = ArcCurve;
 	exports.ArrayCamera = ArrayCamera;
 	exports.ArrowHelper = ArrowHelper;
+	exports.AttributeNode = AttributeNode;
 	exports.Audio = Audio;
 	exports.AudioAnalyser = AudioAnalyser;
 	exports.AudioContext = AudioContext;
@@ -49904,7 +56644,9 @@
 	exports.BasicDepthPacking = BasicDepthPacking;
 	exports.BasicShadowMap = BasicShadowMap;
 	exports.BinaryTextureLoader = BinaryTextureLoader;
+	exports.BlurNode = BlurNode;
 	exports.Bone = Bone;
+	exports.BoolNode = BoolNode;
 	exports.BooleanKeyframeTrack = BooleanKeyframeTrack;
 	exports.BoundingBoxHelper = BoundingBoxHelper;
 	exports.Box2 = Box2;
@@ -49916,13 +56658,17 @@
 	exports.BufferAttribute = BufferAttribute;
 	exports.BufferGeometry = BufferGeometry;
 	exports.BufferGeometryLoader = BufferGeometryLoader;
+	exports.BumpMapNode = BumpMapNode;
+	exports.BypassNode = BypassNode;
 	exports.ByteType = ByteType;
 	exports.Cache = Cache;
 	exports.Camera = Camera;
 	exports.CameraHelper = CameraHelper;
+	exports.CameraNode = CameraNode;
 	exports.CanvasRenderer = CanvasRenderer;
 	exports.CanvasTexture = CanvasTexture;
 	exports.CatmullRomCurve3 = CatmullRomCurve3;
+	exports.CheckerNode = CheckerNode;
 	exports.CineonToneMapping = CineonToneMapping;
 	exports.CircleBufferGeometry = CircleBufferGeometry;
 	exports.CircleGeometry = CircleGeometry;
@@ -49930,17 +56676,24 @@
 	exports.Clock = Clock;
 	exports.ClosedSplineCurve3 = ClosedSplineCurve3;
 	exports.Color = Color;
+	exports.ColorAdjustmentNode = ColorAdjustmentNode;
 	exports.ColorKeyframeTrack = ColorKeyframeTrack;
+	exports.ColorNode = ColorNode;
+	exports.ColorSpaceNode = ColorSpaceNode;
+	exports.ColorsNode = ColorsNode;
 	exports.CompressedTexture = CompressedTexture;
 	exports.CompressedTextureLoader = CompressedTextureLoader;
+	exports.CondNode = CondNode;
 	exports.ConeBufferGeometry = ConeBufferGeometry;
 	exports.ConeGeometry = ConeGeometry;
+	exports.ConstNode = ConstNode;
 	exports.CubeCamera = CubeCamera;
 	exports.CubeGeometry = BoxGeometry;
 	exports.CubeReflectionMapping = CubeReflectionMapping;
 	exports.CubeRefractionMapping = CubeRefractionMapping;
 	exports.CubeTexture = CubeTexture;
 	exports.CubeTextureLoader = CubeTextureLoader;
+	exports.CubeTextureNode = CubeTextureNode;
 	exports.CubeUVReflectionMapping = CubeUVReflectionMapping;
 	exports.CubeUVRefractionMapping = CubeUVRefractionMapping;
 	exports.CubicBezierCurve = CubicBezierCurve;
@@ -49988,6 +56741,7 @@
 	exports.EquirectangularRefractionMapping = EquirectangularRefractionMapping;
 	exports.Euler = Euler;
 	exports.EventDispatcher = EventDispatcher;
+	exports.ExpressionNode = ExpressionNode;
 	exports.ExtrudeBufferGeometry = ExtrudeBufferGeometry;
 	exports.ExtrudeGeometry = ExtrudeGeometry;
 	exports.Face3 = Face3;
@@ -49999,6 +56753,7 @@
 	exports.Float32BufferAttribute = Float32BufferAttribute;
 	exports.Float64Attribute = Float64Attribute;
 	exports.Float64BufferAttribute = Float64BufferAttribute;
+	exports.FloatNode = FloatNode;
 	exports.FloatType = FloatType;
 	exports.Fog = Fog;
 	exports.FogExp2 = FogExp2;
@@ -50008,6 +56763,8 @@
 	exports.FrontFaceDirectionCW = FrontFaceDirectionCW;
 	exports.FrontSide = FrontSide;
 	exports.Frustum = Frustum;
+	exports.FunctionCallNode = FunctionCallNode;
+	exports.FunctionNode = FunctionNode;
 	exports.GammaEncoding = GammaEncoding;
 	exports.Geometry = Geometry;
 	exports.GeometryUtils = GeometryUtils;
@@ -50029,6 +56786,7 @@
 	exports.ImmediateRenderObject = ImmediateRenderObject;
 	exports.IncrementStencilOp = IncrementStencilOp;
 	exports.IncrementWrapStencilOp = IncrementWrapStencilOp;
+	exports.InputNode = InputNode;
 	exports.InstancedBufferAttribute = InstancedBufferAttribute;
 	exports.InstancedBufferGeometry = InstancedBufferGeometry;
 	exports.InstancedInterleavedBuffer = InstancedInterleavedBuffer;
@@ -50039,6 +56797,7 @@
 	exports.Int32BufferAttribute = Int32BufferAttribute;
 	exports.Int8Attribute = Int8Attribute;
 	exports.Int8BufferAttribute = Int8BufferAttribute;
+	exports.IntNode = IntNode;
 	exports.IntType = IntType;
 	exports.InterleavedBuffer = InterleavedBuffer;
 	exports.InterleavedBufferAttribute = InterleavedBufferAttribute;
@@ -50048,6 +56807,7 @@
 	exports.InterpolateSmooth = InterpolateSmooth;
 	exports.InvertStencilOp = InvertStencilOp;
 	exports.JSONLoader = JSONLoader;
+	exports.JoinNode = JoinNode;
 	exports.KeepStencilOp = KeepStencilOp;
 	exports.KeyframeTrack = KeyframeTrack;
 	exports.LOD = LOD;
@@ -50060,6 +56820,7 @@
 	exports.LessEqualStencilFunc = LessEqualStencilFunc;
 	exports.LessStencilFunc = LessStencilFunc;
 	exports.Light = Light;
+	exports.LightNode = LightNode;
 	exports.LightProbe = LightProbe;
 	exports.LightShadow = LightShadow;
 	exports.Line = Line;
@@ -50089,14 +56850,19 @@
 	exports.LoopRepeat = LoopRepeat;
 	exports.LuminanceAlphaFormat = LuminanceAlphaFormat;
 	exports.LuminanceFormat = LuminanceFormat;
+	exports.LuminanceNode = LuminanceNode;
 	exports.MOUSE = MOUSE;
 	exports.Material = Material;
 	exports.MaterialLoader = MaterialLoader;
 	exports.Math = MathUtils;
+	exports.MathNode = MathNode;
 	exports.MathUtils = MathUtils;
 	exports.Matrix3 = Matrix3;
+	exports.Matrix3Node = Matrix3Node;
 	exports.Matrix4 = Matrix4;
+	exports.Matrix4Node = Matrix4Node;
 	exports.MaxEquation = MaxEquation;
+	exports.MaxMIPLevelNode = MaxMIPLevelNode;
 	exports.Mesh = Mesh;
 	exports.MeshBasicMaterial = MeshBasicMaterial;
 	exports.MeshDepthMaterial = MeshDepthMaterial;
@@ -50125,7 +56891,17 @@
 	exports.NoBlending = NoBlending;
 	exports.NoColors = NoColors;
 	exports.NoToneMapping = NoToneMapping;
+	exports.Node = Node;
+	exports.NodeBuilder = NodeBuilder;
+	exports.NodeFrame = NodeFrame;
+	exports.NodeLib = NodeLib;
+	exports.NodeMaterial = NodeMaterial;
+	exports.NodeUniform = NodeUniform;
+	exports.NodeUtils = NodeUtils;
+	exports.NoiseNode = NoiseNode;
 	exports.NormalBlending = NormalBlending;
+	exports.NormalMapNode = NormalMapNode;
+	exports.NormalNode = NormalNode;
 	exports.NotEqualDepth = NotEqualDepth;
 	exports.NotEqualStencilFunc = NotEqualStencilFunc;
 	exports.NumberKeyframeTrack = NumberKeyframeTrack;
@@ -50139,6 +56915,7 @@
 	exports.OneMinusDstColorFactor = OneMinusDstColorFactor;
 	exports.OneMinusSrcAlphaFactor = OneMinusSrcAlphaFactor;
 	exports.OneMinusSrcColorFactor = OneMinusSrcColorFactor;
+	exports.OperatorNode = OperatorNode;
 	exports.OrthographicCamera = OrthographicCamera;
 	exports.PCFShadowMap = PCFShadowMap;
 	exports.PCFSoftShadowMap = PCFSoftShadowMap;
@@ -50164,9 +56941,11 @@
 	exports.PolarGridHelper = PolarGridHelper;
 	exports.PolyhedronBufferGeometry = PolyhedronBufferGeometry;
 	exports.PolyhedronGeometry = PolyhedronGeometry;
+	exports.PositionNode = PositionNode;
 	exports.PositionalAudio = PositionalAudio;
 	exports.PropertyBinding = PropertyBinding;
 	exports.PropertyMixer = PropertyMixer;
+	exports.PropertyNode = PropertyNode;
 	exports.QuadraticBezierCurve = QuadraticBezierCurve;
 	exports.QuadraticBezierCurve3 = QuadraticBezierCurve3;
 	exports.Quaternion = Quaternion;
@@ -50214,14 +56993,19 @@
 	exports.RectAreaLight = RectAreaLight;
 	exports.RedFormat = RedFormat;
 	exports.RedIntegerFormat = RedIntegerFormat;
+	exports.ReflectNode = ReflectNode;
+	exports.ReflectorNode = ReflectorNode;
 	exports.ReinhardToneMapping = ReinhardToneMapping;
 	exports.RepeatWrapping = RepeatWrapping;
 	exports.ReplaceStencilOp = ReplaceStencilOp;
+	exports.ResolutionNode = ResolutionNode;
 	exports.ReverseSubtractEquation = ReverseSubtractEquation;
 	exports.RingBufferGeometry = RingBufferGeometry;
 	exports.RingGeometry = RingGeometry;
 	exports.Scene = Scene;
 	exports.SceneUtils = SceneUtils;
+	exports.ScreenNode = ScreenNode;
+	exports.ScreenUVNode = ScreenUVNode;
 	exports.ShaderChunk = ShaderChunk;
 	exports.ShaderLib = ShaderLib;
 	exports.ShaderMaterial = ShaderMaterial;
@@ -50236,6 +57020,7 @@
 	exports.SkeletonHelper = SkeletonHelper;
 	exports.SkinnedMesh = SkinnedMesh;
 	exports.SmoothShading = SmoothShading;
+	exports.SpecularMIPLevelNode = SpecularMIPLevelNode;
 	exports.Sphere = Sphere;
 	exports.SphereBufferGeometry = SphereBufferGeometry;
 	exports.SphereGeometry = SphereGeometry;
@@ -50261,16 +57046,24 @@
 	exports.StreamDrawUsage = StreamDrawUsage;
 	exports.StreamReadUsage = StreamReadUsage;
 	exports.StringKeyframeTrack = StringKeyframeTrack;
+	exports.StructNode = StructNode;
+	exports.SubSlotNode = SubSlotNode;
 	exports.SubtractEquation = SubtractEquation;
 	exports.SubtractiveBlending = SubtractiveBlending;
+	exports.SwitchNode = SwitchNode;
 	exports.TOUCH = TOUCH;
 	exports.TangentSpaceNormalMap = TangentSpaceNormalMap;
+	exports.TempNode = TempNode;
 	exports.TetrahedronBufferGeometry = TetrahedronBufferGeometry;
 	exports.TetrahedronGeometry = TetrahedronGeometry;
 	exports.TextBufferGeometry = TextBufferGeometry;
 	exports.TextGeometry = TextGeometry;
 	exports.Texture = Texture;
+	exports.TextureCubeNode = TextureCubeNode;
+	exports.TextureCubeUVNode = TextureCubeUVNode;
 	exports.TextureLoader = TextureLoader;
+	exports.TextureNode = TextureNode;
+	exports.TimerNode = TimerNode;
 	exports.TorusBufferGeometry = TorusBufferGeometry;
 	exports.TorusGeometry = TorusGeometry;
 	exports.TorusKnotBufferGeometry = TorusKnotBufferGeometry;
@@ -50282,6 +57075,8 @@
 	exports.TubeBufferGeometry = TubeBufferGeometry;
 	exports.TubeGeometry = TubeGeometry;
 	exports.UVMapping = UVMapping;
+	exports.UVNode = UVNode;
+	exports.UVTransformNode = UVTransformNode;
 	exports.Uint16Attribute = Uint16Attribute;
 	exports.Uint16BufferAttribute = Uint16BufferAttribute;
 	exports.Uint32Attribute = Uint32Attribute;
@@ -50302,9 +57097,13 @@
 	exports.UnsignedShort565Type = UnsignedShort565Type;
 	exports.UnsignedShortType = UnsignedShortType;
 	exports.VSMShadowMap = VSMShadowMap;
+	exports.VarNode = VarNode;
 	exports.Vector2 = Vector2;
+	exports.Vector2Node = Vector2Node;
 	exports.Vector3 = Vector3;
+	exports.Vector3Node = Vector3Node;
 	exports.Vector4 = Vector4;
+	exports.Vector4Node = Vector4Node;
 	exports.VectorKeyframeTrack = VectorKeyframeTrack;
 	exports.Vertex = Vertex;
 	exports.VertexColors = VertexColors;
@@ -50327,4 +57126,4 @@
 
 	Object.defineProperty(exports, '__esModule', { value: true });
 
-})));
+}));
