@@ -91,6 +91,13 @@
 								envMap: alphaIndex % 2 === 0 ? null : reflectionCube
 							} );
 
+							// node test
+							var uvTransform = new THREE.UVTransformNode();
+							uvTransform.setUvTransform( 0, 0, 50, 50, 0 );
+
+							material.diffuse = new THREE.OperatorNode( new THREE.CheckerNode( uvTransform ), new THREE.ColorNode( diffuseColor ), '*' );
+							//--
+
 							var mesh = new THREE.Mesh( geometry, material );
 
 							mesh.position.x = alpha * 400 - 200;

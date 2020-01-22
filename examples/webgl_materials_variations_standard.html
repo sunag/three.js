@@ -91,6 +91,13 @@
 										envMap: index % 2 === 0 ? null : hdrCubeRenderTarget.texture
 									} );
 
+									// node test
+									var uvTransform = new THREE.UVTransformNode();
+									uvTransform.setUvTransform( 0, 0, 50, 50, 0 );
+
+									material.diffuse = new THREE.OperatorNode( new THREE.CheckerNode( uvTransform ), new THREE.ColorNode( diffuseColor ), '*' );
+									//--
+
 									index ++;
 
 									var mesh = new THREE.Mesh( geometry, material );
