@@ -8,6 +8,7 @@ import { WebGPUNodeSampledTexture } from './WebGPUNodeSampledTexture.js';
 
 import NodeSlot from '../../nodes/core/NodeSlot.js';
 import NodeBuilder from '../../nodes/core/NodeBuilder.js';
+import SkinningNode from '../../nodes/accessors/SkinningNode.js';
 import MaterialNode from '../../nodes/accessors/MaterialNode.js';
 import ModelViewProjectionNode from '../../nodes/accessors/ModelViewProjectionNode.js';
 import LightContextNode from '../../nodes/lights/LightContextNode.js';
@@ -15,9 +16,9 @@ import ShaderLib from './ShaderLib.js';
 
 class WebGPUNodeBuilder extends NodeBuilder {
 
-	constructor( material, renderer ) {
+	constructor( object, renderer ) {
 
-		super( material, renderer );
+		super( object, renderer );
 
 		this.bindings = { vertex: [], fragment: [] };
 		this.bindingsOffset = { vertex: 0, fragment: 0 };
@@ -26,12 +27,13 @@ class WebGPUNodeBuilder extends NodeBuilder {
 
 		this.nativeShader = null;
 
-		this._parseMaterial();
+		this._parseObject();
 
 	}
 
-	_parseMaterial() {
+	_parseObject() {
 
+		const object = this.object;
 		const material = this.material;
 
 		// get shader
@@ -114,6 +116,16 @@ class WebGPUNodeBuilder extends NodeBuilder {
 				const lightContextNode = new LightContextNode( lightNode );
 
 				this.addSlot( 'fragment', new NodeSlot( lightContextNode, 'LIGHT', 'vec3' ) );
+
+			}
+
+			//
+
+			if ( object.isSkinnedMesh === true ) {
+
+				const skinningNode = new SkinningNode( object );
+
+				this.addSlot( 'vertex', new NodeSlot( skinningNode, 'SKINNING', 'vec4' ) );
 
 			}
 

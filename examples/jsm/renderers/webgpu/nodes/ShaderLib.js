@@ -14,8 +14,17 @@ const ShaderLib = {
 				NODE_BODY_VARYS
 				NODE_BODY_VARS
 
-				gl_Position = NODE_MVP;
+				vec4 transform = NODE_MVP;
 
+				#ifdef NODE_SKINNING
+
+					NODE_CODE_SKINNING
+
+					transform = NODE_SKINNING;
+
+				#endif
+
+				gl_Position = transform;
 			}`,
 
 		fragmentShader:
@@ -80,7 +89,15 @@ const ShaderLib = {
 				NODE_BODY_VARYS
 				NODE_BODY_VARS
 
-				gl_Position = NODE_MVP;
+				vec4 transform = NODE_MVP;
+
+				#ifdef NODE_SKINNING
+
+					transform = NODE_SKINNING;
+
+				#endif
+
+				gl_Position = transform;
 
 			}`,
 
