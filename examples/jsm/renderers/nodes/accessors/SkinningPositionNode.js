@@ -34,36 +34,27 @@ class SkinningPositionNode extends Node {
 		const type = this.getType( builder );
 		const nodeData = builder.getDataFromNode( this, builder.shaderStage );
 
-		let skinIndexNode = nodeData.skinIndexNode;
+		let getSkinningCallNode = nodeData.getSkinningCallNode;
 
-		if ( skinIndexNode === undefined ) {
+		if ( getSkinningCallNode === undefined ) {
 
-			skinIndexNode = new AttributeNode( 'skinIndex', 'vec4' );
+			const skinIndexNode = new AttributeNode( 'skinIndex', 'vec4' );
+			const skinWeightNode = new AttributeNode( 'skinWeight', 'vec4' );
 
-			nodeData.skinIndexNode = skinIndexNode;
+			getSkinningCallNode = SkinningPosition.call( {
+				index: skinIndexNode,
+				weight: skinWeightNode,
+				position: this.position,
+				bindMatrix: this.bindMatrixNode,
+				bindMatrixInverse: this.bindMatrixInverseNode,
+				boneTexture: this.boneTextureNode,
+				boneSampler: this.boneTextureNode,
+				boneTextureSize: this.boneTextureSizeNode
+			} );
+
+			nodeData.getSkinningCallNode = getSkinningCallNode;
 
 		}
-
-		let skinWeightNode = nodeData.skinWeight;
-
-		if ( skinWeightNode === undefined ) {
-
-			skinWeightNode = new AttributeNode( 'skinWeight', 'vec4' );
-
-			nodeData.skinWeightNode = skinWeightNode;
-
-		}
-
-		const getSkinningCallNode = SkinningPosition.call( {
-			index: skinIndexNode,
-			weight: skinWeightNode,
-			position: this.position,
-			bindMatrix: this.bindMatrixNode,
-			bindMatrixInverse: this.bindMatrixInverseNode,
-			boneTexture: this.boneTextureNode,
-			boneSampler: this.boneTextureNode,
-			boneTextureSize: this.boneTextureSizeNode
-		} );
 
 		const skinningSnipped = getSkinningCallNode.build( builder, type );
 
