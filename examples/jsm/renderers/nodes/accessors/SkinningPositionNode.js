@@ -4,15 +4,16 @@ import FloatNode from '../inputs/FloatNode.js';
 import Matrix4Node from '../inputs/Matrix4Node.js';
 import TextureNode from '../inputs/TextureNode.js';
 import OperatorNode from '../math/OperatorNode.js';
+import PositionNode from './PositionNode.js';
 
 import { NodeUpdateType } from '../core/constants.js';
-import { ApplySkinning } from '../functions/Common.js';
+import { SkinningPosition } from '../functions/Common.js';
 
-class SkinningNode extends Node {
+class SkinningPositionNode extends Node {
 
 	constructor( skinnedMesh ) {
 
-		super( 'vec4' );
+		super( 'vec3' );
 
 		this.skinnedMesh = skinnedMesh;
 
@@ -24,12 +25,7 @@ class SkinningNode extends Node {
 		this.bindMatrixInverseNode = new Matrix4Node( skinnedMesh.bindMatrixInverse );
 		this.boneTextureSizeNode = new FloatNode();
 		this.boneTextureNode = new TextureNode();
-
-	}
-
-	getType( /*builder*/ ) {
-
-		return 'vec4';
+		this.position = new PositionNode();
 
 	}
 
@@ -58,18 +54,18 @@ class SkinningNode extends Node {
 
 		}
 
-		const applySkinningCallNode = ApplySkinning.call( {
+		const getSkinningCallNode = SkinningPosition.call( {
 			index: skinIndexNode,
 			weight: skinWeightNode,
+			position: this.position,
 			bindMatrix: this.bindMatrixNode,
-			boneTexture: this.boneTextureNode, // how to apply a separate texture and sampler object?
-			boneSampler: this.boneTextureNode, // how to apply a separate texture and sampler object?
+			bindMatrixInverse: this.bindMatrixInverseNode,
+			boneTexture: this.boneTextureNode,
+			boneSampler: this.boneTextureNode,
 			boneTextureSize: this.boneTextureSizeNode
 		} );
 
-		const outputNode = new OperatorNode( '*', this.bindMatrixInverseNode, applySkinningCallNode );
-
-		const skinningSnipped = outputNode.build( builder, type );
+		const skinningSnipped = getSkinningCallNode.build( builder, type );
 
 		return builder.format( skinningSnipped, type, output );
 
@@ -90,4 +86,4 @@ class SkinningNode extends Node {
 
 }
 
-export default SkinningNode;
+export default SkinningPositionNode;
