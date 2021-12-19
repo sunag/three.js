@@ -1,7 +1,8 @@
-import { ObjectNode, NumberInput, LabelElement, Element, ButtonInput } from '../../libs/flow.module.js';
+import { NumberInput, LabelElement, Element, ButtonInput } from '../../libs/flow.module.js';
+import { BaseNode } from '../core/BaseNode.js';
 import { TimerNode } from '../../renderers/nodes/Nodes.js';
 
-export class TimerEditor extends ObjectNode {
+export class TimerEditor extends BaseNode {
 
 	constructor() {
 

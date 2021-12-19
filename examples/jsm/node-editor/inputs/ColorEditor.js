@@ -1,7 +1,8 @@
-import { ObjectNode, ColorInput, StringInput, NumberInput, LabelElement } from '../../libs/flow.module.js';
+import { ColorInput, StringInput, NumberInput, LabelElement } from '../../libs/flow.module.js';
+import { BaseNode } from '../core/BaseNode.js';
 import { ColorNode } from '../../renderers/nodes/Nodes.js';
 
-export class ColorEditor extends ObjectNode {
+export class ColorEditor extends BaseNode {
 
 	constructor() {
 

@@ -20,6 +20,7 @@ import { NormalEditor } from './accessors/NormalEditor.js';
 import { TimerEditor } from './utils/TimerEditor.js';
 import { OscillatorEditor } from './utils/OscillatorEditor.js';
 import { CheckerEditor } from './procedural/CheckerEditor.js';
+import { LoaderEditor } from './loaders/LoaderEditor.js';
 
 import { EventDispatcher } from '../../../build/three.module.js';
 
@@ -44,7 +45,8 @@ export const ClassLib = {
 	NormalEditor,
 	TimerEditor,
 	OscillatorEditor,
-	CheckerEditor
+	CheckerEditor,
+	LoaderEditor
 };
 
 export class NodeEditor extends EventDispatcher {
@@ -434,9 +436,13 @@ export class NodeEditor extends EventDispatcher {
 		const oscNode = new ButtonInput( 'Oscillator' ).setIcon( 'ti ti-wave-sine' )
 			.onClick( () => add( new OscillatorEditor() ) );
 
+		const loaderNode = new ButtonInput( 'Loader' ).setIcon( 'ti ti-cloud-download' )
+			.onClick( () => add( new LoaderEditor() ) );
+
 		utilsContext
 			.add( timerNode )
-			.add( oscNode );
+			.add( oscNode )
+			.add( loaderNode );
 
 		//**************//
 		// MAIN

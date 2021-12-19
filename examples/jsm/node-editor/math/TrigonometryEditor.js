@@ -1,9 +1,10 @@
-import { ObjectNode, SelectInput, Element, LabelElement } from '../../libs/flow.module.js';
+import { SelectInput, Element, LabelElement } from '../../libs/flow.module.js';
+import { BaseNode } from '../core/BaseNode.js';
 import { MathNode, Vector3Node } from '../../renderers/nodes/Nodes.js';
 
 const DEFAULT_VALUE = new Vector3Node();
 
-export class TrigonometryEditor extends ObjectNode {
+export class TrigonometryEditor extends BaseNode {
 
 	constructor() {
 
@@ -27,7 +28,7 @@ export class TrigonometryEditor extends ObjectNode {
 
 		input.onConnect( () => {
 
-			node.aNode = input.linkedExtra || DEFAULT_VALUE;
+			node.aNode = input.getLinkedObject() || DEFAULT_VALUE;
 
 		} );
 

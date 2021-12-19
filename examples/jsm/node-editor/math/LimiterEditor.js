@@ -1,9 +1,10 @@
-import { ObjectNode, SelectInput, LabelElement } from '../../libs/flow.module.js';
+import { SelectInput, LabelElement } from '../../libs/flow.module.js';
+import { BaseNode } from '../core/BaseNode.js';
 import { MathNode, FloatNode } from '../../renderers/nodes/Nodes.js';
 
 const NULL_VALUE = new FloatNode();
 
-export class LimiterEditor extends ObjectNode {
+export class LimiterEditor extends BaseNode {
 
 	constructor() {
 
@@ -29,13 +30,13 @@ export class LimiterEditor extends ObjectNode {
 
 		aElement.onConnect( () => {
 
-			node.aNode = aElement.linkedExtra || NULL_VALUE;
+			node.aNode = aElement.getLinkedObject() || NULL_VALUE;
 
 		} );
 
 		bElement.onConnect( () => {
 
-			node.bNode = bElement.linkedExtra || NULL_VALUE;
+			node.bNode = bElement.getLinkedObject() || NULL_VALUE;
 
 		} );
 

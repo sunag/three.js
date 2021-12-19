@@ -1,9 +1,10 @@
-import { ObjectNode, SelectInput, LabelElement } from '../../libs/flow.module.js';
+import { SelectInput, LabelElement } from '../../libs/flow.module.js';
+import { BaseNode } from '../core/BaseNode.js';
 import { OscNode, FloatNode } from '../../renderers/nodes/Nodes.js';
 
 const NULL_VALUE = new FloatNode();
 
-export class OscillatorEditor extends ObjectNode {
+export class OscillatorEditor extends BaseNode {
 
 	constructor() {
 
@@ -30,7 +31,7 @@ export class OscillatorEditor extends ObjectNode {
 
 		timeElement.onConnect( () => {
 
-			node.timeNode = timeElement.linkedExtra || NULL_VALUE;
+			node.timeNode = timeElement.getLinkedObject() || NULL_VALUE;
 
 		} );
 

@@ -1,7 +1,8 @@
-import { ObjectNode, NumberInput, LabelElement } from '../../libs/flow.module.js';
+import { NumberInput, LabelElement } from '../../libs/flow.module.js';
+import { BaseNode } from '../core/BaseNode.js';
 import { Vector2Node } from '../../renderers/nodes/Nodes.js';
 
-export class Vector2Editor extends ObjectNode {
+export class Vector2Editor extends BaseNode {
 
 	constructor() {
 

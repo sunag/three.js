@@ -1,7 +1,8 @@
-import { ObjectNode, SelectInput, LabelElement } from '../../libs/flow.module.js';
+import { SelectInput, LabelElement } from '../../libs/flow.module.js';
+import { BaseNode } from '../core/BaseNode.js';
 import { PositionNode } from '../../renderers/nodes/Nodes.js';
 
-export class PositionEditor extends ObjectNode {
+export class PositionEditor extends BaseNode {
 
 	constructor() {
 

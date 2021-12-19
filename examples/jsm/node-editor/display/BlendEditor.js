@@ -1,10 +1,11 @@
-import { ObjectNode, LabelElement } from '../../libs/flow.module.js';
+import { LabelElement } from '../../libs/flow.module.js';
+import { BaseNode } from '../core/BaseNode.js';
 import { MathNode, FloatNode } from '../../renderers/nodes/Nodes.js';
 
 const NULL_VALUE = new FloatNode();
 const ONE_VALUE = new FloatNode( 1 );
 
-export class BlendEditor extends ObjectNode {
+export class BlendEditor extends BaseNode {
 
 	constructor() {
 
@@ -18,19 +19,19 @@ export class BlendEditor extends ObjectNode {
 
 		aElement.onConnect( () => {
 
-			node.aNode = aElement.linkedExtra || NULL_VALUE;
+			node.aNode = aElement.getLinkedObject() || NULL_VALUE;
 
 		} );
 
 		bElement.onConnect( () => {
 
-			node.bNode = bElement.linkedExtra || NULL_VALUE;
+			node.bNode = bElement.getLinkedObject() || NULL_VALUE;
 
 		} );
 
 		cElement.onConnect( () => {
 
-			node.cNode = cElement.linkedExtra || ONE_VALUE;
+			node.cNode = cElement.getLinkedObject() || ONE_VALUE;
 
 		} );
 
