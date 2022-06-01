@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-import { GPUTextureViewDimension, GPUIndexFormat, GPUFilterMode, GPUPrimitiveTopology, GPULoadOp, GPUStoreOp } from './constants.js';
+import { GPUIndexFormat, GPUFilterMode, GPUPrimitiveTopology, GPULoadOp, GPUStoreOp } from './constants.js';
 
 // ported from https://github.com/toji/web-texture-tool/blob/master/src/webgpu-mipmap-generator.js
 
@@ -132,7 +132,6 @@ fn main( @location( 0 ) vTex : vec2<f32> ) -> @location( 0 ) vec4<f32> {
 		let srcView = textureGPU.createView( {
 			baseMipLevel: 0,
 			mipLevelCount: 1,
-			dimension: GPUTextureViewDimension.TwoD,
 			baseArrayLayer
 		} );
 
@@ -141,7 +140,6 @@ fn main( @location( 0 ) vTex : vec2<f32> ) -> @location( 0 ) vec4<f32> {
 			const dstView = textureGPU.createView( {
 				baseMipLevel: i,
 				mipLevelCount: 1,
-				dimension: GPUTextureViewDimension.TwoD,
 				baseArrayLayer
 			} );
 
