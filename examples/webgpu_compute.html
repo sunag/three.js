@@ -116,6 +116,11 @@
 				// compute
 
 				computeNode = compute( FnNode, particleNum );
+				computeNode.onInit = () => {
+
+					console.log("OK");
+
+				}
 
 				// use a compute shader to animate the point cloud's vertex data.
 

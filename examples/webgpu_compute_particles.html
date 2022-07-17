@@ -82,11 +82,19 @@
 				const positionNode = element( positionBufferNode, instanceIndex );
 				const velocityNode = element( velocityBufferNode, instanceIndex );
 
+				
+
 				// create function
 
 				const FnNode = func( `() {
 
 					position.x += 0.01;
+
+					if ( distance( position, vec3<f32>( 0.1 )  ) < 1.0 ) {
+
+						position.y += 0.01;
+
+					}
 
 				}` );
 
@@ -104,7 +112,7 @@
 
 				// create nodes
 
-				
+				//const dummy = new 
 
 				// create particles
 
@@ -122,7 +130,7 @@
 				//
 
 				const particleMesh = new THREE.Mesh( particleGeometry, particleMaterial );
-				particleMesh.scale.setScalar( 200 );
+				particleMesh.scale.setScalar( 100 );
 				particleMesh.isInstancedMesh = true;
 				particleMesh.count = particleNum;
 				scene.add( particleMesh );

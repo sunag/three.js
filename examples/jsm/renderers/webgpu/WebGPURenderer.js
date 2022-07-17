@@ -616,14 +616,24 @@ class WebGPURenderer {
 	compute( ...computeNodes ) {
 
 		const device = this._device;
+		const computePipelines = this._computePipelines;
+
 		const cmdEncoder = device.createCommandEncoder( {} );
 		const passEncoder = cmdEncoder.beginComputePass();
 
 		for ( const computeNode of computeNodes ) {
 
+			// events
+
+			if ( computePipelines.has( computeNode ) === false ) {
+
+				computeNode.onInit( { renderer: this } );
+
+			}
+
 			// pipeline
 
-			const pipeline = this._computePipelines.get( computeNode );
+			const pipeline = computePipelines.get( computeNode );
 			passEncoder.setPipeline( pipeline );
 
 			// node
