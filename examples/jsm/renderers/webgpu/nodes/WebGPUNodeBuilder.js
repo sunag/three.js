@@ -645,7 +645,7 @@ class WebGPUNodeBuilder extends NodeBuilder {
 		} else {
 
 			this.computeShader = this._getWGSLComputeCode( shadersData.compute, ( this.object.workgroupSize || [ 64 ] ).join( ', ' ) );
-
+console.log( this.computeShader );
 		}
 
 	}
@@ -755,6 +755,7 @@ fn main( ${shaderData.varys} ) -> @location( 0 ) vec4<f32> {
 		return `${ this.getSignature() }
 // system
 var<private> instanceIndex : u32;
+var<private> seed : f32;
 
 // uniforms
 ${shaderData.uniforms}
@@ -767,6 +768,7 @@ fn main( ${shaderData.attributes} ) {
 
 	// system
 	instanceIndex = id.x;
+	seed = seed + 1.0;
 
 	// vars
 	${shaderData.vars}

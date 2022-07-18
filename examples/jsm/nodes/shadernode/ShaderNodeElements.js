@@ -28,6 +28,7 @@ import RangeNode from '../geometry/RangeNode.js';
 
 // procedural
 import CheckerNode from '../procedural/CheckerNode.js';
+import RandomNode from '../procedural/RandomNode.js';
 
 // fog
 import FogNode from '../fog/FogNode.js';
@@ -113,6 +114,7 @@ export const range = ( min, max ) => nodeObject( new RangeNode( min, max ) );
 // procedural
 
 export const checker = nodeProxy( CheckerNode );
+export const random = nodeProxy( RandomNode );
 
 // fog
 

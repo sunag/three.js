@@ -2,13 +2,13 @@ import Node from './Node.js';
 
 class BypassNode extends Node {
 
-	constructor( returnNode, callNode ) {
+	constructor( outputNode, callNode ) {
 
 		super();
 
 		this.isBypassNode = true;
 
-		this.outputNode = returnNode;
+		this.outputNode = outputNode;
 		this.callNode = callNode;
 
 	}

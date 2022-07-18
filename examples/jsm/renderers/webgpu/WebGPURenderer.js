@@ -623,7 +623,7 @@ class WebGPURenderer {
 
 		for ( const computeNode of computeNodes ) {
 
-			// events
+			// onInit
 
 			if ( computePipelines.has( computeNode ) === false ) {
 
