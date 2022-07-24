@@ -11,9 +11,10 @@ import getRoughness from '../functions/material/getRoughness.js';
 import PhysicalLightingModel from '../functions/PhysicalLightingModel.js';
 import NormalMapNode from '../display/NormalMapNode.js';
 
-import { MeshStandardMaterial } from 'three';
+import { MeshStandardMaterial, MeshPhysicalMaterial } from 'three';
 
-const defaultValues = new MeshStandardMaterial();
+//const defaultValues = new MeshStandardMaterial();
+const defaultValues = new MeshPhysicalMaterial();
 
 export default class MeshStandardNodeMaterial extends NodeMaterial {
 
@@ -47,7 +48,7 @@ export default class MeshStandardNodeMaterial extends NodeMaterial {
 		this.setDefaultValues( defaultValues );
 
 		this.setValues( parameters );
-
+this.clearcoat = 0.0001;
 	}
 
 	build( builder ) {

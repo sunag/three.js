@@ -9,7 +9,7 @@ export const nodeFrame = new NodeFrame();
 Material.prototype.onBuild = function ( object, parameters, renderer ) {
 
 	builders.set( this, new WebGLNodeBuilder( object, renderer, parameters ).build() );
-
+//console.log( parameters.fragmentShader );
 };
 
 Material.prototype.onBeforeRender = function ( renderer, scene, camera, geometry, object ) {

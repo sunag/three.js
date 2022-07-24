@@ -14,7 +14,8 @@ const nodeShaderLib = {
 	LineBasicNodeMaterial: ShaderLib.basic,
 	MeshBasicNodeMaterial: ShaderLib.basic,
 	PointsNodeMaterial: ShaderLib.points,
-	MeshStandardNodeMaterial: ShaderLib.standard
+	MeshStandardNodeMaterial: ShaderLib.standard,
+	MeshPhysicalMaterial: ShaderLib.physical
 };
 
 function getIncludeSnippet( name ) {
@@ -70,7 +71,8 @@ class WebGLNodeBuilder extends NodeBuilder {
 
 		// shader lib
 
-		if ( material.isMeshStandardNodeMaterial ) type = 'MeshStandardNodeMaterial';
+		if ( material.isMeshPhysicalNodeMaterial ) type = 'MeshPhysicalMaterial';
+		else if ( material.isMeshStandardNodeMaterial ) type = 'MeshStandardNodeMaterial';
 		else if ( material.isMeshBasicNodeMaterial ) type = 'MeshBasicNodeMaterial';
 		else if ( material.isPointsNodeMaterial ) type = 'PointsNodeMaterial';
 		else if ( material.isLineBasicNodeMaterial ) type = 'LineBasicNodeMaterial';
@@ -133,6 +135,9 @@ class WebGLNodeBuilder extends NodeBuilder {
 		if ( material.clearcoatNode && material.clearcoatNode.isNode ) {
 
 			this.addSlot( 'fragment', new SlotNode( material.clearcoatNode, 'CLEARCOAT', 'float' ) );
+
+			// @TODO: Check WebGLRenderer: const useClearcoat = material.clearcoat > 0;
+			material.clearcoat = 1;
 
 		}
 
@@ -319,7 +324,7 @@ class WebGLNodeBuilder extends NodeBuilder {
 
 		const shaderProperty = getShaderStageProperty( shaderStage );
 
-		this.shader[ shaderProperty ] = this.shader[ shaderProperty ].replaceAll( source, target );
+		this[ shaderProperty ] = this.shader[ shaderProperty ].replaceAll( source, target );
 
 	}
 
