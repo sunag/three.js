@@ -79,6 +79,12 @@ class MaterialXNode {
 
     }
 
+    get nodegraphPath() {
+
+        return this.nodegraph + '/' + this.output;
+
+    }
+
     get nodename() {
 
         return this.getAttribute( 'nodename' );
@@ -109,9 +115,30 @@ class MaterialXNode {
 
     }
 
+    get hasNodeGraph() {
+
+        return this.nodegraph !== null && this.output !== null;
+
+    }
+
     get isConst() {
 
         return this.element === 'input' && this.value !== null;
+
+    }
+
+    getClassFromType( type ) {
+
+        let nodeClass = null;
+
+        if ( type === 'integer' ) nodeClass = int;
+        else if ( type === 'float' ) nodeClass = float;
+        else if ( type === 'vec2' ) nodeClass = vec2;
+        else if ( type === 'vec3' ) nodeClass = vec3;
+        else if ( type === 'vec4' || type === 'color4' ) nodeClass = vec4;
+        else if ( type === 'color3' ) nodeClass = color;
+
+        return nodeClass;
 
     }
 
@@ -123,21 +150,21 @@ class MaterialXNode {
 
             if ( this.isConst ) {
 
-                const type = this.type;
+                const nodeClass = this.getClassFromType( this.type );
 
-                if ( type === 'integer' ) node = int( this.getNumber() );
-                else if ( type === 'float' ) node = float( this.getNumber() );
-                else if ( type === 'vec2' ) node = vec2( ...this.getVector() );
-                else if ( type === 'vec3' ) node = vec3( ...this.getVector() );
-                else if ( type === 'vec4' || type === 'color4' ) node = vec4( ...this.getVector() );
-                else if ( type === 'color3' ) node = color( ...this.getVector() );
+                node = nodeClass( ...this.getVector() )
+
+            } else if ( this.hasNodeGraph ) {
+
+                const matXNode = this.materialX.getMaterialXNode( this.nodegraphPath );
+                console.log( matXNode )
 
             } else {
 
-                
+                console.log( this.nodegraph, this.output );
+
 
             }
-            
             
             if ( node === null ) {
 
@@ -179,12 +206,6 @@ class MaterialXNode {
 
     }
 
-    getNumber() {
-
-        return Number( this.getValue() );
-
-    }
-    
     getVector() {
 
         const vector = [];
@@ -347,7 +368,21 @@ class MaterialX {
             const childMXNode = this.parseNode( childNodeXML, materialXNode.nodePath );
             materialXNode.add( childMXNode );
 
-            this.addMaterialXNode( materialXNode );
+            if ( childNodeXML.nodeName == 'output' ) {
+
+                console.log( childMXNode.nodegraphPath );
+
+            }
+            if ( childNodeXML.nodeName == 'output' ) {
+
+                console.log( '123' );
+
+            }
+            if ( materialXNode.nodePath ) {
+
+                this.addMaterialXNode( materialXNode );
+
+            }
 
         }
 
