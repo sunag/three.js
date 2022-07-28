@@ -61,6 +61,8 @@ class MaterialXNode {
         this.nodeXML = nodeXML;
         this.nodePath = nodePath ? nodePath + '/' + this.name : this.name;
 
+        this.parent = null;
+
         this.node = null;
 
         this.children = [];
@@ -76,12 +78,6 @@ class MaterialXNode {
     get nodegraph() {
 
         return this.getAttribute( 'nodegraph' );
-
-    }
-
-    get nodegraphPath() {
-
-        return this.nodegraph + '/' + this.output;
 
     }
 
@@ -156,13 +152,17 @@ class MaterialXNode {
 
             } else if ( this.hasNodeGraph ) {
 
-                const matXNode = this.materialX.getMaterialXNode( this.nodegraphPath );
-                console.log( matXNode )
+                node = this.materialX.getMaterialXNode( this.nodegraph + '/' + this.output ).getNode();
 
             } else {
 
-                console.log( this.nodegraph, this.output );
+                const element = this.element;
 
+                if ( element === 'output' ) {
+
+                    node = this.materialX.getMaterialXNode( this.parent.nodePath + '/' + this.nodename ).getNode();
+
+                }
 
             }
             
@@ -320,6 +320,8 @@ class MaterialXNode {
 
     add( materialXNode ) {
 
+        materialXNode.parent = this;
+
         this.children.push( materialXNode );
 
     }
@@ -362,27 +364,12 @@ class MaterialX {
     parseNode( nodeXML, nodePath = '' ) {
 
         const materialXNode = new MaterialXNode( this, nodeXML, nodePath );
+        if ( materialXNode.nodePath )  this.addMaterialXNode( materialXNode );
 
         for ( const childNodeXML of nodeXML.children ) {
 
             const childMXNode = this.parseNode( childNodeXML, materialXNode.nodePath );
             materialXNode.add( childMXNode );
-
-            if ( childNodeXML.nodeName == 'output' ) {
-
-                console.log( childMXNode.nodegraphPath );
-
-            }
-            if ( childNodeXML.nodeName == 'output' ) {
-
-                console.log( '123' );
-
-            }
-            if ( materialXNode.nodePath ) {
-
-                this.addMaterialXNode( materialXNode );
-
-            }
 
         }
 
