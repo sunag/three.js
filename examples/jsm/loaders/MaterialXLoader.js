@@ -6,8 +6,8 @@ import {
 import * as Nodes from '../nodes/Nodes.js';
 import { 
     float, int, vec2, vec3, vec4, color,
-    mul,
-    clamp
+    add, mul, div,
+    clamp, mix
 } from '../nodes/Nodes.js';
 
 class MaterialXLoader extends Loader {
@@ -76,15 +76,21 @@ class MaterialXNode {
 
     }
 
-    get nodegraph() {
+    get nodeGraph() {
 
         return this.getAttribute( 'nodegraph' );
 
     }
 
-    get nodename() {
+    get nodeName() {
 
         return this.getAttribute( 'nodename' );
+
+    }
+
+    get interfaceName() {
+
+        return this.getAttribute( 'interfacename' );
 
     }
 
@@ -112,9 +118,47 @@ class MaterialXNode {
 
     }
 
-    get hasNodeGraph() {
+    getNodeGraph() {
 
-        return this.nodegraph !== null && this.output !== null;
+        let nodeX = this;
+
+        while ( nodeX !== null ) {
+
+            if ( nodeX.element === 'nodegraph' ) {
+
+                break;
+
+            }
+
+            nodeX = nodeX.parent;
+
+        }
+
+        return nodeX;
+
+    }
+
+    get referencePath() {
+
+        let referencePath = null;
+
+        if ( this.nodeGraph !== null && this.output !== null ) {
+
+            referencePath = this.nodeGraph + '/' + this.output;
+
+        } else if ( this.nodeName !== null || this.interfaceName !== null ) {
+
+            referencePath = this.getNodeGraph().nodePath + '/' + ( this.nodeName || this.interfaceName );
+
+        }
+
+        return referencePath;
+
+    }
+
+    get hasReference() {
+
+        return this.referencePath !== null;
 
     }
 
@@ -151,29 +195,37 @@ class MaterialXNode {
 
                 node = nodeClass( ...this.getVector() )
 
-            } else if ( this.hasNodeGraph ) {
+            } else if ( this.hasReference ) {
 
-                node = this.materialX.getMaterialXNode( this.nodegraph + '/' + this.output ).getNode();
+                node = this.materialX.getMaterialXNode( this.referencePath ).getNode();
 
             } else {
 
                 const element = this.element;
 
-                if ( element === 'output' ) {
+                if ( element === 'tiledimage' ) {
 
-                    node = this.materialX.getMaterialXNode( this.parent.nodePath + '/' + this.nodename ).getNode();
+                    
 
-                } else if ( element === 'input' ) {
+                } else if ( element === 'add' ) {
 
-                    node = this.materialX.getMaterialXNode( this.parent.parent.nodePath + '/' + this.nodename ).getNode();
+                    node = add( ...this.getNodesByNames( 'in1', 'in2' ) );
 
                 } else if ( element === 'multiply' ) {
 
                     node = mul( ...this.getNodesByNames( 'in1', 'in2' ) );
 
+                } else if ( element === 'divide' ) {
+
+                    node = div( ...this.getNodesByNames( 'in1', 'in2' ) );
+
                 } else if ( element === 'clamp' ) {
 
-                    node = clamp( this.getNodes()[ 'in' ], 0, 1 );
+                    node = clamp( this.getNodeByName( 'in' ), this.getNodeByName( 'low' ) || 0, this.getNodeByName( 'high' ) || 1 );
+
+                } else if ( element === 'mix' ) {
+
+                    node = mix( ...this.getNodesByNames( 'bg', 'fg', 'mix' ) );
 
                 }
 
@@ -210,6 +262,12 @@ class MaterialXNode {
 		}
 
         return nodes;
+
+    }
+
+    getNodeByName( name ) {
+
+        return this.getNodes()[ name ];
 
     }
 
@@ -317,7 +375,7 @@ class MaterialXNode {
 
         for ( const nodeX of this.children ) {
 
-            const shaderProperties = this.materialX.getMaterialXNode( nodeX.nodename );
+            const shaderProperties = this.materialX.getMaterialXNode( nodeX.nodeName );
             shaderProperties.setMaterial( material );
 
 		}
