@@ -6,7 +6,8 @@ import {
 import * as Nodes from '../nodes/Nodes.js';
 import { 
     float, int, vec2, vec3, vec4, color,
-    mul
+    mul,
+    clamp
 } from '../nodes/Nodes.js';
 
 class MaterialXLoader extends Loader {
@@ -129,9 +130,9 @@ class MaterialXNode {
 
         if ( type === 'integer' ) nodeClass = int;
         else if ( type === 'float' ) nodeClass = float;
-        else if ( type === 'vec2' ) nodeClass = vec2;
-        else if ( type === 'vec3' ) nodeClass = vec3;
-        else if ( type === 'vec4' || type === 'color4' ) nodeClass = vec4;
+        else if ( type === 'vector2' ) nodeClass = vec2;
+        else if ( type === 'vector3' ) nodeClass = vec3;
+        else if ( type === 'vector4' || type === 'color4' ) nodeClass = vec4;
         else if ( type === 'color3' ) nodeClass = color;
 
         return nodeClass;
@@ -162,13 +163,25 @@ class MaterialXNode {
 
                     node = this.materialX.getMaterialXNode( this.parent.nodePath + '/' + this.nodename ).getNode();
 
+                } else if ( element === 'input' ) {
+
+                    node = this.materialX.getMaterialXNode( this.parent.parent.nodePath + '/' + this.nodename ).getNode();
+
+                } else if ( element === 'multiply' ) {
+
+                    node = mul( ...this.getNodesByNames( 'in1', 'in2' ) );
+
+                } else if ( element === 'clamp' ) {
+
+                    node = clamp( this.getNodes()[ 'in' ], 0, 1 );
+
                 }
 
             }
             
             if ( node === null ) {
 
-                console.warn(  `THREE.MaterialXLoader: Unexpected node ${ new XMLSerializer().serializeToString( this.nodeXML ) }.` )
+                console.warn( `THREE.MaterialXLoader: Unexpected node ${ new XMLSerializer().serializeToString( this.nodeXML ) }.` )
 
                 node = float( 0 );
 
@@ -190,9 +203,24 @@ class MaterialXNode {
 
         for ( const input of this.children ) {
 
-           const node = input.getNode();
+            const node = input.getNode();
 
-           nodes[ node.name ] = node;
+            nodes[ node.name ] = node;
+
+		}
+
+        return nodes;
+
+    }
+
+    getNodesByNames( ...names ) {
+
+        const nodesDict = this.getNodes();
+        const nodes = [];
+
+        for ( const name of names ) {
+
+            nodes.push( nodesDict[ name ] );
 
 		}
 
