@@ -1,13 +1,15 @@
 import {
 	FileLoader,
 	Loader,
-	TextureLoader
+	TextureLoader,
+    RepeatWrapping
 } from '../../../build/three.module.js';
 import * as Nodes from '../nodes/Nodes.js';
 import { 
-    float, int, vec2, vec3, vec4, color,
-    add, mul, div,
-    clamp, mix
+    float, int, vec2, vec3, vec4, color, texture, uv,
+    add, sub, mul, div,
+    clamp, mix, 
+    normalMap
 } from '../nodes/Nodes.js';
 
 class MaterialXLoader extends Loader {
@@ -164,7 +166,17 @@ class MaterialXNode {
 
     get isConst() {
 
-        return this.element === 'input' && this.value !== null;
+        return this.element === 'input' && this.value !== null && this.type !== 'filename';
+
+    }
+
+    getTexture() {
+
+        const texture = this.materialX.textureLoader.load( this.value );
+        texture.wrapS = texture.wrapT = RepeatWrapping;
+        texture.flipY = false;
+
+        return texture;
 
     }
 
@@ -189,6 +201,8 @@ class MaterialXNode {
 
         if ( node === null ) {
 
+            const type = this.type;
+
             if ( this.isConst ) {
 
                 const nodeClass = this.getClassFromType( this.type );
@@ -203,13 +217,51 @@ class MaterialXNode {
 
                 const element = this.element;
 
-                if ( element === 'tiledimage' ) {
+                if ( element === 'convert' ) {
 
+                    const nodeClass = this.getClassFromType( type );
+
+                    node = nodeClass( this.getNodeByName( 'in' ) );
+
+                } else if ( element === 'constant' ) { 
                     
+                    node = this.getNodeByName( 'value' );
+                    
+                } else if ( element === 'tiledimage' ) {
+
+                    const textureFile = this.getChildByName( 'file' ).getTexture();
+                    const uvNode = uv();
+
+                    //node = texture( textureFile, mul( uvNode, this.getNodeByName( 'uvtiling' ) ) );
+                    node = texture( textureFile );
+
+                    console.log( node );
+                    
+                } else if ( element === 'normalmap' ) {
+
+                    node = normalMap( this.getNodeByName( 'in' ), this.getNodeByName( 'scale' ) );
+
+                } else if ( element === 'hsvtorgb' ) {
+
+                    // need to node related
+                    node = this.getNodeByName( 'in' );
+
+                } else if ( element === 'rgbtohsv' ) {
+
+                    // need to node related
+                    node = this.getNodeByName( 'in' );
+
+                } else if ( element === 'combine3' ) {
+
+                    node = vec3( ...this.getNodesByNames( 'in1', 'in2', 'in3' ) );
 
                 } else if ( element === 'add' ) {
 
                     node = add( ...this.getNodesByNames( 'in1', 'in2' ) );
+
+                } else if ( element === 'subtract' ) {
+
+                    node = sub( ...this.getNodesByNames( 'in1', 'in2' ) );
 
                 } else if ( element === 'multiply' ) {
 
@@ -239,6 +291,14 @@ class MaterialXNode {
 
             }
 
+            const nodeToTypeClass = this.getClassFromType( type );
+
+            if ( nodeToTypeClass !== null ) {
+
+                node = nodeToTypeClass( node );
+
+            }
+
             node.name = this.name;
 
             this.node = node;
@@ -246,6 +306,20 @@ class MaterialXNode {
         }
 
         return node;
+
+    }
+
+    getChildByName( name ) {
+
+        for ( const input of this.children ) {
+
+            if ( input.name === name ) {
+
+                return input;
+
+            }
+
+		}
 
     }
 
@@ -267,18 +341,19 @@ class MaterialXNode {
 
     getNodeByName( name ) {
 
-        return this.getNodes()[ name ];
+        return this.getChildByName( name )?.getNode();
 
     }
 
     getNodesByNames( ...names ) {
 
-        const nodesDict = this.getNodes();
         const nodes = [];
 
         for ( const name of names ) {
 
-            nodes.push( nodesDict[ name ] );
+            const node = this.getNodeByName( name );
+
+            if ( node ) nodes.push( node );
 
 		}
 
