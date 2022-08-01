@@ -231,9 +231,9 @@ class MaterialXNode {
 
                     const textureFile = this.getChildByName( 'file' ).getTexture();
                     const uvNode = uv();
+                    const uvTiling = mul( uvNode, this.getNodeByName( 'uvtiling' ) );
 
-                    //node = texture( textureFile, mul( uvNode, this.getNodeByName( 'uvtiling' ) ) );
-                    node = texture( textureFile );
+                    node = texture( textureFile, uvTiling );
 
                     console.log( node );
                     
@@ -422,6 +422,12 @@ class MaterialXNode {
 
         if ( inputs.coat ) clearcoatNode = inputs.coat;
         if ( inputs.coat_roughness ) clearcoatRoughnessNode = inputs.coat_roughness;
+
+        if ( inputs.coat_color ) {
+
+            colorNode = inputs.coat_color;
+
+        }
 
         //
 

@@ -93,6 +93,7 @@ window.THREE = THREE;
 				renderer.toneMapping = THREE.ACESFilmicToneMapping;
 				renderer.toneMappingExposure = 1;
 				renderer.outputEncoding = THREE.sRGBEncoding;
+				renderer.setAnimationLoop( render );
 				container.appendChild( renderer.domElement );
 
 				//
@@ -128,7 +129,8 @@ window.THREE = THREE;
 
 					new MaterialXLoader()
 						.setPath( SAMPLE_PATH )
-						.loadAsync( 'standard_surface_brick_procedural.mtlx' )
+						.loadAsync( 'standard_surface_brass_tiled.mtlx' )
+						//.loadAsync( 'standard_surface_brick_procedural.mtlx' )
 						//.loadAsync( 'standard_surface_copper.mtlx' )
 						//.loadAsync( 'standard_surface_chrome.mtlx' )
 						//.loadAsync( api.sample )
@@ -184,7 +186,7 @@ window.THREE = THREE;
 
 				renderer.setSize( window.innerWidth, window.innerHeight );
 
-				render();
+				//render();
 
 			}
 
