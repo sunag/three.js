@@ -33,8 +33,8 @@
 			import * as THREE from 'three';
 			import * as Nodes from 'three-nodes/Nodes.js';
 
-			import WebGPU from './jsm/capabilities/WebGPU.js';
-			import WebGPURenderer from './jsm/renderers/webgpu/WebGPURenderer.js';
+			//import WebGPU from './jsm/capabilities/WebGPU.js';
+			//import WebGPURenderer from './jsm/renderers/webgpu/WebGPURenderer.js';
 
 			import { RGBMLoader } from './jsm/loaders/RGBMLoader.js';
 
@@ -46,14 +46,6 @@
 			init().then( render ).catch( error );
 
 			async function init() {
-
-				if ( WebGPU.isAvailable() === false ) {
-
-					document.body.appendChild( WebGPU.getErrorMessage() );
-
-					throw new Error( 'No WebGPU support' );
-
-				}
 
 				const container = document.createElement( 'div' );
 				document.body.appendChild( container );
@@ -68,42 +60,57 @@
 				const cubeTexture = new RGBMLoader()
 					.setMaxRange( 16 )
 					.setPath( './textures/cube/pisaRGBM16/' )
-					.loadCubemap( rgbmUrls );
+					.loadCubemap( rgbmUrls, function() {
 
-				cubeTexture.generateMipmaps = true;
-				cubeTexture.minFilter = THREE.LinearMipmapLinearFilter;
+						const pmremGenerator = new THREE.PMREMGenerator( renderer );
+						pmremGenerator.compileCubemapShader();
+
+						const hdrCubeRenderTarget = pmremGenerator.fromCubemap( cubeTexture );
+
+						cubeTexture.magFilter = THREE.LinearFilter;
+						cubeTexture.needsUpdate = true;
+
+
+						const loader = new GLTFLoader().setPath( 'models/gltf/DamagedHelmet/glTF/' );
+						loader.load( 'DamagedHelmet.gltf', function ( gltf ) {
+
+							//const light = new THREE.PointLight( 0xffffff );
+							//camera.add( light );
+
+gltf.scene.children[0].material.side = THREE.DoubleSide;
+
+							gltf.scene.children[0].material.envMap = hdrCubeRenderTarget.texture;
+							gltf.scene.children[0].material.needsUpdate = true;
+
+							scene.add( gltf.scene );
+
+							render();
+
+						} );
+
+					} );
 
 				scene.environmentNode = new Nodes.CubeTextureNode( cubeTexture );
 				scene.backgroundNode = scene.environmentNode;
 
-				const loader = new GLTFLoader().setPath( 'models/gltf/DamagedHelmet/glTF/' );
-				loader.load( 'DamagedHelmet.gltf', function ( gltf ) {
-
-					//const light = new THREE.PointLight( 0xffffff );
-					//camera.add( light );
-gltf.scene.children[0].material.side = THREE.DoubleSide;
-					scene.add( gltf.scene );
-
-					render();
-
-				} );
-
-				renderer = new WebGPURenderer();
-
-				/*// WebGLRenderer comparation test
+				// WebGLRenderer comparation test
 				renderer = new THREE.WebGLRenderer( { antialias: false } );
 				renderer.toneMapping = THREE.LinearToneMapping;
 				renderer.toneMappingExposure = 1;
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
 				scene.environment = cubeTexture;
+				scene.background = cubeTexture;
 				document.getElementById( 'info' ).innerText = 'WebGL';
-				/**/
-
+				renderer.outputEncoding = THREE.sRGBEncoding;
+				container.appendChild( renderer.domElement );
+/*
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.toneMappingNode = new Nodes.ToneMappingNode( THREE.LinearToneMapping, 1 );
 				renderer.outputEncoding = THREE.sRGBEncoding;
 				container.appendChild( renderer.domElement );
-
+*/
 				const controls = new OrbitControls( camera, renderer.domElement );
 				//controls.minDistance = 2;
 				controls.maxDistance = 10;
