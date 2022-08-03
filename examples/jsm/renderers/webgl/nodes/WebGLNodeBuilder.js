@@ -200,6 +200,12 @@ class WebGLNodeBuilder extends NodeBuilder {
 
 			}
 
+			if ( material.specularNode && material.specularNode.isNode ) {
+
+				this.addSlot( 'fragment', new SlotNode( material.specularNode, 'SPECULAR', 'vec3' ) );
+
+			}
+
 		}
 
 		if ( material.envNode && material.envNode.isNode ) {
@@ -487,6 +493,7 @@ ${this.shader[ getShaderStageProperty( shaderStage ) ]}
 		const iridescenceNode = this.getSlot( 'fragment', 'IRIDESCENCE' );
 		const iridescenceIORNode = this.getSlot( 'fragment', 'IRIDESCENCE_IOR' );
 		const iridescenceThicknessNode = this.getSlot( 'fragment', 'IRIDESCENCE_THICKNESS' );
+		const specularNode = this.getSlot( 'fragment', 'SPECULAR' );
 
 		const positionNode = this.getSlot( 'vertex', 'POSITION' );
 		const sizeNode = this.getSlot( 'vertex', 'SIZE' );
@@ -627,6 +634,16 @@ ${this.shader[ getShaderStageProperty( shaderStage ) ]}
 				'fragment',
 				'material.iridescenceThickness = iridescenceThicknessMaximum;',
 				`${iridescenceThicknessNode.code}\n\tmaterial.iridescenceThickness = ${iridescenceThicknessNode.result};`
+			);
+
+		}
+
+		if ( specularNode !== undefined ) {
+
+			this.replaceCode(
+				'fragment',
+				'vec3 specularColorFactor = specularColor;',
+				`${specularNode.code}\n\t\tvec3 specularColorFactor = ${specularNode.result};`
 			);
 
 		}
