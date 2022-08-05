@@ -23,7 +23,8 @@ export default class MeshPhysicalNodeMaterial extends MeshStandardNodeMaterial {
 		this.iridescenceIORNode = null;
 		this.iridescenceThicknessNode = null;
 
-		this.specularNode = null;
+		this.specularIntensityNode = null;
+		this.specularColorNode = null;
 
 		this.transmissionNode = null;
 		this.thicknessNode = null;
@@ -54,7 +55,8 @@ export default class MeshPhysicalNodeMaterial extends MeshStandardNodeMaterial {
 		this.iridescenceIORNode = source.iridescenceIORNode;
 		this.iridescenceThicknessNode = source.iridescenceThicknessNode;
 
-		this.specularNode = source.specularNode;
+		this.specularIntensityNode = source.specularIntensityNode;
+		this.specularColorNode = source.specularColorNode;
 
 		this.transmissionNode = source.transmissionNode;
 		this.thicknessNode = source.thicknessNode;
