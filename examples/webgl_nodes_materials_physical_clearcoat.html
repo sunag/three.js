@@ -29,7 +29,9 @@
 			import * as THREE from 'three';
 			import * as Nodes from 'three-nodes/Nodes.js';
 
-			import { color, float, vec2, texture, normalMap, uv, mul } from 'three-nodes/Nodes.js';
+			import { color, float, vec2, texture, normalWorld, normalMap, uv, mul, add } from 'three-nodes/Nodes.js';
+			import { mx_rgbtohsv, mx_perlin_noise_float } from 'three-nodes/MaterialX/MaterialXNodes.js';
+			import { mx_fractal_noise_float } from 'three-nodes/MaterialX/glsl/lib/mx_noise.js';
 
 			import { nodeFrame } from './jsm/renderers/webgl/nodes/WebGLNodes.js';
 
@@ -72,7 +74,7 @@
 
 							const textureLoader = new THREE.TextureLoader();
 
-							const diffuse = textureLoader.load( 'textures/carbon/Carbon.png' );
+							const diffuse = textureLoader.load( 'textures/2294472375_24a3b8ef46_o.jpg' );
 							diffuse.encoding = THREE.sRGBEncoding;
 							diffuse.wrapS = THREE.RepeatWrapping;
 							diffuse.wrapT = THREE.RepeatWrapping;
@@ -118,8 +120,14 @@
 							material.roughnessNode = float( 0.5 );
 							material.clearcoatNode = float( 1 );
 							material.clearcoatRoughnessNode = float( 0.1 );
-							material.colorNode = texture( diffuse, fibersUV );
-							material.normalNode = normalMap( texture( normalMap1, fibersUV ) );
+							material.colorNode = mx_rgbtohsv( texture( diffuse, fibersUV ) );
+							material.colorNode = add( mx_perlin_noise_float( mul( uv(), 500 ) ), 1 );
+
+							material.colorNode = mx_fractal_noise_float.call( [ mul( uv(), 10 ), float( 6 ), float( 3 ), float( .7 ) ] );
+							
+							//+
+							
+							//material.normalNode = normalMap( texture( normalMap1, fibersUV ) );
 
 							mesh = new THREE.Mesh( geometry, material );
 							mesh.position.x = 100;

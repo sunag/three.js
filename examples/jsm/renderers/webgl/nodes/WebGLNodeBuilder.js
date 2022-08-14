@@ -458,7 +458,7 @@ ${this.shader[ getShaderStageProperty( shaderStage ) ]}
 
 		this.shader.vertexShader = this.vertexShader;
 		this.shader.fragmentShader = this.fragmentShader;
-
+//console.log(this.shader.fragmentShader);
 		return this;
 
 	}
