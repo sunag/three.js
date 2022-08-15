@@ -1,4 +1,4 @@
-import { code, func } from '../../../Nodes.js';
+import { code, func, fn } from '../../../Nodes.js';
 
 // Original shader code from:
 // https://github.com/AcademySoftwareFoundation/MaterialX/blob/main/libraries/stdlib/genglsl/lib/mx_noise.glsl
@@ -603,4 +603,4 @@ vec3 mx_worley_noise_vec3(vec3 p, float jitter, int metric)
 const includes = [ mx_noise ];
 
 export const mx_perlin_noise_float = func( 'float mx_perlin_noise_float( vec2 p )' ).setIncludes( includes );
-export const mx_fractal_noise_float = func( 'float mx_fractal_noise_float( vec3 p, int octaves, float lacunarity, float diminish )' ).setIncludes( includes );
+export const mx_fractal_noise_float = fn( 'float mx_fractal_noise_float( vec3 p, int octaves, float lacunarity, float diminish )', includes );

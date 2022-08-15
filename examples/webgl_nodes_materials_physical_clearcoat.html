@@ -29,7 +29,7 @@
 			import * as THREE from 'three';
 			import * as Nodes from 'three-nodes/Nodes.js';
 
-			import { color, float, vec2, texture, normalWorld, normalMap, uv, mul, add } from 'three-nodes/Nodes.js';
+			import { color, float, vec2, texture, normalWorld, normalMap, uv, mul, add, saturate } from 'three-nodes/Nodes.js';
 			import { mx_rgbtohsv, mx_perlin_noise_float } from 'three-nodes/MaterialX/MaterialXNodes.js';
 			import { mx_fractal_noise_float } from 'three-nodes/MaterialX/glsl/lib/mx_noise.js';
 
@@ -123,7 +123,7 @@
 							material.colorNode = mx_rgbtohsv( texture( diffuse, fibersUV ) );
 							material.colorNode = add( mx_perlin_noise_float( mul( uv(), 500 ) ), 1 );
 
-							material.colorNode = mx_fractal_noise_float.call( [ mul( uv(), 10 ), float( 6 ), float( 3 ), float( .7 ) ] );
+							material.colorNode = saturate( mul( add( mx_fractal_noise_float( mul( uv(), 10 ), 6, 2, .7 ), 1 ), .5 ) );
 							
 							//+
 							
