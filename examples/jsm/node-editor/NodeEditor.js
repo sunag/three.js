@@ -427,11 +427,15 @@ export class NodeEditor extends EventDispatcher {
 
 		const menu = new CircleMenu();
 
+		//const editorButton = new ButtonInput().setIcon( 'ti ti-subtask' ).setToolTip( 'Editor' );
+		const editorButton = new ButtonInput().setIcon( 'ti ti-3d-cube-sphere' ).setToolTip( 'Preview' );
 		const menuButton = new ButtonInput().setIcon( 'ti ti-apps' ).setToolTip( 'Add' );
 		const examplesButton = new ButtonInput().setIcon( 'ti ti-file-symlink' ).setToolTip( 'Examples' );
 		const newButton = new ButtonInput().setIcon( 'ti ti-file' ).setToolTip( 'New' );
 		const openButton = new ButtonInput().setIcon( 'ti ti-upload' ).setToolTip( 'Open' );
 		const saveButton = new ButtonInput().setIcon( 'ti ti-download' ).setToolTip( 'Save' );
+
+		
 
 		menuButton.onClick( () => this.nodesContext.open() );
 		examplesButton.onClick( () => this.examplesContext.open() );
@@ -486,7 +490,8 @@ export class NodeEditor extends EventDispatcher {
 
 		} );
 
-		menu.add( examplesButton )
+		menu.add( editorButton )
+			.add( examplesButton )
 			.add( menuButton )
 			.add( newButton )
 			.add( openButton )
