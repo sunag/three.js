@@ -42,7 +42,9 @@
 
 			import { nodeFrame } from './jsm/renderers/webgl/nodes/WebGLNodes.js';
 window.THREE = THREE;
-			const SAMPLE_PATH = 'https://raw.githubusercontent.com/materialx/MaterialX/main/resources/Materials/Examples/StandardSurface/';
+			//const SAMPLE_PATH = 'https://raw.githubusercontent.com/materialx/MaterialX/main/resources/Materials/Examples/StandardSurface/';
+			const SAMPLE_PATH = 'https://raw.githubusercontent.com/materialx/MaterialX/main/resources/Materials/Examples/GltfPbr/';
+			
 
 			const SAMPLES = [
 
@@ -129,7 +131,7 @@ window.THREE = THREE;
 
 					new MaterialXLoader()
 						.setPath( SAMPLE_PATH )
-						.loadAsync( 'standard_surface_brass_tiled.mtlx' )
+						.loadAsync( 'gltf_pbr_boombox.mtlx' )
 						//.loadAsync( 'standard_surface_brick_procedural.mtlx' )
 						//.loadAsync( 'standard_surface_copper.mtlx' )
 						//.loadAsync( 'standard_surface_chrome.mtlx' )

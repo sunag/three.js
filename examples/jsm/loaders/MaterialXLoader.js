@@ -390,8 +390,8 @@ class MaterialXNode {
         return this.nodeXML.getAttribute( name );
 
     }
-
-    setStandardSurface( material ) {
+/*
+    setStandardSurfaceToGltfPBR( material ) {
 
         const inputs = this.getNodes();
 
@@ -438,12 +438,26 @@ class MaterialXNode {
         material.clearcoatRoughnessNode = clearcoatRoughnessNode || float( 0 );
 
     }
-
+*/
+	setGltfPBR( material ) {
+		
+		const inputs = this.getNodes();
+		
+		console.log( inputs );
+		
+	}
+	
     setMaterial( material ) {
 
-        if ( this.element === 'standard_surface' ) {
+		const element = this.element;
 
-            this.setStandardSurface( material );
+		if ( element === 'gltf_pbr' ) {
+
+			this.setGltfPBR( material );
+
+		} else if ( element === 'standard_surface' ) {
+
+            //this.setStandardSurfaceToGltfPBR( material );
 
         }
 
@@ -531,7 +545,7 @@ class MaterialX {
     parseNode( nodeXML, nodePath = '' ) {
 
         const materialXNode = new MaterialXNode( this, nodeXML, nodePath );
-        if ( materialXNode.nodePath )  this.addMaterialXNode( materialXNode );
+        if ( materialXNode.nodePath ) this.addMaterialXNode( materialXNode );
 
         for ( const childNodeXML of nodeXML.children ) {
 
