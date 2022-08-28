@@ -315,6 +315,14 @@ export class NodeEditor extends EventDispatcher {
 
 	}
 
+	setSize( width, height ) {
+		
+		this.canvas.setSize( width, height );
+		
+		return this;
+		
+	}
+
 	centralizeNode( node ) {
 
 		const canvas = this.canvas;
