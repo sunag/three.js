@@ -52,6 +52,7 @@ import RangeNode from './geometry/RangeNode.js';
 import ComputeNode from './gpgpu/ComputeNode.js';
 
 // display
+import BlendModeNode from './display/BlendModeNode.js';
 import ColorAdjustmentNode from './display/ColorAdjustmentNode.js';
 import ColorSpaceNode from './display/ColorSpaceNode.js';
 import FrontFacingNode from './display/FrontFacingNode.js';
@@ -80,6 +81,7 @@ import JoinNode from './utils/JoinNode.js';
 import MatcapUVNode from './utils/MatcapUVNode.js';
 import MaxMipLevelNode from './utils/MaxMipLevelNode.js';
 import OscNode from './utils/OscNode.js';
+import RemapNode from './utils/RemapNode.js';
 import RotateUVNode from './utils/RotateUVNode.js';
 import SplitNode from './utils/SplitNode.js';
 import SpriteSheetUVNode from './utils/SpriteSheetUVNode.js';
@@ -168,6 +170,7 @@ const nodeLib = {
 	UserDataNode,
 
 	// display
+	BlendModeNode,
 	ColorAdjustmentNode,
 	ColorSpaceNode,
 	FrontFacingNode,
@@ -196,6 +199,7 @@ const nodeLib = {
 	MatcapUVNode,
 	MaxMipLevelNode,
 	OscNode,
+	RemapNode,
 	RotateUVNode,
 	SplitNode,
 	SpriteSheetUVNode,
@@ -280,6 +284,7 @@ export {
 	UserDataNode,
 
 	// display
+	BlendModeNode,
 	ColorAdjustmentNode,
 	ColorSpaceNode,
 	FrontFacingNode,
@@ -308,6 +313,7 @@ export {
 	MatcapUVNode,
 	MaxMipLevelNode,
 	OscNode,
+	RemapNode,
 	RotateUVNode,
 	SplitNode,
 	SpriteSheetUVNode,

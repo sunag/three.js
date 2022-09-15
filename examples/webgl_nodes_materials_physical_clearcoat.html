@@ -30,7 +30,7 @@
 			import * as THREE from 'three';
 			import * as Nodes from 'three/nodes';
 
-			import { color, float, vec2, texture, normalMap, uv, mul } from 'three/nodes';
+			import { color, float, vec2, texture, normalMap, uv, mul, burn } from 'three/nodes';
 
 			import { nodeFrame } from 'three/addons/renderers/webgl/nodes/WebGLNodes.js';
 
@@ -119,7 +119,7 @@
 							material.roughnessNode = float( 0.5 );
 							material.clearcoatNode = float( 1 );
 							material.clearcoatRoughnessNode = float( 0.1 );
-							material.colorNode = texture( diffuse, fibersUV );
+							material.colorNode = burn( color( 0xff00ff ), texture( diffuse, fibersUV ) );
 							material.normalNode = normalMap( texture( normalMap1, fibersUV ) );
 
 							mesh = new THREE.Mesh( geometry, material );
