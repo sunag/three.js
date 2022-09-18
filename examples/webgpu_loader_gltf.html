@@ -83,6 +83,20 @@
 					//const light = new THREE.PointLight( 0xffffff );
 					//camera.add( light );
 
+					const mesh = gltf.scene.children[0];
+					const material = Nodes.NodeMaterial.fromMaterial( mesh.material );
+					//mesh.geometry.computeTangents();
+					
+					material.normalNode = Nodes.normalMap( Nodes.texture( material.normalMap ) );
+
+					material.normalMap = null;
+					//Nodes.tangentLocal;
+					//material.colorNode = Nodes.tangentGeometry;
+					//material.colorNode = Nodes.tangentView;
+					//material.colorNode = Nodes.transformedBitangent;
+
+					mesh.material = material;
+
 					scene.add( gltf.scene );
 
 					render();

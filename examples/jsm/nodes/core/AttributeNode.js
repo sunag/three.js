@@ -19,11 +19,16 @@ class AttributeNode extends Node {
 
 	getNodeType( builder ) {
 
+		const attributeName = this.getAttributeName( builder );
+
 		let nodeType = super.getNodeType( builder );
 
-		if ( nodeType === null ) {
+		if ( builder.hasGeometryAttribute( attributeName ) === false ) {
 
-			const attributeName = this.getAttributeName( builder );
+			nodeType = 'float';
+
+		} else if ( nodeType === null ) {
+
 			const attribute = builder.geometry.getAttribute( attributeName );
 
 			nodeType = builder.getTypeFromLength( attribute.itemSize );
@@ -50,17 +55,30 @@ class AttributeNode extends Node {
 
 	generate( builder ) {
 
-		const attribute = builder.getAttribute( this.getAttributeName( builder ), this.getNodeType( builder ) );
+		const attributeName = this.getAttributeName( builder );
+		const geometryAttribute = builder.hasGeometryAttribute( attributeName );
 
-		if ( builder.isShaderStage( 'vertex' ) ) {
+		if ( geometryAttribute === true ) {
 
-			return attribute.name;
+			const nodeAttribute = builder.getAttribute( attributeName, this.getNodeType( builder ) );
+
+			if ( builder.isShaderStage( 'vertex' ) ) {
+
+				return nodeAttribute.name;
+
+			} else {
+
+				const nodeVarying = new VaryingNode( this );
+
+				return nodeVarying.build( builder, nodeAttribute.type );
+
+			}
 
 		} else {
 
-			const nodeVarying = new VaryingNode( this );
+			console.warn( `Attribute "${ attributeName }" not found.` );
 
-			return nodeVarying.build( builder, attribute.type );
+			return builder.getConst( 'float', 0 );
 
 		}
 
