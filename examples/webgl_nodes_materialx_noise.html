@@ -28,7 +28,7 @@
 		<script type="module">
 
 			import * as THREE from 'three';
-			import { MeshPhysicalNodeMaterial, add, mul, normalWorld, clamp, timerLocal } from 'three/nodes';
+			import { MeshPhysicalNodeMaterial, vec2, add, mul, normalWorld, clamp, timerLocal, mx_noise2d_float } from 'three/nodes';
 
 			import {
 				mx_perlin_noise_float,
@@ -80,7 +80,7 @@
 							// left top
 
 							let material = new MeshPhysicalNodeMaterial();
-							material.colorNode = mx_perlin_noise_float( customUV );
+							material.colorNode = mx_noise2d_float( 1, 0, customUV );
 
 							let mesh = new THREE.Mesh( geometry, material );
 							mesh.position.x = - 100;
