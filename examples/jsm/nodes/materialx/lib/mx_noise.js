@@ -1,4 +1,4 @@
-import { code, fn } from '../../../Nodes.js';
+import { code, fn } from '../../Nodes.js';
 
 // Original shader code from:
 // https://github.com/AcademySoftwareFoundation/MaterialX/blob/main/libraries/stdlib/genglsl/lib/mx_noise.glsl

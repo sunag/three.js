@@ -3,8 +3,8 @@ import {
 	mx_worley_noise_float as worley_noise_float, mx_worley_noise_vec2 as worley_noise_vec2, mx_worley_noise_vec3 as worley_noise_vec3,
 	mx_cell_noise_float as cell_noise_float,
 	mx_fractal_noise_float as fractal_noise_float, mx_fractal_noise_vec2 as fractal_noise_vec2, mx_fractal_noise_vec3 as fractal_noise_vec3, mx_fractal_noise_vec4 as fractal_noise_vec4
-} from './functions/lib/mx_noise.js';
-import { mx_hsvtorgb, mx_rgbtohsv } from './functions/lib/mx_hsv.js';
+} from './lib/mx_noise.js';
+import { mx_hsvtorgb, mx_rgbtohsv } from './lib/mx_hsv.js';
 import { nodeObject, float, vec2, vec4, add, sub, mul, mix, clamp, uv, length, smoothstep, dFdx, dFdy, convert } from '../shadernode/ShaderNodeElements.js';
 
 export const mx_aastep = ( threshold, value ) => {
