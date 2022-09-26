@@ -29179,8 +29179,7 @@ class LightShadow {
 		this._frustum.setFromProjectionMatrix(_projScreenMatrix$1);
 
 		shadowMatrix.set(0.5, 0.0, 0.0, 0.5, 0.0, 0.5, 0.0, 0.5, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 1.0);
-		shadowMatrix.multiply(shadowCamera.projectionMatrix);
-		shadowMatrix.multiply(shadowCamera.matrixWorldInverse);
+		shadowMatrix.multiply(_projScreenMatrix$1);
 	}
 
 	getViewport(viewportIndex) {
