@@ -33,15 +33,56 @@ import { PointsEditor } from './scene/PointsEditor.js';
 import { MeshEditor } from './scene/MeshEditor.js';
 import { FileEditor } from './core/FileEditor.js';
 import { FileURLEditor } from './core/FileURLEditor.js';
+import { CustomNodeEditor } from './core/CustomNodeEditor.js';
 import { EventDispatcher } from 'three';
+import { add } from 'three/nodes';
 
 Styles.icons.unlink = 'ti ti-unlink';
+/*
+export const CustomNodeEditor = [
+	{
+		shaderNode : add,
+		path : 'Inputs/Math/'
+		title : 'Addition',
+		params : [
+			{ name : 'a', defaultField: 'Float', length: 1 },
+			{ name : 'b', defaultField: 'Float', length: 1 }
+		]
+	},
+	{
+		shaderNode : texture,
+		title : 'Texture',
+		length : 4,
+		params : [
+			{ name : 'texture', length: 1, type: 'Texture' },
+			{ name : 'uv', length: 2 },
+			{ name : 'bias', length: 2 }
+		]
+	}
+]
+*/
+
+const nodeAdd = {
+	shaderNode : add,
+	path : 'Inputs/Math/',
+	title : 'Addition',
+	params : [
+		{ name : 'a', defaultField: 'Float', length: 1 },
+		{ name : 'b', defaultField: 'Float', length: 1 }
+	]
+};
 
 export const NodeList = [
 	{
 		name: 'Inputs',
 		icon: 'forms',
 		children: [
+			{
+				name: 'Slider',
+				icon: 'adjustments-horizontal',
+				tags: 'number',
+				settings: nodeAdd
+			},
 			{
 				name: 'Slider',
 				icon: 'adjustments-horizontal',
@@ -628,13 +669,13 @@ export class NodeEditor extends EventDispatcher {
 
 		const traverseNodeEditors = ( item ) => {
 
-			if ( item.nodeClass ) {
+			if ( item.nodeClass || item.settings ) {
 
 				const button = new ButtonInput( item.name );
 				button.setIcon( `ti ti-${item.icon}` );
 				button.addEventListener( 'complete', () => {
 
-					const node = new item.nodeClass();
+					const node = item.settings ? new CustomNodeEditor( item.settings ) : new item.nodeClass();
 
 					this.add( node );
 
@@ -812,9 +853,9 @@ export class NodeEditor extends EventDispatcher {
 
 			let context = null;
 
-			if ( item.nodeClass ) {
+			if ( item.settings || item.nodeClass ) {
 
-				button.onClick( () => add( new item.nodeClass() ) );
+				button.onClick( () => add( item.settings ? new CustomNodeEditor( item.settings ) : new item.nodeClass() ) );
 
 			}
 
