@@ -66,9 +66,9 @@ const nodeAdd = {
 	shaderNode : add,
 	path : 'Inputs/Math/',
 	title : 'Addition',
-	params : [
-		{ name : 'a', defaultField: 'Float', length: 1 },
-		{ name : 'b', defaultField: 'Float', length: 1 }
+	properties : [
+		{ name : 'aNode', defaultField: 'Float', length: 1 },
+		{ name : 'bNode', defaultField: 'Float', length: 1 }
 	]
 };
 
