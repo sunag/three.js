@@ -584,7 +584,7 @@ class WebGPURenderer {
 
 	clear() {
 
-		this._background.clear();
+		this._background?.clear();
 
 	}
 

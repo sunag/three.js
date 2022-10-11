@@ -1,7 +1,7 @@
 import NodeMaterial from './NodeMaterial.js';
 import {
 	float, vec3, vec4, normalView, add, context,
-	assign, label, mul, invert, mix, texture, uniform,
+	assign, label, mul, invert, mix, texture, cubeTexture, uniform,
 	materialRoughness, materialMetalness, materialEmissive
 } from '../shadernode/ShaderNodeElements.js';
 import LightsNode from '../lighting/LightsNode.js';
@@ -55,7 +55,13 @@ export default class MeshStandardNodeMaterial extends NodeMaterial {
 		const { colorNode } = colorNodes;
 		let { diffuseColorNode } = colorNodes;
 
-		const envNode = this.envNode || builder.scene.environmentNode;
+		let envNode = this.envNode || builder.scene.environmentNode;
+
+		if ( envNode?.isNode !== true && builder.scene.environment ) {
+			console.log(builder.scene.environment);
+			envNode = texture( builder.scene.environment );
+			
+		}
 
 		diffuseColorNode = this.generateStandardMaterial( builder, { colorNode, diffuseColorNode } );
 

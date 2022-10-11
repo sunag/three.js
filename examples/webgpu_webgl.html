@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgpu - webgl examples</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+	</head>
+	<body>
+
+		<script async src="https://unpkg.com/es-module-shims@1.3.6/dist/es-module-shims.js"></script>
+
+		<style>
+		
+			#webgl {
+				position: absolute;
+				width: 50%;
+				height: 100%;
+				border: 0;
+			}
+		
+			#wegpu {
+				position: absolute;
+				left: 50%;
+				width: 50%;
+				height: 100%;
+				border: 0;
+			}
+
+		</style>
+
+		<iframe id="webgl"></iframe>
+		<iframe id="wegpu"></iframe>
+
+		<script type="module">
+
+			import { GUI } from './jsm/libs/lil-gui.module.min.js';
+
+			init();
+
+			async function load( example ) {
+			
+				const res = await fetch( example + '.html' );
+				const webglCode = await res.text();
+			
+				const threejsImportMap = `"three": "../build/three.module.js",`;
+				const threejsImport = `import * as THREE from 'three';`;
+			
+				const threejsImportMapReplace =  `${ threejsImportMap }
+					"three/nodes": "./jsm/nodes/Nodes.js",`;
+
+				const threejsImportReplace =  `${ threejsImport }
+					import WebGPU from 'three/addons/capabilities/WebGPU.js';
+					import WebGPURenderer from 'three/addons/renderers/webgpu/WebGPURenderer.js';`;
+				
+				const webgpuCode = webglCode
+					.replace( threejsImportMap, threejsImportMapReplace )
+					.replace( threejsImport, threejsImportReplace )
+					.replace( 'THREE.WebGLRenderer', 'WebGPURenderer' );
+				
+				document.getElementById( 'webgl' ).srcdoc = webglCode;
+				document.getElementById( 'wegpu' ).srcdoc = webgpuCode;
+			
+			}
+
+			async function init() {
+			
+				const res = await fetch( 'files.json' );
+				const files = await res.json();
+			
+				const webglExamples = files.webgl;
+			
+				//const controls = { example : 'webgl_materials_variations_standard'/*webglExamples[0]*/ };
+				const controls = { example : 'webgl_loader_gltf' };
+			
+				const gui = new GUI();
+				gui.add( controls, 'example' ).options( webglExamples ).onChange( load );
+				
+				load( controls.example );
+			
+			}
+
+		</script>
+
+	</body>
+</html>

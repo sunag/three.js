@@ -26,7 +26,8 @@ class WebGPUBackground {
 	update( renderList, scene ) {
 
 		const renderer = this.renderer;
-		const background = ( scene.isScene === true ) ? scene.backgroundNode || scene.background : null;
+		let background = ( scene.isScene === true ) ? scene.backgroundNode || scene.background : null;
+		background = null;
 
 		let forceClear = this.forceClear;
 
