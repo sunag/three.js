@@ -297,3 +297,12 @@ export const luminance = ( color, luma = lumaCoeffs ) => dot( color, luma );
 export const difference = ( a, b ) => abs( sub( a, b ) );
 export const dotNV = clamp( dot( transformedNormalView, positionViewDirection ) );
 export const TBNViewMatrix = mat3( tangentView, bitangentView, normalView );
+
+export const posterize = ( value, steps ) => {
+
+	const reciprocalSteps = div( 1, contextValue( 'steps' ) );
+	const result = mul( floor( div( contextValue( 'value' ), reciprocalSteps ) ), reciprocalSteps );
+
+	return context( result, { value, steps } );
+
+};
