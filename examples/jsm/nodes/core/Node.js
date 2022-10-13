@@ -26,7 +26,7 @@ class Node {
 
 	}
 
-	getChildren() {
+	getChildren( /*builder*/ ) {
 
 		const children = [];
 
@@ -101,7 +101,7 @@ class Node {
 
 		const nodeProperties = builder.getNodeProperties( this );
 
-		for ( const childNode of this.getChildren() ) {
+		for ( const childNode of this.getChildren( builder ) ) {
 
 			nodeProperties[ '_node' + childNode.id ] = childNode;
 

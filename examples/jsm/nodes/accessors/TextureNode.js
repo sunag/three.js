@@ -3,7 +3,7 @@ import UVNode from './UVNode.js';
 
 class TextureNode extends UniformNode {
 
-	constructor( value, uvNode = new UVNode(), levelNode = null ) {
+	constructor( value, uvNode = null, levelNode = null ) {
 
 		super( value, 'vec4' );
 
@@ -26,7 +26,35 @@ class TextureNode extends UniformNode {
 
 	}
 
+	getConstructHash( builder ) {
+
+		return `${ this.uuid } / ${ builder.context.environmentContext?.uuid || '' }`;
+
+	}
+
+	construct( builder ) {
+
+		const properties = builder.getNodeProperties( this );
+
+		const uvNode = this.uvNode || builder.context.uvNode || new UVNode();
+		let levelNode = this.levelNode || builder.context.levelNode;
+
+		if ( levelNode?.isNode === true ) {
+
+			const texture = this.value;
+
+			levelNode = builder.context.levelShaderNode ? builder.context.levelShaderNode.call( { texture, levelNode }, builder ) : levelNode;
+
+		}
+
+		properties.uvNode = uvNode;
+		properties.levelNode = levelNode;
+
+	}
+
 	generate( builder, output ) {
+
+		const { uvNode, levelNode } = builder.getNodeProperties( this );
 
 		const texture = this.value;
 
@@ -54,10 +82,9 @@ class TextureNode extends UniformNode {
 
 			if ( snippet === undefined ) {
 
-				const uvSnippet = this.uvNode.build( builder, 'vec2' );
-				const levelNode = this.levelNode;
+				const uvSnippet = uvNode.build( builder, 'vec2' );
 
-				if ( levelNode !== null ) {
+				if ( levelNode?.isNode === true ) {
 
 					const levelSnippet = levelNode.build( builder, 'float' );
 

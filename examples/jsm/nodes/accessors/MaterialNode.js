@@ -47,12 +47,12 @@ class MaterialNode extends Node {
 
 	}
 
-	generate( builder, output ) {
+	construct( builder ) {
+
+		let node = null;
 
 		const material = builder.context.material;
 		const scope = this.scope;
-
-		let node = null;
 
 		if ( scope === MaterialNode.ALPHA_TEST ) {
 
@@ -142,8 +142,8 @@ class MaterialNode extends Node {
 			node = new MaterialReferenceNode( scope, outputType );
 
 		}
-
-		return node.build( builder, output );
+console.log( node );
+		return node;
 
 	}
 

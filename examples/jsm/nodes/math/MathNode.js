@@ -59,7 +59,7 @@ class MathNode extends TempNode {
 	constructor( method, aNode, bNode = null, cNode = null ) {
 
 		super();
-
+console.log( method );
 		this.method = method;
 
 		this.aNode = aNode;
