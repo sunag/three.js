@@ -33,7 +33,12 @@ import { PointsEditor } from './scene/PointsEditor.js';
 import { MeshEditor } from './scene/MeshEditor.js';
 import { FileEditor } from './core/FileEditor.js';
 import { FileURLEditor } from './core/FileURLEditor.js';
+import { CustomNodeEditor } from './core/CustomNodeEditor.js';
 import { EventDispatcher } from 'three';
+import {
+	abs, negate, exp, length, log, mod,
+	add, div, mul, pow, sqrt, sub, 
+} from 'three/nodes';
 
 Styles.icons.unlink = 'ti ti-unlink';
 
@@ -133,11 +138,398 @@ export const NodeList = [
 		icon: 'calculator',
 		children: [
 			{
+				name: 'Advanced',
+				icon: 'math-function',
+				children: [
+					{
+						name: 'Absolute',
+						icon: 'fold-up',
+						shaderNode: abs,
+						properties: [
+							{ name: 'aNode' }
+						]
+					},
+					{
+						name: 'Exponential',
+						icon: 'arrow-up-right',
+						shaderNode: exp,
+						properties: [
+							{ name: 'aNode' }
+						]
+					},
+					{
+						name: 'Length',
+						icon: 'math',
+						shaderNode: length,
+						properties: [
+							{ name: 'aNode' }
+						]
+					},
+					{
+						name: 'Log',
+						icon: 'math-function',
+						shaderNode: log,
+						properties: [
+							{ name: 'aNode' }
+						]
+					},
+					{
+						name: 'Modulo',
+						icon: 'math-function',
+						shaderNode: mod,
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Negate',
+						icon: 'fold',
+						shaderNode: negate,
+						properties: [
+							{ name: 'aNode' }
+						]
+					},
+					{
+						name: 'Normalize',
+						icon: 'selector',
+						shaderNode: negate,
+						properties: [
+							{ name: 'aNode' }
+						]
+					},
+					{
+						name: 'Posterize',
+						icon: 'brightness',
+						shaderNode: negate,
+						properties: [
+							{ name: 'context.steps' },
+							{ name: 'context.value' }
+						]
+					},
+					{
+						name: 'Reciprocal',
+						icon: 'math-function',
+						shaderNode: negate,
+						properties: [
+							{ name: 'context.steps' },
+							{ name: 'context.value' }
+						]
+					}	
+				]
+			},
+			{
+				name: 'Basic',
+				icon: 'math-symbols',
+				children: [
+					{
+						name: 'Add',
+						icon: 'plus',
+						tags: 'addition',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Divide',
+						icon: 'divide',
+						shaderNode: div,
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Multiply',
+						icon: 'x',
+						shaderNode: mul,
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Power',
+						icon: 'arrow-up-right',
+						shaderNode: pow,
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Square Root',
+						icon: 'square-root',
+						shaderNode: sqrt,
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Subtract',
+						icon: 'minus',
+						shaderNode: sub,
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 }
+						]
+					}
+				]
+			},
+			{
+				name: 'Derivative',
+				icon: 'math-function',
+				children: [
+					{
+						name: 'DDX',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'DDY',
+						icon: 'math-function',
+						shaderNode: div,
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 }
+						]
+					}
+				]
+			},
+			{
+				name: 'Interpolation',
+				icon: 'math-function',
+				children: [
+					{
+						name: 'Smoothstep',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 }
+						]
+					},
+					{
+					name: 'Mix | Lerp',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 },
+							{ name: 'cNode', defaultLength: 1 }
+						]
+					}
+				]
+			},
+			{
+				name: 'Range',
+				icon: 'math-function',
+				children: [
+					{
+						name: 'Clamp',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Fraction',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 },
+							{ name: 'cNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Maximum',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 },
+							{ name: 'cNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Minimum',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 },
+							{ name: 'cNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'One Minus',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 },
+							{ name: 'cNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Remap',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 },
+							{ name: 'cNode', defaultLength: 1 }
+						]
+					}
+				]
+			},
+			{
+				name: 'Round',
+				icon: 'math-function',
+				children: [
+					{
+						name: 'Ceiling',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Floor',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 },
+							{ name: 'cNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Round',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 },
+							{ name: 'cNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Sign',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 },
+							{ name: 'cNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Truncate',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 },
+							{ name: 'cNode', defaultLength: 1 }
+						]
+					}
+				]
+			},
+			{
+				name: 'Trigonometry',
+				icon: 'math-function',
+				children: [
+					{
+						name: 'Ceiling',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Floor',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 },
+							{ name: 'cNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Round',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 },
+							{ name: 'cNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Sign',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 },
+							{ name: 'cNode', defaultLength: 1 }
+						]
+					},
+					{
+						name: 'Truncate',
+						icon: 'math-function',
+						shaderNode: add,
+						/*renderers: 'WebGPU',*/
+						properties: [
+							{ name: 'aNode', defaultLength: 1 },
+							{ name: 'bNode', defaultLength: 1 },
+							{ name: 'cNode', defaultLength: 1 }
+						]
+					}
+				]
+			},
+			/*{
 				name: 'Operator',
 				icon: 'math-symbols',
 				tags: 'addition, subtration, multiplication, division',
 				nodeClass: OperatorEditor
-			},
+			},*/
+			/*
 			{
 				name: 'Invert',
 				icon: 'flip-vertical',
@@ -179,6 +571,7 @@ export const NodeList = [
 				icon: 'fold',
 				nodeClass: NormalizeEditor
 			}
+			*/
 		]
 	},
 	{
@@ -318,6 +711,7 @@ export class NodeEditor extends EventDispatcher {
 		this.nodesContext = null;
 		this.examplesContext = null;
 
+		this._initCustomNodeEditor();
 		this._initUpload();
 		this._initTips();
 		this._initMenu();
@@ -437,6 +831,58 @@ export class NodeEditor extends EventDispatcher {
 		}
 
 		this.dispatchEvent( { type: 'load' } );
+
+	}
+
+	_initCustomNodeEditor() {
+
+		const createNodeEditorClass = ( item ) => {
+
+			const className = item.name.replace( / /g, '' );
+
+			return class extends CustomNodeEditor {
+
+				constructor() {
+
+					super( item );
+
+				}
+
+				get className() {
+
+					return className;
+
+				}
+
+			};
+
+		};
+
+		const traverseNodeEditors = ( item ) => {
+
+			if ( item.children ) {
+
+				for ( const subItem of item.children ) {
+
+					traverseNodeEditors( subItem );
+
+				}
+
+			} else if ( item.nodeClass === undefined ) {
+
+				item.nodeClass = createNodeEditorClass( item );
+
+				ClassLib[ item.name ] = item.nodeClass;
+
+			}
+
+		};
+
+		for ( const item of NodeList ) {
+
+			traverseNodeEditors( item );
+
+		}
 
 	}
 
