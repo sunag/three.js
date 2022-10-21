@@ -7,9 +7,121 @@ import {
 
 import {
 	MeshPhysicalNodeMaterial,
-	float, int, vec2, vec3, vec4, color, texture, uv, pow, sin, add, sub, mul, div,
-	clamp, mix, normalMap, dot, mx_fractal_noise_float, positionLocal
+	float, int, vec2, vec3, vec4, color, texture,
+	positionLocal, uv,
+	add, sub, mul, div, mod, abs, sign, floor, ceil, round, pow, sin, cos, tan,
+	asin, acos, atan2, sqrt, exp, clamp, min, max, normalize, length, dot, cross, normalMap,
+	remap, smoothstep, luminance, mx_rgbtohsv, mx_hsvtorgb,
+	mix,
+	mx_ramplr, mx_ramptb, mx_splitlr, mx_splittb, mx_fractal_noise_float, mx_transform_uv,
+	saturation
 } from 'three/nodes';
+
+class MtlXElement {
+
+	constructor( name, nodeFunc, params = null ) {
+
+		this.name = name;
+		this.nodeFunc = nodeFunc;
+		this.params = params;
+
+	}
+
+}
+
+// Ref: https://github.com/mrdoob/three.js/issues/24674
+
+const MtlXElements = [
+
+	// << Math >>
+	new MtlXElement( 'add', add, [ 'in1', 'in2' ] ),
+	new MtlXElement( 'subtract', sub, [ 'in1', 'in2' ] ),
+	new MtlXElement( 'multiply', mul, [ 'in1', 'in2' ] ),
+	new MtlXElement( 'divide', div, [ 'in1', 'in2' ] ),
+	new MtlXElement( 'modulo', mod, [ 'in1', 'in2' ] ),
+	new MtlXElement( 'absval', abs, [ 'in1', 'in2' ] ),
+	new MtlXElement( 'sign', sign, [ 'in1', 'in2' ] ),
+	new MtlXElement( 'floor', floor, [ 'in1', 'in2' ] ),
+	new MtlXElement( 'ceil', ceil, [ 'in1', 'in2' ] ),
+	new MtlXElement( 'round', round, [ 'in1', 'in2' ] ),
+	new MtlXElement( 'power', pow, [ 'in1', 'in2' ] ),
+	new MtlXElement( 'sin', sin, [ 'in' ] ),
+	new MtlXElement( 'cos', cos, [ 'in' ] ),
+	new MtlXElement( 'tan', tan, [ 'in' ] ),
+	new MtlXElement( 'asin', asin, [ 'in' ] ),
+	new MtlXElement( 'acos', acos, [ 'in' ] ),
+	new MtlXElement( 'atan2', atan2, [ 'in1', 'in2' ] ),
+	new MtlXElement( 'sqrt', sqrt, [ 'in' ] ),
+	//new MtlXElement( 'ln' ... ),
+	new MtlXElement( 'exp', exp, [ 'in' ] ),
+	new MtlXElement( 'clamp', clamp, [ 'in', 'low', 'high' ] ),
+	new MtlXElement( 'min', min, [ 'in1', 'in2' ] ),
+	new MtlXElement( 'max', max, [ 'in1', 'in2' ] ),
+	new MtlXElement( 'normalize', normalize, [ 'in' ] ),
+	new MtlXElement( 'magnitude', length, [ 'in1', 'in2' ] ),
+	new MtlXElement( 'dotproduct', dot, [ 'in1', 'in2' ] ),
+	new MtlXElement( 'crossproduct', cross, [ 'in' ] ),
+	//new MtlXElement( 'transformpoint' ... ),
+	//new MtlXElement( 'transformvector' ... ),
+	//new MtlXElement( 'transformnormal' ... ),
+	//new MtlXElement( 'transformmatrix' ... ),
+	new MtlXElement( 'normalmap', normalMap, [ 'in', 'scale' ] ),
+	//new MtlXElement( 'transpose' ... ),
+	//new MtlXElement( 'determinant' ... ),
+	//new MtlXElement( 'invertmatrix' ... ),
+	//new MtlXElement( 'rotate2d', rotateUV, [ 'in', radians( 'amount' )** ] ),
+	//new MtlXElement( 'rotate3d' ... ),
+	//new MtlXElement( 'arrayappend' ... ),
+	//new MtlXElement( 'dot' ... ),
+
+	// << Adjustment >>
+	new MtlXElement( 'remap', remap, [ 'in', 'inlow', 'inhigh', 'outlow', 'outhigh' ] ),
+	new MtlXElement( 'smoothstep', smoothstep, [ 'in', 'low', 'high' ] ),
+	//new MtlXElement( 'curveadjust' ... ),
+	//new MtlXElement( 'curvelookup' ... ),
+	new MtlXElement( 'luminance', luminance, [ 'in', 'lumacoeffs' ] ),
+	new MtlXElement( 'rgbtohsv', mx_rgbtohsv, [ 'in' ] ),
+	new MtlXElement( 'hsvtorgb', mx_hsvtorgb, [ 'in' ] ),
+
+	// << Mix >>
+	new MtlXElement( 'mix', mix, [ 'bg', 'fg', 'mix' ] ),
+
+	// << Channel >>
+	//new MtlXElement( 'combine2', mix, [ 'in1', 'in2' ] ),
+	//new MtlXElement( 'combine3', mix, [ 'in1', 'in2', 'in3' ] ),
+	//new MtlXElement( 'combine4', mix, [ 'in1', 'in2', 'in3', 'in4' ] ),
+
+	// << Channel >>
+	new MtlXElement( 'ramplr', mx_ramplr, [ 'valuel', 'valuer', 'texcoord' ] ),
+	new MtlXElement( 'ramptb', mx_ramptb, [ 'valuet', 'valueb', 'texcoord' ] ),
+	new MtlXElement( 'splitlr', mx_splitlr, [ 'valuel', 'valuer', 'texcoord' ] ),
+	new MtlXElement( 'splittb', mx_splittb, [ 'valuet', 'valueb', 'texcoord' ] ),
+	//new MtlXElement( 'noise2d' ... ),
+	//new MtlXElement( 'noise3d' ... ),
+	new MtlXElement( 'fractal3d', mx_fractal_noise_float, [ 'position', 'octaves', 'lacunarity', 'diminish', 'amplitude' ] ),
+	//new MtlXElement( 'cellnoise2d' ... ),
+	//new MtlXElement( 'cellnoise3d' ... ),
+	//new MtlXElement( 'worleynoise2d' ... ),
+	//new MtlXElement( 'worleynoise3d' ... ),
+
+	// << Supplemental >>
+	//new MtlXElement( 'tiledimage' ... ),
+	//new MtlXElement( 'triplanarprojection' ... ),
+	//new MtlXElement( 'ramp4' ... ),
+	//new MtlXElement( 'place2d' ... ),
+	//new MtlXElement( 'safepower' ... ),
+	//new MtlXElement( 'contrast' ... ),
+	//new MtlXElement( 'hsvadjust' ... ),
+	new MtlXElement( 'saturate', saturation, [ 'in', 'amount' ] ),
+	//new MtlXElement( 'extract' ... ),
+	//new MtlXElement( 'separate2' ... ),
+	//new MtlXElement( 'separate3' ... ),
+	//new MtlXElement( 'separate4' ... )
+
+];
+
+const MtlXLibrary = {};
+MtlXElements.forEach( element => MtlXLibrary[ element.name ] = element );
 
 class MaterialXLoader extends Loader {
 
@@ -212,8 +324,6 @@ class MaterialXNode {
 
 				const element = this.element;
 
-				const call = ( nodeFunc, ...params ) => nodeFunc( ...this.getNodesByNames( ...params ) );
-
 				if ( element === 'convert' ) {
 
 					const nodeClass = this.getClassFromType( type );
@@ -232,75 +342,15 @@ class MaterialXNode {
 
 					const textureFile = this.getChildByName( 'file' ).getTexture();
 					const uvNode = uv();
-					const uvTiling = mul( uvNode, this.getNodeByName( 'uvtiling' ) );
+					const uvTiling = mx_transform_uv( ...this.getNodesByNames( [ 'uvtiling', 'uvoffset', '' ] ) this.getNodeByName( 'uvtiling' ) );
 
 					node = texture( textureFile, uvTiling );
 
-				} else if ( element === 'normalmap' ) {
+				} else if ( MtlXLibrary[ element ] !== undefined ) {
 
-					node = call( normalMap, 'in', 'scale' );
+					const nodeElement = MtlXLibrary[ element ];
 
-				} else if ( element === 'hsvtorgb' ) {
-
-					// need to node related
-					node = this.getNodeByName( 'in' );
-
-				} else if ( element === 'rgbtohsv' ) {
-
-					// need to node related
-					node = this.getNodeByName( 'in' );
-
-				} else if ( element === 'combine2' ) {
-
-					node = call( vec2, 'in1', 'in2' );
-
-				} else if ( element === 'combine3' ) {
-
-					node = call( vec3, 'in1', 'in2', 'in3' );
-
-				} else if ( element === 'combine4' ) {
-
-					node = call( vec4, 'in1', 'in2', 'in3', 'in4' );
-
-				} else if ( element === 'add' ) {
-
-					node = call( add, 'in1', 'in2' );
-
-				} else if ( element === 'subtract' ) {
-
-					node = call( sub, 'in1', 'in2' );
-
-				} else if ( element === 'multiply' ) {
-
-					node = call( mul, 'in1', 'in2' );
-
-				} else if ( element === 'divide' ) {
-
-					node = call( div, 'in1', 'in2' );					
-
-				} else if ( element === 'clamp' ) {
-
-					node = call( clamp, 'in', 'low', 'high' );
-
-				} else if ( element === 'mix' ) {
-
-					node = call( mix, 'bg', 'fg', 'mix' );
-
-				} else if ( element === 'power' ) {
-
-					node = call( pow, 'in1', 'in2' );
-
-				} else if ( element === 'sin' ) {
-
-					node = call( sin, 'in' );
-
-				} else if ( element === 'dotproduct' ) {
-
-					node = call( dot, 'in1', 'in2' );
-
-				} else if ( element === 'fractal3d' ) {
-
-					node = call( mx_fractal_noise_float, 'position', 'octaves', 'lacunarity', 'diminish', 'amplitude' );
+					node = nodeElement.nodeFunc( ...this.getNodesByNames( ...nodeElement.params ) );
 
 				}
 
@@ -566,7 +616,7 @@ class MaterialX {
 		this.nodesXLib.set( materialXNode.nodePath, materialXNode );
 
 	}
-/*
+	/*
     getMaterialXNodeFromXML( xmlNode ) {
 
         return this.nodesXRefLib.get( xmlNode );
