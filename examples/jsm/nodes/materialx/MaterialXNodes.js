@@ -5,8 +5,24 @@ import {
 	mx_fractal_noise_float as fractal_noise_float, mx_fractal_noise_vec2 as fractal_noise_vec2, mx_fractal_noise_vec3 as fractal_noise_vec3, mx_fractal_noise_vec4 as fractal_noise_vec4
 } from './lib/mx_noise.js';
 import { mx_hsvtorgb, mx_rgbtohsv } from './lib/mx_hsv.js';
-import { mx_srgb_texture_to_lin_rec709 } from './lib/mx_transform_color.js';
-import { nodeObject, float, vec2, vec4, add, sub, mul, mix, clamp, uv, length, smoothstep, dFdx, dFdy, sign, pow, abs, convert } from '../shadernode/ShaderNodeElements.js';
+import { 
+	nodeObject, float, vec2, vec3, vec4, mat3, add, sub, mul, div, mix, clamp, uv,
+	length, smoothstep, dFdx, dFdy, sign, pow, abs, convert, greaterThan, max
+} from '../shadernode/ShaderNodeElements.js';
+
+const M_AP1_TO_REC709 = mat3( 1.705079555511475, - 0.1297005265951157, - 0.02416634373366833, - 0.6242334842681885, 1.138468623161316, - 0.1246141716837883, - 0.0808461606502533, - 0.008768022060394287, 1.148780584335327 );
+
+export const mx_srgb_texture_to_lin_rec709 = ( inputColor ) => {
+
+	const color = vec3( inputColor );
+
+	const isAbove = greaterThan( color, vec3( 0.04045 ) );
+	const linSeg = div( color, 12.92 );
+	const powSeg = pow( div( max( add( color, vec3( 0.055 ) ), vec3( 0.0 ) ), 1.055 ), vec3( 2.4 ) );
+
+	return mix( linSeg, powSeg, isAbove );
+
+};
 
 export const mx_aastep = ( threshold, value ) => {
 
@@ -56,4 +72,4 @@ export const mx_fractal_noise_vec2 = ( position = uv(), octaves = 3, lacunarity 
 export const mx_fractal_noise_vec3 = ( position = uv(), octaves = 3, lacunarity = 2, diminish = .5, amplitude = 1 ) => mul( fractal_noise_vec3( position, octaves, lacunarity, diminish ), amplitude );
 export const mx_fractal_noise_vec4 = ( position = uv(), octaves = 3, lacunarity = 2, diminish = .5, amplitude = 1 ) => mul( fractal_noise_vec4( position, octaves, lacunarity, diminish ), amplitude );
 
-export { mx_hsvtorgb, mx_rgbtohsv, mx_srgb_texture_to_lin_rec709 };
+export { mx_hsvtorgb, mx_rgbtohsv };
