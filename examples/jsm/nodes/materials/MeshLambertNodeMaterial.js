@@ -1,15 +1,15 @@
 import NodeMaterial from './NodeMaterial.js';
-import { MeshBasicMaterial } from 'three';
+import { MeshLambertMaterial } from 'three';
 
-const defaultValues = new MeshBasicMaterial();
+const defaultValues = new MeshLambertMaterial();
 
-class MeshBasicNodeMaterial extends NodeMaterial {
+class MeshLambertNodeMaterial extends NodeMaterial {
 
 	constructor( parameters ) {
 
 		super();
 
-		this.isMeshBasicNodeMaterial = true;
+		this.isMeshPhongNodeMaterial = true;
 
 		this.lights = false;
 
@@ -45,4 +45,4 @@ class MeshBasicNodeMaterial extends NodeMaterial {
 
 }
 
-export default MeshBasicNodeMaterial;
+export default MeshLambertNodeMaterial;

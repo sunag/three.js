@@ -1,6 +1,9 @@
 import NodeMaterial from './NodeMaterial.js';
 import LineBasicNodeMaterial from './LineBasicNodeMaterial.js';
 import MeshBasicNodeMaterial from './MeshBasicNodeMaterial.js';
+import MeshNormalNodeMaterial from './MeshNormalNodeMaterial.js';
+import MeshLambertNodeMaterial from './MeshLambertNodeMaterial.js';
+import MeshPhongNodeMaterial from './MeshPhongNodeMaterial.js';
 import MeshStandardNodeMaterial from './MeshStandardNodeMaterial.js';
 import MeshPhysicalNodeMaterial from './MeshPhysicalNodeMaterial.js';
 import PointsNodeMaterial from './PointsNodeMaterial.js';
@@ -10,6 +13,9 @@ export {
 	NodeMaterial,
 	LineBasicNodeMaterial,
 	MeshBasicNodeMaterial,
+	MeshNormalNodeMaterial,
+	MeshLambertNodeMaterial,
+	MeshPhongNodeMaterial,
 	MeshStandardNodeMaterial,
 	MeshPhysicalNodeMaterial,
 	PointsNodeMaterial,
@@ -22,6 +28,9 @@ NodeMaterial.fromMaterial = function ( material ) {
 		NodeMaterial,
 		LineBasicNodeMaterial,
 		MeshBasicNodeMaterial,
+		MeshNormalNodeMaterial,
+		MeshLambertNodeMaterial,
+		MeshPhongNodeMaterial,
 		MeshStandardNodeMaterial,
 		MeshPhysicalNodeMaterial,
 		PointsNodeMaterial,

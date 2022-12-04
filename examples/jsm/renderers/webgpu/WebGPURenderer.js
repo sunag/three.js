@@ -102,6 +102,10 @@ class WebGPURenderer {
 
 		this.sortObjects = true;
 
+		// @TODO: Needed added support for it
+		this.shadowMap = {};
+		this.xr = {};
+
 		// internals
 
 		this._parameters = Object.assign( {}, parameters );
@@ -590,9 +594,13 @@ class WebGPURenderer {
 
 	clear() {
 
-		this._background.clear();
+		this._background?.clear();
 
 	}
+
+	clearDepth() { }
+
+	readRenderTargetPixels () {  }
 
 	dispose() {
 
@@ -617,6 +625,8 @@ class WebGPURenderer {
 		this._renderTarget = renderTarget;
 
 	}
+
+	compile() {};
 
 	async compute( ...computeNodes ) {
 

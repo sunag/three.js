@@ -23,6 +23,8 @@ export default class MeshStandardNodeMaterial extends NodeMaterial {
 
 		this.isMeshStandardNodeMaterial = true;
 
+		this.lights = true;
+
 		this.colorNode = null;
 		this.opacityNode = null;
 
@@ -55,13 +57,19 @@ export default class MeshStandardNodeMaterial extends NodeMaterial {
 		const { colorNode } = colorNodes;
 		let { diffuseColorNode } = colorNodes;
 
-		const envNode = this.envNode || builder.scene.environmentNode;
+		let envNode = this.envNode || builder.scene.environmentNode;
 
 		diffuseColorNode = this.generateStandardMaterial( builder, { colorNode, diffuseColorNode } );
 
 		if ( this.lightsNode ) builder.lightsNode = this.lightsNode;
 
 		const materialLightsNode = [];
+
+		if ( envNode?.isNode !== true && builder.scene.environment ) {
+
+			envNode = texture( builder.scene.environment );
+
+		}
 
 		if ( envNode ) {
 

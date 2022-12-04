@@ -5,7 +5,7 @@ import {
 	float, vec3, vec4,
 	assign, label, mul, bypass, attribute,
 	positionLocal, skinning, instance, modelViewProjection, lightingContext, colorSpace,
-	materialAlphaTest, materialColor, materialOpacity
+	materialAlphaTest, materialColor, materialOpacity, color, exp2Fog
 } from '../shadernode/ShaderNodeElements.js';
 
 class NodeMaterial extends ShaderMaterial {
@@ -18,7 +18,7 @@ class NodeMaterial extends ShaderMaterial {
 
 		this.type = this.constructor.name;
 
-		this.lights = true;
+		this.lights = false;
 
 	}
 
@@ -99,7 +99,7 @@ class NodeMaterial extends ShaderMaterial {
 		builder.addFlow( 'fragment', assign( diffuseColorNode.a, mul( diffuseColorNode.a, opacityNode ) ) );
 
 		// ALPHA TEST
-
+/*
 		if ( this.alphaTestNode || this.alphaTest > 0 ) {
 
 			const alphaTestNode = this.alphaTestNode ? float( this.alphaTestNode ) : materialAlphaTest;
@@ -110,7 +110,7 @@ class NodeMaterial extends ShaderMaterial {
 			builder.addFlow( 'fragment', new ExpressionNode( 'if ( DiffuseColor.a <= AlphaTest ) { discard; }' ) );
 
 		}
-
+*/
 		return { colorNode, diffuseColorNode };
 
 	}
@@ -122,7 +122,12 @@ class NodeMaterial extends ShaderMaterial {
 		// OUTGOING LIGHT
 
 		let outgoingLightNode = diffuseColorNode.xyz;
-		if ( lightsNode && lightsNode.hasLight !== false ) outgoingLightNode = builder.addFlow( 'fragment', label( lightingContext( lightsNode, lightingModelNode ), 'Light' ) );
+
+		if ( this.lights === true && lightsNode && lightsNode.hasLight !== false ) {
+
+			outgoingLightNode = builder.addFlow( 'fragment', label( lightingContext( lightsNode, lightingModelNode ), 'Light' ) );
+
+		}
 
 		return outgoingLightNode;
 
@@ -140,7 +145,17 @@ class NodeMaterial extends ShaderMaterial {
 
 		// FOG
 
-		if ( builder.fogNode ) outputNode = vec4( vec3( builder.fogNode.mix( outputNode ) ), outputNode.w );
+		let fogNode = builder.fogNode;
+
+		if ( fogNode?.isNode !== true && builder.scene.fog ) {
+
+			const fog = builder.scene.fog;
+
+			//fogNode = exp2Fog( color( fog.color ), fog.density );
+
+		}
+
+		if ( fogNode ) outputNode = vec4( vec3( fogNode.mix( outputNode ) ), outputNode.w );
 
 		// RESULT
 

@@ -40,10 +40,11 @@
 				camera.position.y = 400;
 
 				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0x33 );
 
 				let object;
 
-				const ambientLight = new THREE.AmbientLight( 0xcccccc, 0.4 );
+				const ambientLight = new THREE.AmbientLight( 0xcccccc, 1.0 );
 				scene.add( ambientLight );
 
 				const pointLight = new THREE.PointLight( 0xffffff, 0.8 );
@@ -54,7 +55,7 @@
 				map.wrapS = map.wrapT = THREE.RepeatWrapping;
 				map.anisotropy = 16;
 
-				const material = new THREE.MeshPhongMaterial( { map: map, side: THREE.DoubleSide } );
+				const material = new THREE.MeshBasicMaterial( { map: map, side: THREE.DoubleSide } );
 
 				//
 
