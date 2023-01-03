@@ -23,6 +23,7 @@ import LightingContextNode from '../lighting/LightingContextNode.js';
 import EquirectUVNode from '../utils/EquirectUVNode.js';
 import MatcapUVNode from '../utils/MatcapUVNode.js';
 import OscNode from '../utils/OscNode.js';
+import RandomNode from '../utils/RandomNode.js';
 import RemapNode from '../utils/RemapNode.js';
 import RotateUVNode from '../utils/RotateUVNode.js';
 import SpecularMIPLevelNode from '../utils/SpecularMIPLevelNode.js';
@@ -116,6 +117,8 @@ export const lights = ( lights ) => nodeObject( new LightsNode().fromLights( lig
 export const lightingContext = nodeProxy( LightingContextNode );
 
 // utils
+
+export const random = nodeProxy( RandomNode );
 
 export const matcapUV = nodeImmutable( MatcapUVNode );
 export const equirectUV = nodeProxy( EquirectUVNode );

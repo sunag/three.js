@@ -30,7 +30,7 @@
 
 			import {
 				ShaderNode, compute,
-				uniform, element, storage, attribute, mul, sin, cos,
+				uniform, element, storage, attribute, mul, sin, cos, random,
 				add, cond, abs, max, min, float, vec2, vec3, color, instanceIndex
 			} from 'three/nodes';
 
@@ -110,9 +110,12 @@
 					const precomputeShaderNode = new ShaderNode( ( inputs, stack ) => {
 
 						const particleIndex = float( instanceIndex );
+						const randAngle = random( mul( particleIndex, vec2( 1, 2 ) ) );
+						const randSpeed = random( particleIndex );
 
-						const randomAngle = mul( mul( particleIndex, .005 ), Math.PI * 2 );
-						const randomSpeed = add( mul( particleIndex, 0.00000001 ), 0.0000001 );
+						//const randomAngle = mul( mul( particleIndex, .005 ), Math.PI * 2 );
+						const randomAngle = mul( randAngle, Math.PI * 2 );
+						const randomSpeed = add( mul( randSpeed, 0.01 ), 0.0000001 );
 
 						const velX = mul( sin( randomAngle ), randomSpeed );
 						const velY = mul( cos( randomAngle ), randomSpeed );

@@ -94,6 +94,7 @@ import JoinNode from './utils/JoinNode.js';
 import MatcapUVNode from './utils/MatcapUVNode.js';
 import MaxMipLevelNode from './utils/MaxMipLevelNode.js';
 import OscNode from './utils/OscNode.js';
+import RandomNode from './utils/RandomNode.js';
 import RemapNode from './utils/RemapNode.js';
 import RotateUVNode from './utils/RotateUVNode.js';
 import SpecularMIPLevelNode from './utils/SpecularMIPLevelNode.js';
@@ -231,6 +232,7 @@ const nodeLib = {
 	MatcapUVNode,
 	MaxMipLevelNode,
 	OscNode,
+	RandomNode,
 	RemapNode,
 	RotateUVNode,
 	SpecularMIPLevelNode,
@@ -361,6 +363,7 @@ export {
 	MatcapUVNode,
 	MaxMipLevelNode,
 	OscNode,
+	RandomNode,
 	RemapNode,
 	RotateUVNode,
 	SpecularMIPLevelNode,
