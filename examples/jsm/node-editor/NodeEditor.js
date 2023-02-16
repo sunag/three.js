@@ -33,6 +33,7 @@ import { PointsEditor } from './scene/PointsEditor.js';
 import { MeshEditor } from './scene/MeshEditor.js';
 import { FileEditor } from './core/FileEditor.js';
 import { FileURLEditor } from './core/FileURLEditor.js';
+import { CustomNodeEditor } from './core/CustomNodeEditor.js';
 import { EventDispatcher } from 'three';
 
 Styles.icons.unlink = 'ti ti-unlink';
@@ -86,6 +87,17 @@ export const NodeList = [
 		]
 	},
 	{
+		name: 'Accessors3',
+		icon: 'vector-triangle',
+		children: [
+			{
+				name: 'Normal Local',
+				icon: 'fold-up',
+				shaderNodeElement: 'normalLocal'
+			},
+		]
+	},
+	{
 		name: 'Accessors',
 		icon: 'vector-triangle',
 		children: [
@@ -133,11 +145,134 @@ export const NodeList = [
 		icon: 'calculator',
 		children: [
 			{
+				name: 'Absolute',
+				icon: 'fold-up',
+				shaderNodeElement: 'abs',
+				properties: [
+					{ name: 'aNode' }
+				]
+			},
+			{
+				name: 'Addition',
+				icon: 'plus',
+				tags: 'addition',
+				shaderNodeElement: 'add',
+				/*renderers: 'WebGPU',*/
+				properties: [
+					{ name: 'aNode', defaultLength: 1 },
+					{ name: 'bNode', defaultLength: 1 }
+				]
+			},
+			{
+				name: 'Divide',
+				icon: 'divide',
+				shaderNodeElement: 'div',
+				properties: [
+					{ name: 'aNode', defaultLength: 1 },
+					{ name: 'bNode', defaultLength: 1 }
+				]
+			},
+			/*{
+				name: 'Exponential',
+				icon: 'arrow-up-right',
+				shaderNode: exp,
+				properties: [
+					{ name: 'aNode' }
+				]
+			},
+			{
+				name: 'Length',
+				icon: 'math',
+				shaderNode: length,
+				properties: [
+					{ name: 'aNode' }
+				]
+			},
+			{
+				name: 'Log',
+				icon: 'math-function',
+				shaderNode: log,
+				properties: [
+					{ name: 'aNode' }
+				]
+			},
+			{
+				name: 'Modulo',
+				icon: 'math-function',
+				shaderNode: mod,
+				properties: [
+					{ name: 'aNode', defaultLength: 1 },
+					{ name: 'bNode', defaultLength: 1 }
+				]
+			},
+			{
+				name: 'Multiply',
+				icon: 'x',
+				shaderNode: mul,
+				properties: [
+					{ name: 'aNode', defaultLength: 1 },
+					{ name: 'bNode', defaultLength: 1 }
+				]
+			},
+			{
+				name: 'Negate',
+				icon: 'fold',
+				shaderNode: negate,
+				properties: [
+					{ name: 'aNode' }
+				]
+			},
+			{
+				name: 'Normalize',
+				icon: 'selector',
+				shaderNode: negate,
+				properties: [
+					{ name: 'aNode' }
+				]
+			},
+			{
+				name: 'Posterize',
+				icon: 'brightness',
+				shaderNode: negate,
+				properties: [
+					{ name: 'context.steps' },
+					{ name: 'context.value' }
+				]
+			},
+			{
+				name: 'Power',
+				icon: 'arrow-up-right',
+				shaderNode: pow,
+				properties: [
+					{ name: 'aNode', defaultLength: 1 },
+					{ name: 'bNode', defaultLength: 1 }
+				]
+			},
+			{
+				name: 'Square Root',
+				icon: 'square-root',
+				shaderNode: sqrt,
+				properties: [
+					{ name: 'aNode', defaultLength: 1 },
+					{ name: 'bNode', defaultLength: 1 }
+				]
+			},
+			{
+				name: 'Subtract',
+				icon: 'minus',
+				shaderNode: sub,
+				properties: [
+					{ name: 'aNode', defaultLength: 1 },
+					{ name: 'bNode', defaultLength: 1 }
+				]
+			}
+			/*{
 				name: 'Operator',
 				icon: 'math-symbols',
 				tags: 'addition, subtration, multiplication, division',
 				nodeClass: OperatorEditor
-			},
+			},*/
+			/*
 			{
 				name: 'Invert',
 				icon: 'flip-vertical',
@@ -179,6 +314,7 @@ export const NodeList = [
 				icon: 'fold',
 				nodeClass: NormalizeEditor
 			}
+			*/
 		]
 	},
 	{
@@ -438,6 +574,37 @@ export class NodeEditor extends EventDispatcher {
 
 		this.dispatchEvent( { type: 'load' } );
 
+	}
+
+	addNodeEditorElementClass( nodeData ) {
+
+		const createNodeEditorClass = ( nodeData ) => {
+
+			const className = nodeData.name.replace( / /g, '' );
+
+			return class extends CustomNodeEditor {
+
+				constructor() {
+
+					super( nodeData );
+
+				}
+
+				get className() {
+
+					return className;
+
+				}
+
+			};
+
+		};
+
+		const nodeClass = createNodeEditorClass( nodeData );
+
+		ClassLib[ nodeData.name ] = nodeClass;
+
+		return nodeClass;
 	}
 
 	_initUpload() {
@@ -757,7 +924,7 @@ export class NodeEditor extends EventDispatcher {
 
 	}
 
-	_initNodesContext() {
+	async _initNodesContext() {
 
 		const context = new ContextMenu( this.canvas.canvas ).setWidth( 300 );
 
@@ -889,7 +1056,7 @@ export class NodeEditor extends EventDispatcher {
 
 				let visible = buttonLabel.indexOf( value ) !== - 1;
 
-				if ( visible && button.parent !== null ) {
+				if ( visible && button.isNodeClass ) {
 
 					nodeButtonsVisible.push( button );
 
@@ -911,7 +1078,9 @@ export class NodeEditor extends EventDispatcher {
 
 			}
 
-			nodeButtonsVisible[ nodeButtonsIndex ].setSelected( true );
+			const focusedButton = nodeButtonsVisible[ nodeButtonsIndex ];
+
+			if ( focusedButton ) focusedButton.setSelected( true );
 
 		} );
 
@@ -919,18 +1088,21 @@ export class NodeEditor extends EventDispatcher {
 		node.add( new Element().setHeight( 30 ).add( search ) );
 		node.add( new Element().setHeight( 200 ).add( treeView ) );
 
-		const createButtonMenu = ( item ) => {
+		const addNodeEditorElement = ( nodeData ) => {
 
-			const button = new TreeViewNode( item.name );
-			button.setIcon( `ti ti-${item.icon}` );
+			const button = new TreeViewNode( nodeData.name );
+			button.setIcon( `ti ti-${nodeData.icon}` );
 
-			if ( item.nodeClass ) {
+			if ( nodeData.shaderNode ) {
 
-				button.onClick( () => add( new item.nodeClass() ) );
+				const nodeClass = this.addNodeEditorElementClass( nodeData );
+
+				button.isNodeClass = true;
+				button.onClick( () => add( new nodeClass() ) );
 
 			}
 
-			if ( item.tip ) {
+			if ( nodeData.tip ) {
 
 				//button.setToolTip( item.tip );
 
@@ -938,11 +1110,11 @@ export class NodeEditor extends EventDispatcher {
 
 			nodeButtons.push( button );
 
-			if ( item.children ) {
+			if ( nodeData.children ) {
 
-				for ( const subItem of item.children ) {
+				for ( const subItem of nodeData.children ) {
 
-					const subButton = createButtonMenu( subItem );
+					const subButton = addNodeEditorElement( subItem );
 
 					button.add( subButton );
 
@@ -954,9 +1126,14 @@ export class NodeEditor extends EventDispatcher {
 
 		};
 
-		for ( const item of NodeList ) {
+		//
 
-			const button = createButtonMenu( item );
+		const response = await fetch( './jsm/node-editor/Nodes.json' );
+		const json = await response.json();
+
+		for ( const node of json.nodes ) {
+
+			const button = addNodeEditorElement( node );
 
 			treeView.add( button );
 

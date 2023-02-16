@@ -1,0 +1,146 @@
+{
+    "nodes": [
+        {
+            "name": "Math",
+            "icon": "calculator",
+            "children": [
+                {
+                    "name": "Arithmetic Operators",
+                    "icon": "math-symbols",
+                    "children": [
+                        {
+                            "name": "Addition",
+                            "icon": "plus",
+                            "description": "Addition operator.",
+                            "shaderNode": "add",
+                            "properties": [
+                                { "name": "aNode", "nodeType": "float" },
+                                { "name": "bNode", "nodeType": "float" }
+                            ]
+                        },
+                        {
+                            "name": "Subtraction",
+                            "icon": "minus",
+                            "description": "Subtraction operator.",
+                            "shaderNode": "sub",
+                            "properties": [
+                                { "name": "aNode", "nodeType": "float" },
+                                { "name": "bNode", "nodeType": "float" }
+                            ]
+                        },
+                        {
+                            "name": "Multiply",
+                            "icon": "x",
+                            "tags": "tag1,tag2",
+                            "description": "Multiply operator.",
+                            "shaderNode": "mul",
+                            "renderers": "WebGPU",
+                            "properties": [
+                                { "name": "aNode", "nodeType": "float" },
+                                { "name": "bNode", "nodeType": "float" }
+                            ]
+                        },
+                        {
+                            "name": "Division",
+                            "icon": "divide",
+                            "description": "Division operator.",
+                            "shaderNode": "div",
+                            "properties": [
+                                { "name": "aNode", "nodeType": "float" },
+                                { "name": "bNode", "nodeType": "float" }
+                            ]
+                        },
+                        {
+                            "name": "Power",
+                            "icon": "arrow-up-right",
+                            "description": "Exponentiation operator.",
+                            "shaderNode": "pow",
+                            "properties": [
+                                { "name": "aNode", "nodeType": "float" },
+                                { "name": "bNode", "nodeType": "float" }
+                            ]
+                        },
+                        {
+                            "name": "Remainder",
+                            "icon": "percentage",
+                            "description": "Remainder operator.",
+                            "shaderNode": "remainder",
+                            "properties": [
+                                { "name": "aNode", "nodeType": "float" },
+                                { "name": "bNode", "nodeType": "float" }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "Boolean Operators",
+                    "icon": "math-symbols",
+                    "children": [
+                        {
+                            "name": "Less Than",
+                            "icon": "math-lower",
+                            "nodeType": "bool",
+                            "description": "Less than operator..",
+                            "shaderNode": "lessThan",
+                            "properties": [
+                                { "name": "aNode", "nodeType": "float" },
+                                { "name": "bNode", "nodeType": "float" }
+                            ]
+                        },
+                        {
+                            "name": "Less Than Or Equal",
+                            "icon": "math-equal-lower",
+                            "description": "Less than or equal operator.",
+                            "shaderNode": "lessThanEqual",
+                            "properties": [
+                                { "name": "aNode", "nodeType": "float" },
+                                { "name": "bNode", "nodeType": "float" }
+                            ]
+                        },
+                        {
+                            "name": "Greater Than",
+                            "icon": "math-greater",
+                            "description": "Greater than operator.",
+                            "shaderNode": "greaterThan",
+                            "renderers": "WebGPU",
+                            "properties": [
+                                { "name": "aNode", "nodeType": "float" },
+                                { "name": "bNode", "nodeType": "float" }
+                            ]
+                        },
+                        {
+                            "name": "Greater Than Or Equal",
+                            "icon": "math-equal-greater",
+                            "description": "Greater than or equal operator.",
+                            "shaderNode": "greaterThanEqual",
+                            "properties": [
+                                { "name": "aNode", "nodeType": "float" },
+                                { "name": "bNode", "nodeType": "float" }
+                            ]
+                        },
+                        {
+                            "name": "Equality",
+                            "icon": "equal-double",
+                            "description": "Equality operator.",
+                            "shaderNode": "assign",
+                            "properties": [
+                                { "name": "aNode", "nodeType": "float" },
+                                { "name": "bNode", "nodeType": "float" }
+                            ]
+                        },
+                        {
+                            "name": "Inequality",
+                            "icon": "equal-not",
+                            "description": "Inequality operator.",
+                            "shaderNode": "assign",
+                            "properties": [
+                                { "name": "aNode", "nodeType": "float" },
+                                { "name": "bNode", "nodeType": "float" }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
