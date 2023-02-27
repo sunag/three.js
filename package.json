@@ -1,6 +1,6 @@
 {
   "name": "three",
-  "version": "0.149.0",
+  "version": "0.151.0",
   "description": "JavaScript 3D library",
   "type": "module",
   "main": "./build/three.js",
@@ -37,58 +37,6 @@
     "doc": "docs",
     "example": "examples",
     "test": "test"
-  },
-  "eslintConfig": {
-    "root": true,
-    "extends": [
-      "mdcs",
-      "plugin:compat/recommended"
-    ],
-    "plugins": [
-      "html",
-      "import"
-    ],
-    "settings": {
-      "polyfills": [
-        "WebGL2RenderingContext"
-      ]
-    },
-    "globals": {
-      "__THREE_DEVTOOLS__": "readonly",
-      "potpack": "readonly",
-      "fflate": "readonly",
-      "OIMO": "readonly",
-      "Stats": "readonly",
-      "XRWebGLBinding": "readonly",
-      "XRWebGLLayer": "readonly",
-      "GPUShaderStage": "readonly",
-      "GPUBufferUsage": "readonly",
-      "GPUTextureUsage": "readonly",
-      "GPUMapMode": "readonly",
-      "QUnit": "readonly",
-      "Ammo": "readonly",
-      "XRRigidTransform": "readonly",
-      "XRMediaBinding": "readonly",
-      "CodeMirror": "readonly",
-      "esprima": "readonly",
-      "jsonlint": "readonly"
-    },
-    "rules": {
-      "no-throw-literal": [
-        "error"
-      ],
-      "quotes": [
-        "error",
-        "single"
-      ],
-      "prefer-const": [
-        "error",
-        {
-          "destructuring": "any",
-          "ignoreReadBeforeAssign": false
-        }
-      ]
-    }
   },
   "browserslist": [
     "> 1%, not dead, not ie 11, not op_mini all"
@@ -142,18 +90,17 @@
     "@rollup/plugin-terser": "^0.4.0",
     "chalk": "^5.2.0",
     "concurrently": "^7.6.0",
-    "eslint": "^8.33.0",
+    "eslint": "^8.34.0",
     "eslint-config-mdcs": "^5.0.0",
-    "eslint-plugin-compat": "^4.0.2",
+    "eslint-plugin-compat": "^4.1.2",
     "eslint-plugin-html": "^7.1.0",
     "eslint-plugin-import": "^2.27.5",
     "failonlyreporter": "^1.0.0",
-    "jimp": "^0.16.0",
-    "node-fetch": "^3.2.6",
+    "jimp": "^0.22.5",
     "pixelmatch": "^5.3.0",
-    "puppeteer-core": "^19.6.2",
-    "qunit": "^2.19.1",
-    "rollup": "^3.12.0",
+    "puppeteer-core": "^19.7.2",
+    "qunit": "^2.19.4",
+    "rollup": "^3.17.2",
     "rollup-plugin-filesize": "^9.1.2",
     "rollup-plugin-visualizer": "^5.9.0",
     "servez": "^1.14.1"

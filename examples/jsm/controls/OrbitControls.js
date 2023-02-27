@@ -124,6 +124,13 @@ class OrbitControls extends EventDispatcher {
 
 		};
 
+		this.stopListenToKeyEvents = function () {
+
+			this._domElementKeyEvents.removeEventListener( 'keydown', onKeyDown );
+			this._domElementKeyEvents = null;
+
+		};
+
 		this.saveState = function () {
 
 			scope.target0.copy( scope.target );
@@ -294,7 +301,7 @@ class OrbitControls extends EventDispatcher {
 			scope.domElement.removeEventListener( 'contextmenu', onContextMenu );
 
 			scope.domElement.removeEventListener( 'pointerdown', onPointerDown );
-			scope.domElement.removeEventListener( 'pointercancel', onPointerCancel );
+			scope.domElement.removeEventListener( 'pointercancel', onPointerUp );
 			scope.domElement.removeEventListener( 'wheel', onMouseWheel );
 
 			scope.domElement.removeEventListener( 'pointermove', onPointerMove );
@@ -304,6 +311,7 @@ class OrbitControls extends EventDispatcher {
 			if ( scope._domElementKeyEvents !== null ) {
 
 				scope._domElementKeyEvents.removeEventListener( 'keydown', onKeyDown );
+				scope._domElementKeyEvents = null;
 
 			}
 
@@ -875,26 +883,20 @@ class OrbitControls extends EventDispatcher {
 
 		function onPointerUp( event ) {
 
-		    removePointer( event );
-
-		    if ( pointers.length === 0 ) {
-
-		        scope.domElement.releasePointerCapture( event.pointerId );
-
-		        scope.domElement.removeEventListener( 'pointermove', onPointerMove );
-		        scope.domElement.removeEventListener( 'pointerup', onPointerUp );
-
-		    }
-
-		    scope.dispatchEvent( _endEvent );
-
-		    state = STATE.NONE;
-
-		}
-
-		function onPointerCancel( event ) {
-
 			removePointer( event );
+
+			if ( pointers.length === 0 ) {
+
+				scope.domElement.releasePointerCapture( event.pointerId );
+
+				scope.domElement.removeEventListener( 'pointermove', onPointerMove );
+				scope.domElement.removeEventListener( 'pointerup', onPointerUp );
+
+			}
+
+			scope.dispatchEvent( _endEvent );
+
+			state = STATE.NONE;
 
 		}
 
@@ -1246,7 +1248,7 @@ class OrbitControls extends EventDispatcher {
 		scope.domElement.addEventListener( 'contextmenu', onContextMenu );
 
 		scope.domElement.addEventListener( 'pointerdown', onPointerDown );
-		scope.domElement.addEventListener( 'pointercancel', onPointerCancel );
+		scope.domElement.addEventListener( 'pointercancel', onPointerUp );
 		scope.domElement.addEventListener( 'wheel', onMouseWheel, { passive: false } );
 
 		// force an update at start

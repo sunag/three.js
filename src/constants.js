@@ -1,4 +1,4 @@
-export const REVISION = '150dev';
+export const REVISION = '151dev';
 export const MOUSE = { LEFT: 0, MIDDLE: 1, RIGHT: 2, ROTATE: 0, DOLLY: 1, PAN: 2 };
 export const TOUCH = { ROTATE: 0, PAN: 1, DOLLY_PAN: 2, DOLLY_ROTATE: 3 };
 export const CullFaceNone = 0;
@@ -150,6 +150,7 @@ export const ObjectSpaceNormalMap = 1;
 export const NoColorSpace = '';
 export const SRGBColorSpace = 'srgb';
 export const LinearSRGBColorSpace = 'srgb-linear';
+export const DisplayP3ColorSpace = 'display-p3';
 
 export const ZeroStencilOp = 0;
 export const KeepStencilOp = 7680;
