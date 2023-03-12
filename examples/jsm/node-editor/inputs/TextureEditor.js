@@ -1,36 +1,16 @@
 import { LabelElement, ToggleInput, SelectInput } from '../../libs/flow.module.js';
-import { BaseNode, onNodeValidElement } from '../core/BaseNode.js';
+import { BaseNode } from '../core/BaseNode.js';
+import { onValidNode, onValidType, getColorFromType } from '../NodeEditorUtils.js';
 import { TextureNode, UVNode } from 'three/nodes';
 import { Texture, TextureLoader, RepeatWrapping, ClampToEdgeWrapping, MirroredRepeatWrapping } from 'three';
 
-const fileTexture = new WeakMap();
-const fileURL = new WeakMap();
 const textureLoader = new TextureLoader();
 const defaultTexture = new Texture();
 const defaultUV = new UVNode();
 
-const getTexture = ( file ) => {
+const getTexture = ( url ) => {
 
-	let texture = fileTexture.get( file );
-
-	if ( texture === undefined || file.getURL() !== fileURL.get( file ) ) {
-
-		const url = file.getURL();
-
-		if ( texture !== undefined ) {
-
-			texture.dispose();
-
-		}
-
-		texture = textureLoader.load( url );
-
-		fileTexture.set( file, texture );
-		fileURL.set( file, url );
-
-	}
-
-	return texture;
+	return textureLoader.load( url );
 
 };
 
@@ -40,7 +20,9 @@ export class TextureEditor extends BaseNode {
 
 		const node = new TextureNode( defaultTexture );
 
-		super( 'Texture', 4, node, 250 );
+		super( 'Texture', node, 250 );
+
+		this.setOutputLength( 4 );
 
 		this.texture = null;
 
@@ -53,34 +35,16 @@ export class TextureEditor extends BaseNode {
 
 	_initFile() {
 
-		const fileElement = new LabelElement( 'File' ).setInputColor( 'aqua' ).setInput( 1 );
+		const fileElement = new LabelElement( 'File' ).setInputColor( getColorFromType( 'URL' ) ).setInput( 1 );
 
-		fileElement.onValid( ( source, target, stage ) => {
+		fileElement.onValid( onValidType( 'URL' ) ).onConnect( () => {
 
-			const object = target.getObject();
+			const textureNode = this.value;
+			const fileEditorElement = fileElement.getLinkedElement();
 
-			if ( object && object.isDataFile !== true ) {
+			this.texture = fileEditorElement ? getTexture( fileEditorElement.node.getURL() ) : null;
 
-				if ( stage === 'dragged' ) {
-
-					const name = target.node.getName();
-
-					this.editor.tips.error( `"${name}" is not a File.` );
-
-				}
-
-				return false;
-
-			}
-
-		} ).onConnect( () => {
-
-			const file = fileElement.getLinkedObject();
-			const node = this.value;
-
-			this.texture = file ? getTexture( file ) : null;
-
-			node.value = this.texture || defaultTexture;
+			textureNode.value = this.texture || defaultTexture;
 
 			this.update();
 
@@ -94,7 +58,7 @@ export class TextureEditor extends BaseNode {
 
 		const uvField = new LabelElement( 'UV' ).setInput( 2 );
 
-		uvField.onValid( onNodeValidElement ).onConnect( () => {
+		uvField.onValid( onValidNode ).onConnect( () => {
 
 			const node = this.value;
 

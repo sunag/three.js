@@ -7,7 +7,9 @@ export class MatcapUVEditor extends BaseNode {
 
 		const node = new MatcapUVNode();
 
-		super( 'Matcap UV', 2, node, 200 );
+		super( 'Matcap UV', node, 200 );
+
+		this.setOutputLength( 2 );
 
 	}
 

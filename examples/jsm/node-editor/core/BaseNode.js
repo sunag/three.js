@@ -1,21 +1,9 @@
 import { Node, ButtonInput, TitleElement, ContextMenu } from '../../libs/flow.module.js';
-import { exportJSON } from '../NodeEditorUtils.js';
-
-export const onNodeValidElement = ( inputElement, outputElement ) => {
-
-	const outputObject = outputElement.getObject();
-
-	if ( ! outputObject || ! outputObject.isNode ) {
-
-		return false;
-
-	}
-
-};
+import { exportJSON, onValidNode, getColorFromValue, getTypeFromValue, getColorFromType } from '../NodeEditorUtils.js';
 
 export class BaseNode extends Node {
 
-	constructor( name, outputLength, value = null, width = 300 ) {
+	constructor( name, value = null, width = 300 ) {
 
 		super();
 
@@ -27,10 +15,12 @@ export class BaseNode extends Node {
 
 		this.setWidth( width );
 
+		this.outputLength = 1;
+
 		const title = new TitleElement( name )
 			.setObjectCallback( getObjectCallback )
 			.setSerializable( false )
-			.setOutput( outputLength );
+			.setOutput( this.outputLength );
 
 		const contextButton = new ButtonInput().onClick( () => {
 
@@ -42,21 +32,21 @@ export class BaseNode extends Node {
 
 			context.removeEventListener( 'show', onAddButtons );
 
-			if ( this.value && typeof this.value.toJSON === 'function' ) {
-
-				this.context.add( new ButtonInput( 'Export' ).setIcon( 'ti ti-download' ).onClick( () => {
-
-					exportJSON( this.value.toJSON(), this.constructor.name );
-
-				} ) );
-
-			}
-
 			context.add( new ButtonInput( 'Remove' ).setIcon( 'ti ti-trash' ).onClick( () => {
 
 				this.dispose();
 
 			} ) );
+
+			if ( this.hasJSON() ) {
+
+				this.context.add( new ButtonInput( 'Export' ).setIcon( 'ti ti-download' ).onClick( () => {
+
+					exportJSON( this.exportJSON(), this.constructor.name );
+
+				} ) );
+
+			}
 
 		};
 
@@ -72,19 +62,37 @@ export class BaseNode extends Node {
 
 		this.add( title );
 
-		this.setOutputColor( this.getColorValueFromValue( value ) );
-
 		this.editor = null;
 
 		this.value = value;
 
-		this.onValidElement = onNodeValidElement;
+		this.onValidElement = onValidNode;
+
+		this.updateOutputConnection();
+
+	}
+
+	getOutputType() {
+
+		return getTypeFromValue( this.value ) ;
 
 	}
 
 	getColor() {
 
-		return ( this.getColorValueFromValue( this.value ) || '#777777' ) + 'BB';
+		return ( getColorFromType( this.getOutputType() ) || '#777777' ) + 'BB';
+
+	}
+
+	hasJSON() {
+
+		return this.value && typeof this.value.toJSON === 'function';
+
+	}
+
+	exportJSON() {
+
+		return this.value.toJSON();
 
 	}
 
@@ -112,27 +120,6 @@ export class BaseNode extends Node {
 
 	}
 
-	getColorValueFromValue( value ) {
-
-		if ( ! value ) return;
-
-		if ( value.isMaterial === true ) {
-
-			//return 'forestgreen';
-			return '#228b22';
-
-		} else if ( value.isObject3D === true ) {
-
-			return '#ffa500';
-
-		} else if ( value.isDataFile === true ) {
-
-			return '#00ffff';
-
-		}
-
-	}
-
 	add( element ) {
 
 		element.onValid( ( source, target ) => this.onValidElement( source, target ) );
@@ -152,6 +139,16 @@ export class BaseNode extends Node {
 	getName() {
 
 		return this.title.getTitle();
+
+	}
+
+	setOutputLength( value ) {
+
+		this.outputLength = value;
+
+		this.updateOutputConnection();
+
+		return;
 
 	}
 
@@ -177,19 +174,11 @@ export class BaseNode extends Node {
 
 	}
 
-	setOutputLength( length ) {
+	updateOutputConnection() {
 
-		this.title.setOutput( length );
+		this.title.setOutputColor( getColorFromValue( this.value ) );
 
-		return this;
-
-	}
-
-	setOutputColor( color ) {
-
-		this.title.setOutputColor( color );
-
-		return this;
+		this.title.setOutput( this.value ? this.outputLength : 0 );
 
 	}
 

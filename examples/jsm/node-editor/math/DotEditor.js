@@ -10,7 +10,7 @@ export class DotEditor extends BaseNode {
 
 		const node = new MathNode( MathNode.DOT, NULL_VALUE, NULL_VALUE );
 
-		super( 'Dot Product', 1, node, 175 );
+		super( 'Dot Product', node, 175 );
 
 		const aElement = new LabelElement( 'A' ).setInput( 3 );
 		const bElement = new LabelElement( 'B' ).setInput( 3 );

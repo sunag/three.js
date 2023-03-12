@@ -8,7 +8,9 @@ export class UVEditor extends BaseNode {
 
 		const node = new UVNode();
 
-		super( 'UV', 2, node, 200 );
+		super( 'UV', node, 200 );
+
+		this.setOutputLength( 2 );
 
 		const optionsField = new SelectInput( [ '1', '2' ], 0 ).onChange( () => {
 

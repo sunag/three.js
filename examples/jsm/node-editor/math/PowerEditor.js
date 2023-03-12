@@ -9,7 +9,7 @@ export class PowerEditor extends BaseNode {
 		const NULL_VALUE = new UniformNode( 0 );
 		const node = new MathNode( MathNode.POW, NULL_VALUE, NULL_VALUE );
 
-		super( 'Power', 1, node, 175 );
+		super( 'Power', node, 175 );
 
 		const aElement = new LabelElement( 'A' ).setInput( 1 );
 		const bElement = new LabelElement( 'B' ).setInput( 1 );

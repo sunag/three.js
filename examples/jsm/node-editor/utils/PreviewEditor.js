@@ -2,10 +2,8 @@ import { OrbitControls } from '../../controls/OrbitControls.js';
 import { ViewHelper } from '../../helpers/ViewHelper.js';
 import { Element, LabelElement, SelectInput } from '../../libs/flow.module.js';
 import { BaseNode } from '../core/BaseNode.js';
-import { MeshBasicNodeMaterial, ConstNode } from 'three/nodes';
+import { MeshBasicNodeMaterial, float } from 'three/nodes';
 import { WebGLRenderer, PerspectiveCamera, Scene, Mesh, DoubleSide, SphereGeometry, BoxGeometry, PlaneGeometry, TorusKnotGeometry } from 'three';
-
-const nullValue = new ConstNode( 0 );
 
 const sceneDict = {};
 
@@ -55,10 +53,10 @@ export class PreviewEditor extends BaseNode {
 		const width = 300;
 		const height = 300;
 
-		super( 'Preview', 0, null, height );
+		super( 'Preview', null, height );
 
 		const material = new MeshBasicNodeMaterial();
-		material.colorNode = nullValue;
+		material.colorNode = float();
 		material.side = DoubleSide;
 		material.transparent = true;
 
@@ -78,7 +76,7 @@ export class PreviewEditor extends BaseNode {
 
 		const inputElement = new LabelElement( 'Input' ).setInput( 4 ).onConnect( () => {
 
-			material.colorNode = inputElement.getLinkedObject() || nullValue;
+			material.colorNode = inputElement.getLinkedObject() || float();
 			material.dispose();
 
 		}, true );

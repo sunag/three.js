@@ -10,7 +10,7 @@ export class LimiterEditor extends BaseNode {
 
 		const node = new MathNode( MathNode.MIN, NULL_VALUE, NULL_VALUE );
 
-		super( 'Limiter', 1, node, 175 );
+		super( 'Limiter', node, 175 );
 
 		const methodInput = new SelectInput( [
 			{ name: 'Min', value: MathNode.MIN },

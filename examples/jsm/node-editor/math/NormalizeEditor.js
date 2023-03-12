@@ -11,7 +11,9 @@ export class NormalizeEditor extends BaseNode {
 
 		const node = new MathNode( MathNode.NORMALIZE, DEFAULT_VALUE );
 
-		super( 'Normalize', 3, node, 175 );
+		super( 'Normalize', node, 175 );
+
+		this.setOutputLength( 3 );
 
 		const input = new LabelElement( 'A' ).setInput( 3 );
 

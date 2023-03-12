@@ -9,6 +9,7 @@ class NodeObjectLoader extends ObjectLoader {
 		super( manager );
 
 		this._nodesJSON = null;
+		this._nodes = null;
 
 	}
 
@@ -18,7 +19,8 @@ class NodeObjectLoader extends ObjectLoader {
 
 		const data = super.parse( json, onLoad );
 
-		this._nodesJSON = null; // dispose
+		this._nodesJSON = null;
+		this._nodes = null;
 
 		return data;
 
@@ -45,11 +47,11 @@ class NodeObjectLoader extends ObjectLoader {
 
 		if ( json !== undefined ) {
 
-			const nodes = this.parseNodes( this._nodesJSON, textures );
+			this._nodes = this._nodes || this.parseNodes( this._nodesJSON, textures );
 
 			const loader = new NodeMaterialLoader();
 			loader.setTextures( textures );
-			loader.setNodes( nodes );
+			loader.setNodes( this._nodes );
 
 			for ( let i = 0, l = json.length; i < l; i ++ ) {
 
@@ -64,7 +66,67 @@ class NodeObjectLoader extends ObjectLoader {
 		return materials;
 
 	}
+/*
+	parseObject( data, geometries, materials, textures, animations ) {
 
+		let object = null;
+
+		if ( data.type === 'ScriptableObject' ) {
+
+			object = new ScriptableObject();
+
+			this._nodes = this._nodes || this.parseNodes( this._nodesJSON, textures );
+
+			for ( const uuid of data.codeNodes ) {
+
+				object.codeNodes.push( this._nodes[ uuid ] );
+
+			}
+
+			//
+
+			object.uuid = data.uuid;
+
+			if ( data.name !== undefined ) object.name = data.name;
+
+			if ( data.matrix !== undefined ) {
+
+				object.matrix.fromArray( data.matrix );
+
+				if ( data.matrixAutoUpdate !== undefined ) object.matrixAutoUpdate = data.matrixAutoUpdate;
+				if ( object.matrixAutoUpdate ) object.matrix.decompose( object.position, object.quaternion, object.scale );
+
+			} else {
+
+				if ( data.position !== undefined ) object.position.fromArray( data.position );
+				if ( data.rotation !== undefined ) object.rotation.fromArray( data.rotation );
+				if ( data.quaternion !== undefined ) object.quaternion.fromArray( data.quaternion );
+				if ( data.scale !== undefined ) object.scale.fromArray( data.scale );
+
+			}
+
+			if ( data.children !== undefined ) {
+
+				const children = data.children;
+
+				for ( let i = 0; i < children.length; i ++ ) {
+
+					object.add( this.parseObject( children[ i ], geometries, materials, textures, animations ) );
+
+				}
+
+			}
+
+		} else {
+
+			object = super.parseObject( data, geometries, materials, textures, animations );
+
+		}
+
+		return object;
+
+	}
+*/
 }
 
 export default NodeObjectLoader;

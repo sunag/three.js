@@ -10,7 +10,7 @@ export class OperatorEditor extends BaseNode {
 
 		const node = new OperatorNode( '+', NULL_VALUE, NULL_VALUE );
 
-		super( 'Operator', 1, node, 150 );
+		super( 'Operator', node, 150 );
 
 		const opInput = new SelectInput( [
 			{ name: 'Addition ( + )', value: '+' },

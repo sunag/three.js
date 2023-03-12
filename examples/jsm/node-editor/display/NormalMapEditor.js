@@ -11,8 +11,10 @@ export class NormalMapEditor extends BaseNode {
 
 		const node = new NormalMapNode( nullValue );
 
-		super( 'Normal Map', 3, node, 175 );
+		super( 'Normal Map', node, 175 );
 
+		this.setOutputLength( 3 );
+		
 		const source = new LabelElement( 'Source' ).setInput( 3 ).onConnect( () => {
 
 			node.node = source.getLinkedObject() || nullValue;

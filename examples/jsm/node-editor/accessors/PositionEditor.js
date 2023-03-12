@@ -8,7 +8,9 @@ export class PositionEditor extends BaseNode {
 
 		const node = new PositionNode();
 
-		super( 'Position', 3, node, 200 );
+		super( 'Position', node, 200 );
+
+		this.setOutputLength( 3 );
 
 		const optionsField = new SelectInput( [
 			{ name: 'Local', value: PositionNode.LOCAL },

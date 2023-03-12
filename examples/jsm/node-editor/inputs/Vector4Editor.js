@@ -9,7 +9,9 @@ export class Vector4Editor extends BaseNode {
 
 		const node = new UniformNode( new Vector4() );
 
-		super( 'Vector 4', 4, node, 350 );
+		super( 'Vector 4', node, 350 );
+
+		this.setOutputLength( 4 );
 
 		const onUpdate = () => {
 

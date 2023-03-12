@@ -10,7 +10,7 @@ export class InvertEditor extends BaseNode {
 
 		const node = new MathNode( MathNode.INVERT, DEFAULT_VALUE );
 
-		super( 'Invert / Negate', 1, node, 175 );
+		super( 'Invert / Negate', node, 175 );
 
 		const optionsField = new SelectInput( [
 			{ name: 'Invert ( 1 - Source )', value: MathNode.INVERT },

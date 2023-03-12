@@ -10,7 +10,7 @@ export class OscillatorEditor extends BaseNode {
 
 		const node = new OscNode( OscNode.SINE, NULL_VALUE );
 
-		super( 'Oscillator', 1, node, 175 );
+		super( 'Oscillator', node, 175 );
 
 		const methodInput = new SelectInput( [
 			{ name: 'Sine', value: OscNode.SINE },

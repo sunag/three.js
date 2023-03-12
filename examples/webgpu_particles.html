@@ -93,6 +93,20 @@
 				smokeNodeMaterial.scaleNode = scaleRange.mul( lifeTime.max( 0.3 ) );
 				smokeNodeMaterial.depthWrite = false;
 				smokeNodeMaterial.transparent = true;
+				smokeNodeMaterial.colorNode = new ShaderNode( ( stack ) => {
+
+					const i = temp( 1 );
+					const length = temp( 50 );
+
+					stack.while( i.lessThan( length ), ( stack ) => {
+
+
+					
+						stack.assign( i.add( 1 ) );
+
+					} );
+
+				} );
 
 				const smokeInstancedSprite = new THREE.Mesh( new THREE.PlaneGeometry( 1, 1 ), smokeNodeMaterial );
 				smokeInstancedSprite.scale.setScalar( 400 );

@@ -9,8 +9,10 @@ export class ColorEditor extends BaseNode {
 
 		const node = new UniformNode( new Color() );
 
-		super( 'Color', 3, node );
+		super( 'Color', node );
 
+		this.setOutputLength( 3 );
+		
 		const updateFields = ( editing ) => {
 
 			const value = node.value;

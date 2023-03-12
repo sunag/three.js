@@ -26,7 +26,7 @@ export function getCacheKey( object )  {
 
 }
 
-export function* getNodeChildren( node ) {
+export function* getNodeChildren( node, toJSON = false ) {
 
 	for ( const property in node ) {
 
@@ -38,7 +38,7 @@ export function* getNodeChildren( node ) {
 
 				const child = object[ i ];
 
-				if ( child && child.isNode === true ) {
+				if ( child && ( child.isNode === true || toJSON && typeof child.toJSON === 'function' ) ) {
 
 					yield { property, index: i, childNode: child };
 
@@ -56,7 +56,7 @@ export function* getNodeChildren( node ) {
 
 				const child = object[ subProperty ];
 
-				if ( child && child.isNode === true ) {
+				if ( child && ( child.isNode === true || toJSON && typeof child.toJSON === 'function' ) ) {
 
 					yield { property, index: subProperty, childNode: child };
 
@@ -72,37 +72,49 @@ export function* getNodeChildren( node ) {
 
 export function getValueType( value ) {
 
-	if ( typeof value === 'number' ) {
+	if ( ! value ) return null;
+
+	const typeOf = typeof value;
+
+	if ( typeOf === 'number' ) {
 
 		return 'float';
 
-	} else if ( typeof value === 'boolean' ) {
+	} else if ( typeOf === 'boolean' ) {
 
 		return 'bool';
 
-	} else if ( value && value.isVector2 === true ) {
+	} else if ( typeOf === 'string' ) {
+
+		return 'string';
+
+	} else if ( value.isVector2 === true ) {
 
 		return 'vec2';
 
-	} else if ( value && value.isVector3 === true ) {
+	} else if ( value.isVector3 === true ) {
 
 		return 'vec3';
 
-	} else if ( value && value.isVector4 === true ) {
+	} else if ( value.isVector4 === true ) {
 
 		return 'vec4';
 
-	} else if ( value && value.isMatrix3 === true ) {
+	} else if ( value.isMatrix3 === true ) {
 
 		return 'mat3';
 
-	} else if ( value && value.isMatrix4 === true ) {
+	} else if ( value.isMatrix4 === true ) {
 
 		return 'mat4';
 
-	} else if ( value && value.isColor === true ) {
+	} else if ( value.isColor === true ) {
 
 		return 'color';
+
+	} else if ( value instanceof ArrayBuffer ) {
+
+		return 'ArrayBuffer';
 
 	}
 
@@ -151,3 +163,28 @@ export function getValueFromType( type, ...params ) {
 	return null;
 
 }
+
+export function arrayBufferToBase64( arrayBuffer ) {
+
+	let chars = '';
+
+	const array = new Uint8Array( arrayBuffer );
+
+	for( let i = 0; i < array.length; i ++ ) {
+
+		chars += String.fromCharCode( array[ i ] );
+
+	}
+
+	return btoa( chars );
+
+}
+
+export function base64ToArrayBuffer( base64 ) {
+
+	return Uint8Array.from( atob( base64 ), c => c.charCodeAt( 0 ) ).buffer;
+
+}
+
+
+

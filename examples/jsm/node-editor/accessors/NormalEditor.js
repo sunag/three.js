@@ -8,7 +8,9 @@ export class NormalEditor extends BaseNode {
 
 		const node = new NormalNode();
 
-		super( 'Normal', 3, node, 200 );
+		super( 'Normal', node, 200 );
+
+		this.setOutputLength( 3 );
 
 		const optionsField = new SelectInput( [
 			{ name: 'Local', value: NormalNode.LOCAL },

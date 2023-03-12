@@ -9,7 +9,9 @@ export class Vector3Editor extends BaseNode {
 
 		const node = new UniformNode( new Vector3() );
 
-		super( 'Vector 3', 3, node, 325 );
+		super( 'Vector 3', node, 325 );
+
+		this.setOutputLength( 3 );
 
 		const onUpdate = () => {
 

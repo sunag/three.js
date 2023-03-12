@@ -12,7 +12,7 @@ export class Object3DEditor extends BaseNode {
 
 		}
 
-		super( name, 1, object3d );
+		super( name, object3d );
 
 		this.defaultPosition = new Vector3();
 		this.defaultRotation = new Vector3();

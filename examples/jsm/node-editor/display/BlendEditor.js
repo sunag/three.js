@@ -11,7 +11,9 @@ export class BlendEditor extends BaseNode {
 
 		const node = new MathNode( MathNode.MIX, NULL_VALUE, NULL_VALUE, ONE_VALUE );
 
-		super( 'Blend', 3, node, 200 );
+		super( 'Blend', node, 200 );
+
+		this.setOutputLength( 3 );
 
 		const aElement = new LabelElement( 'Base' ).setInput( 3 );
 		const bElement = new LabelElement( 'Blend' ).setInput( 3 );

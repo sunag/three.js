@@ -11,7 +11,7 @@ export class AngleEditor extends BaseNode {
 
 		const node = new MathNode( MathNode.SIN, DEFAULT_VALUE );
 
-		super( 'Angle', 1, node, 175 );
+		super( 'Angle', node, 175 );
 
 		const optionsField = new SelectInput( [
 			{ name: 'Degrees to Radians', value: MathNode.RADIANS },

@@ -1,0 +1,43 @@
+const { GLTFLoader } = await import( 'three/addons/loaders/GLTFLoader.js' );
+
+const loader = new GLTFLoader().setPath( 'models/gltf/DamagedHelmet/glTF/' );
+const gltf = await loader.loadAsync( 'DamagedHelmet.gltf' );
+
+const scene = gltf.scene;
+
+addOutput( 'Scene', scene );
+
+--
+
+layout = {
+    name: "Get Material",
+    width: 500,
+    elements: [
+        { name: 'Name', inputType: 'string' },
+        { name: 'Target', type: 'Object3D' }
+    ],
+    output: { type: 'Material' }
+}
+
+--
+
+layout = {
+    name: "Get Material",
+    width: 500,
+    elements: [
+        { name: 'A', inputType: 'any' },
+		{ name: 'B', inputType: 'any' }
+    ],
+    outputType: 'any'
+}
+
+const { add, float } = Nodes;
+
+output = () => {
+
+	const nodeA = parameters[ 'A' ] || float();
+	const nodeB = parameters[ 'B' ] || float();
+
+	return add( nodeA, nodeB );
+
+}

@@ -4,7 +4,7 @@ export class MaterialEditor extends BaseNode {
 
 	constructor( name, material, width = 300 ) {
 
-		super( name, 1, material, width );
+		super( name, material, width );
 
 	}
 

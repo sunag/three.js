@@ -9,7 +9,7 @@ export { default as ArrayUniformNode /* @TODO: arrayUniform */ } from './core/Ar
 export { default as AttributeNode, attribute } from './core/AttributeNode.js';
 export { default as BypassNode, bypass } from './core/BypassNode.js';
 export { default as CacheNode, cache } from './core/CacheNode.js';
-export { default as CodeNode, code } from './core/CodeNode.js';
+export { default as CodeNode, code, js } from './core/CodeNode.js';
 export { default as ConstNode } from './core/ConstNode.js';
 export { default as ContextNode, context } from './core/ContextNode.js';
 export { default as ExpressionNode, expression } from './core/ExpressionNode.js';
@@ -26,6 +26,7 @@ export { default as NodeFrame } from './core/NodeFrame.js';
 export { default as NodeFunctionInput } from './core/NodeFunctionInput.js';
 export { default as NodeKeywords } from './core/NodeKeywords.js';
 export { default as NodeUniform } from './core/NodeUniform.js';
+export * from './core/NodeUtils.js';
 export { default as NodeVar } from './core/NodeVar.js';
 export { default as NodeVarying } from './core/NodeVarying.js';
 export { default as PropertyNode, property, diffuseColor, roughness, metalness, specularColor, shininess } from './core/PropertyNode.js';
@@ -94,6 +95,10 @@ export { default as NormalMapNode, normalMap, TBNViewMatrix } from './display/No
 export { default as PosterizeNode, posterize } from './display/PosterizeNode.js';
 export { default as ToneMappingNode, toneMapping } from './display/ToneMappingNode.js';
 export { default as ViewportNode, viewportCoordinate, viewportResolution, viewportTopLeft, viewportBottomLeft, viewportTopRight, viewportBottomRight } from './display/ViewportNode.js';
+
+// scriptable
+export { default as ScriptableNode, scriptable } from './scriptable/ScriptableNode.js';
+export { default as ScriptableValueNode, scriptableValue } from './scriptable/ScriptableValueNode.js';
 
 // fog
 export { default as FogNode, fog } from './fog/FogNode.js';

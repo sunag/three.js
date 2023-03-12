@@ -8,7 +8,7 @@ export class FloatEditor extends BaseNode {
 
 		const node = new UniformNode( 0 );
 
-		super( 'Float', 1, node, 150 );
+		super( 'Float', node, 150 );
 
 		const field = new NumberInput().setTagColor( 'red' ).onChange( () => {
 

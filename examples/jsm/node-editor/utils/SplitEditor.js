@@ -10,7 +10,7 @@ export class SplitEditor extends BaseNode {
 
 		const node = new SplitNode( NULL_VALUE, 'x' );
 
-		super( 'Split', 1, node, 175 );
+		super( 'Split', node, 175 );
 
 		const componentsField = new SelectInput( [
 			{ name: 'X | R', value: 'x' },

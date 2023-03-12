@@ -8,7 +8,7 @@ export class SliderEditor extends BaseNode {
 
 		const node = new UniformNode( 0 );
 
-		super( 'Slider', 1, node );
+		super( 'Slider', node );
 
 		this.collapse = true;
 

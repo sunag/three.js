@@ -1,14 +1,16 @@
 import { NodeUpdateType } from './constants.js';
 import { getNodeChildren, getCacheKey } from './NodeUtils.js';
-import { MathUtils } from 'three';
+import { MathUtils, EventDispatcher } from 'three';
 
 const NodeClasses = new Map();
 
 let _nodeId = 0;
 
-class Node {
+class Node extends EventDispatcher {
 
 	constructor( nodeType = null ) {
+
+		super();
 
 		this.isNode = true;
 
@@ -239,9 +241,15 @@ class Node {
 
 	}
 
+	getSerializeChildren() {
+
+		return getNodeChildren( this );
+
+	}
+
 	serialize( json ) {
 
-		const nodeChildren = getNodeChildren( this );
+		const nodeChildren = this.getSerializeChildren();
 
 		const inputNodes = {};
 

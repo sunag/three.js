@@ -11,7 +11,7 @@ export class TrigonometryEditor extends BaseNode {
 
 		const node = new MathNode( MathNode.SIN, DEFAULT_VALUE );
 
-		super( 'Trigonometry', 1, node, 175 );
+		super( 'Trigonometry', node, 175 );
 
 		const optionsField = new SelectInput( [
 			{ name: 'Sin', value: MathNode.SIN },

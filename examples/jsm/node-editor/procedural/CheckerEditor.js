@@ -10,7 +10,7 @@ export class CheckerEditor extends BaseNode {
 
 		const node = new CheckerNode( defaultUV );
 
-		super( 'Checker', 1, node, 200 );
+		super( 'Checker', node, 200 );
 
 		const field = new LabelElement( 'UV' ).setInput( 2 );
 

@@ -1,4 +1,6 @@
-import { Styles, Canvas, CircleMenu, ButtonInput, StringInput, ContextMenu, Tips, Search, Loader, Node, TreeViewNode, TreeViewInput, Element } from '../libs/flow.module.js';
+import { Canvas, CircleMenu, ButtonInput, StringInput, ContextMenu, Tips, Search, Loader, Node, TreeViewNode, TreeViewInput, Element } from '../libs/flow.module.js';
+import { NodePrototypeEditor } from './core/NodePrototypeEditor.js';
+import { ScriptableEditor } from './core/ScriptableEditor.js';
 import { BasicMaterialEditor } from './materials/BasicMaterialEditor.js';
 import { StandardMaterialEditor } from './materials/StandardMaterialEditor.js';
 import { PointsMaterialEditor } from './materials/PointsMaterialEditor.js';
@@ -32,11 +34,11 @@ import { CheckerEditor } from './procedural/CheckerEditor.js';
 import { PointsEditor } from './scene/PointsEditor.js';
 import { MeshEditor } from './scene/MeshEditor.js';
 import { FileEditor } from './core/FileEditor.js';
-import { FileURLEditor } from './core/FileURLEditor.js';
+import { StringEditor } from './core/StringEditor.js';
 import { exportJSON } from './NodeEditorUtils.js';
 import { EventDispatcher } from 'three';
 
-Styles.icons.unlink = 'ti ti-unlink';
+Element.icons.unlink = 'ti ti-unlink';
 
 export const NodeList = [
 	{
@@ -80,9 +82,27 @@ export const NodeList = [
 				nodeClass: TextureEditor
 			},
 			{
-				name: 'File URL',
+				name: 'String',
 				icon: 'cloud-download',
-				nodeClass: FileURLEditor
+				nodeClass: StringEditor
+			}
+		]
+	},
+	{
+		name: 'Code',
+		icon: 'code',
+		children: [
+			{
+				name: 'Scriptable',
+				icon: 'variable',
+				tags: 'number',
+				nodeClass: ScriptableEditor
+			},
+			{
+				name: 'Node Prototype',
+				icon: 'components',
+				tags: 'number',
+				nodeClass: NodePrototypeEditor
 			}
 		]
 	},
@@ -290,12 +310,17 @@ export const ClassLib = {
 	SplitEditor,
 	JoinEditor,
 	CheckerEditor,
-	FileURLEditor
+	StringEditor,
+	FileURLEditor: StringEditor, // LEGACY
+	FileEditor,
+	ScriptableEditor,
+	PreviewEditor,
+	NodePrototypeEditor
 };
 
 export class NodeEditor extends EventDispatcher {
 
-	constructor( scene = null ) {
+	constructor( scene = null, renderer = null ) {
 
 		super();
 
@@ -305,7 +330,10 @@ export class NodeEditor extends EventDispatcher {
 		domElement.append( canvas.dom );
 
 		this.scene = scene;
+		this.renderer = renderer;
 
+		this.nodeClasses = [];
+	
 		this.canvas = canvas;
 		this.domElement = domElement;
 
@@ -454,14 +482,23 @@ export class NodeEditor extends EventDispatcher {
 					const { relativeClientX, relativeClientY } = canvas;
 
 					const file = item.getAsFile();
-					const fileEditor = new FileEditor( file );
+					const reader = new FileReader();
 
-					fileEditor.setPosition(
-						relativeClientX - ( fileEditor.getWidth() / 2 ),
-						relativeClientY - 20
-					);
+					reader.onload = () => {
 
-					this.add( fileEditor );
+						const fileEditor = new FileEditor( reader.result, file.name );
+
+						fileEditor.setPosition(
+							relativeClientX - ( fileEditor.getWidth() / 2 ),
+							relativeClientY - 20
+						);
+	
+						this.add( fileEditor );
+
+					};
+
+  					reader.readAsArrayBuffer( file );
+					
 
 				}
 
@@ -618,6 +655,14 @@ export class NodeEditor extends EventDispatcher {
 
 	}
 
+	addClass( nodeData ) {
+
+		this.nodeClasses.push( nodeData );
+
+		NodeList[ nodeData.name ] = nodeData.nodeClass;
+
+	}
+
 	_initSearch() {
 
 		const traverseNodeEditors = ( item ) => {
@@ -665,9 +710,15 @@ export class NodeEditor extends EventDispatcher {
 		search.onFilter( () => {
 
 			search.clear();
-
+console.log("Filter")
 			for ( const item of NodeList ) {
 
+				traverseNodeEditors( item );
+
+			}
+
+			for ( const item of this.nodeClasses ) {
+console.log( item );
 				traverseNodeEditors( item );
 
 			}
@@ -814,7 +865,7 @@ export class NodeEditor extends EventDispatcher {
 		const focus = () => requestAnimationFrame( () => search.inputDOM.focus() );
 		const reset = () => {
 
-			search.setValue( '' );
+			search.setValue( '', false );
 
 			for ( const button of nodeButtons ) {
 
