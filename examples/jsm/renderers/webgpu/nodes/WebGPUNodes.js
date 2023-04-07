@@ -88,7 +88,6 @@ class WebGPUNodes {
 
 	}
 
-
 	getCacheKey( scene, lightsNode ) {
 
 		const environmentNode = this.getEnvironmentNode( scene );

@@ -6,11 +6,12 @@ import { addNodeElement, nodeProxy, float, vec3 } from '../shadernode/ShaderNode
 
 class LightingContextNode extends ContextNode {
 
-	constructor( node, lightingModelNode = null ) {
+	constructor( node, lightingModelNode = null, refractionNode = null ) {
 
 		super( node );
 
 		this.lightingModelNode = lightingModelNode;
+		this.refractionNode = refractionNode;
 
 	}
 
@@ -22,7 +23,7 @@ class LightingContextNode extends ContextNode {
 
 	construct( builder ) {
 
-		const { lightingModelNode } = this;
+		const { lightingModelNode, refractionNode } = this;
 
 		const context = this.context = {}; // reset context
 		const properties = builder.getNodeProperties( this );
@@ -30,8 +31,18 @@ class LightingContextNode extends ContextNode {
 		const directDiffuse = temp( vec3() ),
 			directSpecular = temp( vec3() ),
 			indirectDiffuse = temp( vec3() ),
-			indirectSpecular = temp( vec3() ),
-			total = add( directDiffuse, directSpecular, indirectDiffuse, indirectSpecular );
+			indirectSpecular = temp( vec3() );
+
+		let totalDiffuse = add( directDiffuse, indirectDiffuse );
+
+		if ( refractionNode !== null ) {
+
+			totalDiffuse = refractionNode.mixRefraction( totalDiffuse );
+
+		}
+
+		const totalSpecular = add( directSpecular, indirectSpecular );
+		const total = add( totalDiffuse, totalSpecular );
 
 		const reflectedLight = {
 			directDiffuse,

@@ -14,8 +14,9 @@ import WebGPUTextures from './WebGPUTextures.js';
 import WebGPUBackground from './WebGPUBackground.js';
 import WebGPUNodes from './nodes/WebGPUNodes.js';
 import WebGPUUtils from './WebGPUUtils.js';
+import WebGPUTextureRenderer from './WebGPUTextureRenderer.js';
 
-import { Frustum, Matrix4, Vector3, Color, LinearSRGBColorSpace, NoToneMapping, DepthFormat } from 'three';
+import { Frustum, Matrix4, Vector3, Color, LinearSRGBColorSpace, NoToneMapping, DepthFormat, LinearMipmapLinearFilter } from 'three';
 
 console.info( 'THREE.WebGPURenderer: Modified Matrix4.makePerspective() and Matrix4.makeOrtographic() to work with WebGPU, see https://github.com/mrdoob/three.js/issues/20276.' );
 
@@ -135,6 +136,7 @@ class WebGPURenderer {
 		this._renderStates = null;
 		this._textures = null;
 		this._background = null;
+		this._rtt = null;
 
 		this._animation = new WebGPUAnimation();
 
@@ -150,6 +152,8 @@ class WebGPURenderer {
 		this._clearStencil = 0;
 
 		this._renderTarget = null;
+
+		this._cmdEncoder = null;
 
 		this._initialized = false;
 
@@ -203,15 +207,11 @@ class WebGPURenderer {
 
 		const context = ( parameters.context !== undefined ) ? parameters.context : this.domElement.getContext( 'webgpu' );
 
-		context.configure( {
-			device,
-			format: GPUTextureFormat.BGRA8Unorm, // this is the only valid context format right now (r121)
-			alphaMode: 'premultiplied'
-		} );
-
 		this._adapter = adapter;
 		this._device = device;
 		this._context = context;
+
+		this._configureContext();
 
 		this._info = new WebGPUInfo();
 		this._properties = new WebGPUProperties();
@@ -227,8 +227,11 @@ class WebGPURenderer {
 		this._renderLists = new WebGPURenderLists();
 		this._renderStates = new WebGPURenderStates();
 		this._background = new WebGPUBackground( this, this._properties );
+		this._rtt = new WebGPUTextureRenderer( this );
 
 		//
+
+		this._rtt.setSize( this._width * this._pixelRatio, this._height * this._pixelRatio );
 
 		this._setupColorBuffer();
 		this._setupDepthBuffer();
@@ -342,6 +345,10 @@ class WebGPURenderer {
 		const cmdEncoder = device.createCommandEncoder( {} );
 		const passEncoder = cmdEncoder.beginRenderPass( renderPassDescriptor );
 
+		this._cmdEncoder = cmdEncoder;
+		this._passEncoder = passEncoder;
+		this._renderPassDescriptor = renderPassDescriptor;
+
 		// global rasterization settings for all renderable objects
 
 		const vp = this._viewport;
@@ -380,7 +387,9 @@ class WebGPURenderer {
 
 		// finish render pass
 
-		passEncoder.end();
+		this._cmdEncoder = null;
+
+		this._passEncoder.end();
 		device.queue.submit( [ cmdEncoder.finish() ] );
 
 	}
@@ -434,7 +443,7 @@ class WebGPURenderer {
 		this.setSize( this._width, this._height, false );
 
 	}
-
+/*
 	setDrawingBufferSize( width, height, pixelRatio ) {
 
 		this._width = width;
@@ -450,7 +459,7 @@ class WebGPURenderer {
 		this._setupDepthBuffer();
 
 	}
-
+*/
 	setSize( width, height, updateStyle = true ) {
 
 		this._width = width;
@@ -465,6 +474,8 @@ class WebGPURenderer {
 			this.domElement.style.height = height + 'px';
 
 		}
+
+		if ( this._rtt ) this._rtt.setSize( width * this._pixelRatio, height * this._pixelRatio );
 
 		this._configureContext();
 		this._setupColorBuffer();
@@ -513,6 +524,55 @@ class WebGPURenderer {
 			};
 
 		}
+
+	}
+
+	getViewportTexture() {
+
+		return this._rtt;
+		//return new WebGPUTextureRenderer( this );
+		//return this._rtt.getTexture();
+
+	}
+
+	updateViewportTexture( rtt ) {
+
+		rtt.setSize( this._width * this._pixelRatio, this._height * this._pixelRatio );
+
+		const renderTarget = rtt.renderTarget;
+
+		renderTarget.texture.generateMipmaps = true;
+		renderTarget.texture.minFilter = LinearMipmapLinearFilter;
+		renderTarget.texture.magFilter = LinearMipmapLinearFilter;		
+
+		this._textures.initRenderTarget( renderTarget, GPUTextureFormat.BGRA8Unorm );
+
+		const sourceGPU = this._context.getCurrentTexture();
+		const destinationGPU = this._textures.getTextureGPU( renderTarget.texture );
+
+		//this._textures._uploadTexture( renderTarget.texture, GPUTextureFormat.BGRA8Unorm  );
+
+		this._passEncoder.end();
+		this._passEncoder = null;
+
+		this._cmdEncoder.copyTextureToTexture(
+			{
+			  texture: sourceGPU
+			},
+			{
+			  texture: destinationGPU
+			},
+			[
+				this._width * this._pixelRatio,
+				this._height * this._pixelRatio
+			]
+		  );
+
+		  this._renderPassDescriptor.colorAttachments[ 0 ].loadOp = 'load';
+		  this._renderPassDescriptor.depthStencilAttachment.depthLoadOp = 'load';
+		  this._renderPassDescriptor.depthStencilAttachment.stencilLoadOp = 'load';
+
+		this._passEncoder = this._cmdEncoder.beginRenderPass( this._renderPassDescriptor );
 
 	}
 
@@ -813,11 +873,11 @@ class WebGPURenderer {
 						const vp = camera2.viewport;
 						const minDepth = ( vp.minDepth === undefined ) ? 0 : vp.minDepth;
 						const maxDepth = ( vp.maxDepth === undefined ) ? 1 : vp.maxDepth;
-
+/*
 						passEncoder.setViewport( vp.x, vp.y, vp.width, vp.height, minDepth, maxDepth );
 
 						this._renderObject( object, scene, camera2, geometry, material, group, lightsNode, passEncoder );
-
+*/
 					}
 
 				}
@@ -832,9 +892,11 @@ class WebGPURenderer {
 
 	}
 
-	_renderObject( object, scene, camera, geometry, material, group, lightsNode, passEncoder ) {
+	_renderObject( object, scene, camera, geometry, material, group, lightsNode ) {
 
 		const info = this._info;
+
+		//
 
 		material = scene.overrideMaterial !== null ? scene.overrideMaterial : material;
 
@@ -856,6 +918,10 @@ class WebGPURenderer {
 		this._nodes.update( renderObject );
 		this._geometries.update( renderObject );
 		this._bindings.update( renderObject );
+
+		// encoder
+
+		const passEncoder = this._passEncoder;
 
 		// pipeline
 
@@ -998,7 +1064,7 @@ class WebGPURenderer {
 				},
 				sampleCount: this._parameters.sampleCount,
 				format: GPUTextureFormat.BGRA8Unorm,
-				usage: GPUTextureUsage.RENDER_ATTACHMENT
+				usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
 			} );
 
 		}
@@ -1021,7 +1087,7 @@ class WebGPURenderer {
 				},
 				sampleCount: this._parameters.sampleCount,
 				format: GPUTextureFormat.Depth24PlusStencil8,
-				usage: GPUTextureUsage.RENDER_ATTACHMENT
+				usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
 			} );
 
 		}
@@ -1037,7 +1103,7 @@ class WebGPURenderer {
 			this._context.configure( {
 				device: device,
 				format: GPUTextureFormat.BGRA8Unorm,
-				usage: GPUTextureUsage.RENDER_ATTACHMENT,
+				usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC,
 				alphaMode: 'premultiplied'
 			} );
 
