@@ -31,6 +31,15 @@ class NodeMaterial extends ShaderMaterial {
 		this.normals = true;
 
 		this.lightsNode = null;
+		this.envNode = null;
+
+		this.colorNode = null;
+		this.normalNode = null;
+		this.opacityNode = null;
+		this.refractionNode = null;
+		this.alphaTestNode = null;
+
+		this.positionNode = null;
 
 	}
 
@@ -205,7 +214,11 @@ class NodeMaterial extends ShaderMaterial {
 
 		if ( lightsNode && lightsNode.hasLight !== false ) {
 
-			outgoingLightNode = lightsNode.lightingContext( lightingModelNode );
+			outgoingLightNode = lightsNode.lightingContext( lightingModelNode, this.refractionNode );
+
+		} else if ( this.refractionNode !== null ) {
+
+			outgoingLightNode = this.refractionNode.mixRefraction( outgoingLightNode );
 
 		}
 
@@ -247,7 +260,7 @@ class NodeMaterial extends ShaderMaterial {
 
 		const fogNode = builder.fogNode;
 
-		if ( fogNode ) outputNode = vec4( fogNode.mixAssign( outputNode.rgb ), outputNode.a );
+		if ( fogNode ) outputNode = vec4( fogNode.mixFog( outputNode.rgb ), outputNode.a );
 
 		return outputNode;
 

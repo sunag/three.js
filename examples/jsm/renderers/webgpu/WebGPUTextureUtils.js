@@ -68,10 +68,102 @@ var imgSampler : sampler;
 @group( 0 ) @binding( 1 )
 var img : texture_2d<f32>;
 
+// Mipped Bicubic Texture Filtering by N8
+// https://www.shadertoy.com/view/Dl2SDW
+
+fn w0( a : f32 ) -> f32 {
+
+	return ( 1.0 / 6.0 ) * ( a * ( a * ( - a + 3.0 ) - 3.0 ) + 1.0 );
+
+}
+
+fn w1( a : f32 ) -> f32 {
+
+	return ( 1.0 / 6.0 ) * ( a *  a * ( 3.0 * a - 6.0 ) + 4.0 );
+
+}
+
+fn w2( a : f32 ) -> f32 {
+
+	return ( 1.0 / 6.0 ) * ( a * ( a * ( - 3.0 * a + 3.0 ) + 3.0 ) + 1.0 );
+
+}
+
+fn w3( a : f32 ) -> f32 {
+
+	return ( 1.0 / 6.0 ) * ( a * a * a );
+
+}
+
+// g0 and g1 are the two amplitude functions
+fn g0( a : f32 ) -> f32 {
+
+	return w0( a ) + w1( a );
+
+}
+
+fn g1( a : f32 ) -> f32 {
+
+	return w2( a ) + w3( a );
+
+}
+
+// h0 and h1 are the two offset functions
+fn h0( a : f32 ) -> f32 {
+
+	return - 1.0 + w1( a ) / ( w0( a ) + w1( a ) );
+
+}
+
+fn h1( a : f32 ) -> f32 {
+
+	return 1.0 + w3( a ) / ( w2( a ) + w3( a ) );
+
+}
+
+fn bicubic( uv : vec2<f32>, texelSize : vec4<f32>, lod : f32 ) -> vec4<f32> {
+
+	var uv_scaled = uv * vec2(texelSize.zw) + vec2(0.5, 0.5);
+  
+	var iuv = floor(uv_scaled);
+	var fuv = fract(uv_scaled);
+  
+	var g0x = g0(fuv.x);
+	var g1x = g1(fuv.x);
+	var h0x = h0(fuv.x);
+	var h1x = h1(fuv.x);
+	var h0y = h0(fuv.y);
+	var h1y = h1(fuv.y);
+  
+	var p0 = (vec2(iuv.x + h0x, iuv.y + h0y) - vec2(0.5, 0.5)) * vec2(texelSize.xy);
+	var p1 = (vec2(iuv.x + h1x, iuv.y + h0y) - vec2(0.5, 0.5)) * vec2(texelSize.xy);
+	var p2 = (vec2(iuv.x + h0x, iuv.y + h1y) - vec2(0.5, 0.5)) * vec2(texelSize.xy);
+	var p3 = (vec2(iuv.x + h1x, iuv.y + h1y) - vec2(0.5, 0.5)) * vec2(texelSize.xy);
+  
+	return g0(fuv.y) * (g0x * textureSampleLevel(img, imgSampler, p0, (lod) ).rgba +
+						 g1x * textureSampleLevel(img, imgSampler, p1, (lod) ).rgba) +
+		   g1(fuv.y) * (g0x * textureSampleLevel(img, imgSampler, p2, (lod) ).rgba +
+						 g1x * textureSampleLevel(img, imgSampler, p3, (lod) ).rgba);
+
+  }
+
+fn textureBicubic( uv : vec2<f32>,  lod : f32 ) -> vec4<f32> {
+    let fLodSize = vec2<f32>( textureDimensions( img, i32( lod ) ) );
+    let cLodSize = vec2<f32>( textureDimensions( img, i32( lod + 1.0 ) ) );
+    let fLodSizeInv = vec2<f32>(1.0) / fLodSize;
+    let cLodSizeInv = vec2<f32>(1.0) / cLodSize;
+    let fSample = bicubic( uv, vec4( fLodSizeInv, fLodSize ), floor( lod ) );
+    let cSample = bicubic( uv, vec4( cLodSizeInv, cLodSize ), ceil( lod ) );
+    return mix( fSample, cSample, fract( lod ) );
+}
+
+//
+
 @fragment
 fn main( @location( 0 ) vTex : vec2<f32> ) -> @location( 0 ) vec4<f32> {
 
-	return textureSample( img, imgSampler, vTex );
+	return textureBicubic( vTex, 20.0 );
+	//return textureSample( img, imgSampler, vTex );
 
 }
 `;

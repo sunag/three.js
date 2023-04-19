@@ -227,7 +227,7 @@ class WebGPUTextures {
 
 	}
 
-	initRenderTarget( renderTarget ) {
+	initRenderTarget( renderTarget, format = null ) {
 
 		const properties = this.properties;
 		const renderTargetProperties = properties.get( renderTarget );
@@ -238,8 +238,11 @@ class WebGPUTextures {
 
 			const width = renderTarget.width;
 			const height = renderTarget.height;
-			const colorTextureFormat = this._getFormat( renderTarget.texture );
+
+			const colorTextureFormat = format || this._getFormat( renderTarget.texture );
 			const label = renderTarget.texture.name ? '_' + renderTarget.texture.name : '';
+			const needsMipmaps = this._needsMipmaps( renderTarget.texture );
+			const mipLevelCount = this._getMipLevelCount( renderTarget.texture, width, height, needsMipmaps );
 
 			const colorTextureGPU = device.createTexture( {
 				label: 'renderTarget' + label,
@@ -248,8 +251,9 @@ class WebGPUTextures {
 					height: height,
 					depthOrArrayLayers: 1
 				},
+				mipLevelCount: mipLevelCount,
 				format: colorTextureFormat,
-				usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+				usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
 			} );
 
 			this.info.memory.textures ++;
@@ -278,7 +282,7 @@ class WebGPUTextures {
 						depthOrArrayLayers: 1
 					},
 					format: depthTextureFormat,
-					usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
+					usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST
 				} );
 
 				this.info.memory.textures ++;
@@ -366,7 +370,7 @@ class WebGPUTextures {
 
 	}
 
-	_uploadTexture( texture ) {
+	_uploadTexture( texture, internalFormat = null ) {
 
 		let needsUpdate = false;
 
@@ -379,7 +383,7 @@ class WebGPUTextures {
 		const needsMipmaps = this._needsMipmaps( texture );
 		const dimension = this._getDimension( texture );
 		const mipLevelCount = this._getMipLevelCount( texture, width, height, needsMipmaps );
-		const format = this._getFormat( texture );
+		const format = internalFormat || this._getFormat( texture );
 
 		let usage = GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST;
 
@@ -435,7 +439,11 @@ class WebGPUTextures {
 
 			}
 
-		} else if ( texture.isDepthTexture !== true && image !== null ) {
+		} else if ( texture.isRenderTargetTexture ) {
+
+			if ( needsMipmaps === true ) this._generateMipmaps( textureGPU, textureGPUDescriptor );
+
+		} else if ( texture.isRenderTargetTexture !== true && texture.isDepthTexture !== true && image !== null ) {
 
 			this._copyImageToTexture( image, texture, textureGPU, textureGPUDescriptor, needsMipmaps );
 

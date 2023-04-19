@@ -14468,23 +14468,27 @@ function WebGLBackground( renderer, cubemaps, cubeuvmaps, state, objects, alpha,
 		}
 
 		const xr = renderer.xr;
-		const environmentBlendMode = xr.getEnvironmentBlendMode();
+		const session = xr.getSession();
 
-		switch ( environmentBlendMode ) {
+		if ( session !== null ) {
 
-			case 'opaque':
-				forceClear = true;
-				break;
+			switch ( session.environmentBlendMode ) {
 
-			case 'additive':
-				state.buffers.color.setClear( 0, 0, 0, 1, premultipliedAlpha );
-				forceClear = true;
-				break;
+				case 'additive':
 
-			case 'alpha-blend':
-				state.buffers.color.setClear( 0, 0, 0, 0, premultipliedAlpha );
-				forceClear = true;
-				break;
+					state.buffers.color.setClear( 0, 0, 0, 1, premultipliedAlpha );
+
+					break;
+
+				case 'alpha-blend':
+
+					state.buffers.color.setClear( 0, 0, 0, 0, premultipliedAlpha );
+
+					break;
+
+			}
+
+			forceClear = true;
 
 		}
 
@@ -16264,7 +16268,7 @@ class PMREMGenerator {
 		renderer.autoClear = false;
 
 		for ( let i = 1; i < this._lodPlanes.length; i ++ ) {
-
+ 
 			const sigma = Math.sqrt( this._sigmas[ i ] * this._sigmas[ i ] - this._sigmas[ i - 1 ] * this._sigmas[ i - 1 ] );
 
 			const poleAxis = _axisDirections[ ( i - 1 ) % _axisDirections.length ];
@@ -26149,16 +26153,6 @@ class WebXRManager extends EventDispatcher {
 				scope.isPresenting = true;
 
 				scope.dispatchEvent( { type: 'sessionstart' } );
-
-			}
-
-		};
-
-		this.getEnvironmentBlendMode = function () {
-
-			if ( session !== null ) {
-
-				return session.environmentBlendMode;
 
 			}
 

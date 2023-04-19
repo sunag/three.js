@@ -82,7 +82,6 @@ class WebGPUNodes {
 
 	}
 
-
 	getCacheKey( scene, lightsNode ) {
 
 		const environmentNode = this.getEnvironmentNode( scene );
@@ -256,26 +255,25 @@ class WebGPUNodes {
 
 	}
 
-	getUpdateNodes( renderObject ) {
+	getNodeFrame( renderObject ) {
 
-		const nodeBuilder = this.get( renderObject );
 		const nodeFrame = this.nodeFrame;
-
 		nodeFrame.scene = renderObject.scene;
 		nodeFrame.object = renderObject.object;
 		nodeFrame.camera = renderObject.camera;
 		nodeFrame.renderer = renderObject.renderer;
 		nodeFrame.material = renderObject.material;
 
-		return nodeBuilder.updateNodes;
+		return nodeFrame;
 
 	}
 
 	updateBefore( renderObject ) {
 
-		const nodeFrame = this.nodeFrame;
+		const nodeFrame = this.getNodeFrame( renderObject );
+		const nodeBuilder = this.get( renderObject );
 
-		for ( const node of this.getUpdateNodes( renderObject ) ) {
+		for ( const node of nodeBuilder.updateBeforeNodes ) {
 
 			nodeFrame.updateBeforeNode( node );
 
@@ -285,9 +283,10 @@ class WebGPUNodes {
 
 	update( renderObject ) {
 
-		const nodeFrame = this.nodeFrame;
+		const nodeFrame = this.getNodeFrame( renderObject );
+		const nodeBuilder = this.get( renderObject );
 
-		for ( const node of this.getUpdateNodes( renderObject ) ) {
+		for ( const node of nodeBuilder.updateNodes ) {
 
 			nodeFrame.updateNode( node );
 

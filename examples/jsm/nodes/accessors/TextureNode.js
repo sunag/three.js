@@ -16,6 +16,8 @@ class TextureNode extends UniformNode {
 		this.uvNode = uvNode;
 		this.levelNode = levelNode;
 
+		this.useMIPLevelAlgorithm = true;
+
 	}
 
 	getUniformHash( /*builder*/ ) {
@@ -72,8 +74,10 @@ class TextureNode extends UniformNode {
 
 		//
 
+		levelNode = ( this.useMIPLevelAlgorithm ? ( levelNode && builder.context.getMIPLevelAlgorithmNode( this, levelNode ) ) : levelNode ) || null;
+
 		properties.uvNode = uvNode;
-		properties.levelNode = levelNode ? builder.context.getMIPLevelAlgorithmNode( this, levelNode ) : null;
+		properties.levelNode = levelNode;
 
 	}
 
@@ -161,8 +165,18 @@ class TextureNode extends UniformNode {
 export default TextureNode;
 
 export const texture = nodeProxy( TextureNode );
+export const textureLod = ( ...params ) => {
+
+	const textureNode = texture( ...params )
+	textureNode.useMIPLevelAlgorithm = false;
+
+	return textureNode;
+
+};
+
 export const sampler = ( aTexture ) => ( aTexture.isNode === true ? aTexture : texture( aTexture ) ).convert( 'sampler' );
 
 addNodeElement( 'texture', texture );
+addNodeElement( 'textureLod', textureLod );
 
 addNodeClass( TextureNode );

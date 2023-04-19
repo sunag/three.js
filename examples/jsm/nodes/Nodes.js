@@ -80,9 +80,11 @@ export { default as ReflectVectorNode, reflectVector } from './accessors/Reflect
 export { default as SkinningNode, skinning } from './accessors/SkinningNode.js';
 export { default as StorageBufferNode, storage } from './accessors/StorageBufferNode.js';
 export { default as TangentNode, tangentGeometry, tangentLocal, tangentView, tangentWorld, transformedTangentView, transformedTangentWorld } from './accessors/TangentNode.js';
-export { default as TextureNode, texture, sampler } from './accessors/TextureNode.js';
+export { default as TextureNode, texture, textureLod, sampler } from './accessors/TextureNode.js';
 export { default as UVNode, uv } from './accessors/UVNode.js';
 export { default as UserDataNode, userData } from './accessors/UserDataNode.js';
+
+export { default as BlurNode, blur } from './accessors/BlurNode.js';
 
 // display
 export { default as BlendModeNode, burn, dodge, overlay, screen } from './display/BlendModeNode.js';
@@ -93,6 +95,7 @@ export { default as NormalMapNode, normalMap, TBNViewMatrix } from './display/No
 export { default as PosterizeNode, posterize } from './display/PosterizeNode.js';
 export { default as ToneMappingNode, toneMapping } from './display/ToneMappingNode.js';
 export { default as ViewportNode, viewportCoordinate, viewportResolution, viewportTopLeft, viewportBottomLeft, viewportTopRight, viewportBottomRight } from './display/ViewportNode.js';
+export { default as ViewportTextureNode, viewportTexture } from './display/ViewportTextureNode.js';
 
 // code
 export { default as ExpressionNode, expression } from './code/ExpressionNode.js';

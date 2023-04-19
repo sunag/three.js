@@ -14,7 +14,7 @@ class FogNode extends Node {
 
 	}
 
-	mixAssign( outputNode ) {
+	mixFog( outputNode ) {
 
 		return this.mix( outputNode, this.colorNode );
 
