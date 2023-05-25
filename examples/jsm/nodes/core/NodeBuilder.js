@@ -68,6 +68,9 @@ class NodeBuilder {
 		this.flowCode = { vertex: '', fragment: '', compute: [] };
 		this.uniforms = { vertex: [], fragment: [], compute: [], index: 0 };
 		this.codes = { vertex: [], fragment: [], compute: [] };
+		this.bindings = { vertex: [], fragment: [], compute: [] };
+		this.bindingsOffset = { vertex: 0, fragment: 0, compute: 0 };
+		this.bindingsArray = null;
 		this.attributes = [];
 		this.bufferAttributes = [];
 		this.varyings = [];
@@ -90,6 +93,22 @@ class NodeBuilder {
 
 		this.shaderStage = null;
 		this.buildStage = null;
+
+	}
+
+	getBindings() {
+
+		let bindingsArray = this.bindingsArray;
+
+		if ( bindingsArray === null ) {
+
+			const bindings = this.bindings;
+
+			this.bindingsArray = bindingsArray = ( this.material !== null ) ? [ ...bindings.vertex, ...bindings.fragment ] : bindings.compute;
+
+		}
+
+		return bindingsArray;
 
 	}
 
@@ -282,6 +301,10 @@ class NodeBuilder {
 
 			return `${ this.getType( type ) }( ${ getConst( value.x ) }, ${ getConst( value.y ) }, ${ getConst( value.z ) }, ${ getConst( value.w ) } )`;
 
+		} else if ( typeLength > 4 && value && ( value.isMatrix3 || value.isMatrix4 ) ) {
+
+			return `${ this.getType( type ) }( ${ value.elements.map( getConst ).join( ', ' ) } )`;
+
 		} else if ( typeLength > 4 ) {
 
 			return `${ this.getType( type ) }()`;
@@ -357,12 +380,6 @@ class NodeBuilder {
 	isReference( type ) {
 
 		return type === 'void' || type === 'property' || type === 'sampler' || type === 'texture' || type === 'cubeTexture';
-
-	}
-
-	isShaderStage( shaderStage ) {
-
-		return this.shaderStage === shaderStage;
 
 	}
 
