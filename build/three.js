@@ -16751,9 +16751,9 @@ console.warn( 'Scripts "build/three.js" and "build/three.min.js" are deprecated 
 
 				float cosTheta = cos( theta );
 				// Rodrigues' axis-angle rotation
-				vec3 sampleDirection = vOutputDirection * cosTheta
-					+ cross( axis, vOutputDirection ) * sin( theta )
-					+ axis * dot( axis, vOutputDirection ) * ( 1.0 - cosTheta );
+				vec3 sampleDirection = ( vOutputDirection * cosTheta )
+					+ ( cross( axis, vOutputDirection ) * sin( theta ) )
+					+ ( axis * ( dot( axis, vOutputDirection ) * ( 1.0 - cosTheta ) ) );
 
 				return bilinearCubeUV( envMap, sampleDirection, mipInt );
 

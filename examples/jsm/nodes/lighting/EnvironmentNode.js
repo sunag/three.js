@@ -11,6 +11,7 @@ import { addNodeClass } from '../core/Node.js';
 import { float, vec2 } from '../shadernode/ShaderNode.js';
 import { cubeTexture } from '../accessors/CubeTextureNode.js';
 import { reference } from '../accessors/ReferenceNode.js';
+import PMREMNode from './PMREMNode.js';
 
 class EnvironmentNode extends LightingNode {
 
@@ -34,6 +35,8 @@ class EnvironmentNode extends LightingNode {
 
 			// @TODO: Add dispose logic here
 			const cubeRTT = builder.getCubeRenderTarget( 512 ).fromEquirectangularTexture( renderer, texture );
+
+			console.log( new PMREMNode( builder.renderer ).fromCubemap( cubeRTT.texture ) );
 
 			envNode = cubeTexture( cubeRTT.texture );
 

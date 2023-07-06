@@ -1,4 +1,15 @@
+import Node, { addNodeClass } from '../core/Node.js';
+import NodeMaterial from '../materials/NodeMaterial.js';
+import { addNodeElement, tslFn, nodeProxy, vec3 } from '../shadernode/ShaderNode.js';
+import { cos, cross, sin, dot } from '../math/MathNode.js';
 import {
+	OrthographicCamera,
+	Color,
+	Vector3,
+	BufferGeometry,
+	BufferAttribute,
+	WebGLRenderTarget,
+	Mesh,
 	CubeReflectionMapping,
 	CubeRefractionMapping,
 	CubeUVReflectionMapping,
@@ -9,19 +20,7 @@ import {
 	HalfFloatType,
 	BackSide,
 	LinearSRGBColorSpace,
-} from '../constants.js';
-
-import { BufferAttribute } from '../core/BufferAttribute.js';
-import { BufferGeometry } from '../core/BufferGeometry.js';
-import { Mesh } from '../objects/Mesh.js';
-import { OrthographicCamera } from '../cameras/OrthographicCamera.js';
-import { PerspectiveCamera } from '../cameras/PerspectiveCamera.js';
-import { ShaderMaterial } from '../materials/ShaderMaterial.js';
-import { Vector3 } from '../math/Vector3.js';
-import { Color } from '../math/Color.js';
-import { WebGLRenderTarget } from '../renderers/WebGLRenderTarget.js';
-import { MeshBasicMaterial } from '../materials/MeshBasicMaterial.js';
-import { BoxGeometry } from '../geometries/BoxGeometry.js';
+} from 'three';
 
 const LOD_MIN = 4;
 
@@ -72,9 +71,11 @@ const _axisDirections = [
  * https://drive.google.com/file/d/15y8r_UpKlU9SvV4ILb0C3qCPecS8pvLz/view
 */
 
-class PMREMGenerator {
+class PMREMNode extends Node {
 
 	constructor( renderer ) {
+
+		super();
 
 		this._renderer = renderer;
 		this._pingPongRenderTarget = null;
@@ -89,38 +90,7 @@ class PMREMGenerator {
 		this._cubemapMaterial = null;
 		this._equirectMaterial = null;
 
-		this._compileMaterial( this._blurMaterial );
-
-	}
-
-	/**
-	 * Generates a PMREM from a supplied Scene, which can be faster than using an
-	 * image if networking bandwidth is low. Optional sigma specifies a blur radius
-	 * in radians to be applied to the scene before PMREM generation. Optional near
-	 * and far planes ensure the scene is rendered in its entirety (the cubeCamera
-	 * is placed at the origin).
-	 */
-	fromScene( scene, sigma = 0, near = 0.1, far = 100 ) {
-
-		_oldTarget = this._renderer.getRenderTarget();
-
-		this._setSize( 256 );
-
-		const cubeUVRenderTarget = this._allocateTargets();
-		cubeUVRenderTarget.depthBuffer = true;
-
-		this._sceneToCubeUV( scene, near, far, cubeUVRenderTarget );
-
-		if ( sigma > 0 ) {
-
-			this._blur( cubeUVRenderTarget, 0, 0, sigma );
-
-		}
-
-		this._applyPMREM( cubeUVRenderTarget );
-		this._cleanup( cubeUVRenderTarget );
-
-		return cubeUVRenderTarget;
+		this.isPMREMNode = true;
 
 	}
 
@@ -289,94 +259,10 @@ class PMREMGenerator {
 
 	}
 
-	_sceneToCubeUV( scene, near, far, cubeUVRenderTarget ) {
+	_setSize( cubeSize ) {
 
-		const fov = 90;
-		const aspect = 1;
-		const cubeCamera = new PerspectiveCamera( fov, aspect, near, far );
-		const upSign = [ 1, - 1, 1, 1, 1, 1 ];
-		const forwardSign = [ 1, 1, 1, - 1, - 1, - 1 ];
-		const renderer = this._renderer;
-
-		const originalAutoClear = renderer.autoClear;
-		const toneMapping = renderer.toneMapping;
-		renderer.getClearColor( _clearColor );
-
-		renderer.toneMapping = NoToneMapping;
-		renderer.autoClear = false;
-
-		const backgroundMaterial = new MeshBasicMaterial( {
-			name: 'PMREM.Background',
-			side: BackSide,
-			depthWrite: false,
-			depthTest: false,
-		} );
-
-		const backgroundBox = new Mesh( new BoxGeometry(), backgroundMaterial );
-
-		let useSolidColor = false;
-		const background = scene.background;
-
-		if ( background ) {
-
-			if ( background.isColor ) {
-
-				backgroundMaterial.color.copy( background );
-				scene.background = null;
-				useSolidColor = true;
-
-			}
-
-		} else {
-
-			backgroundMaterial.color.copy( _clearColor );
-			useSolidColor = true;
-
-		}
-
-		for ( let i = 0; i < 6; i ++ ) {
-
-			const col = i % 3;
-
-			if ( col === 0 ) {
-
-				cubeCamera.up.set( 0, upSign[ i ], 0 );
-				cubeCamera.lookAt( forwardSign[ i ], 0, 0 );
-
-			} else if ( col === 1 ) {
-
-				cubeCamera.up.set( 0, 0, upSign[ i ] );
-				cubeCamera.lookAt( 0, forwardSign[ i ], 0 );
-
-			} else {
-
-				cubeCamera.up.set( 0, upSign[ i ], 0 );
-				cubeCamera.lookAt( 0, 0, forwardSign[ i ] );
-
-			}
-
-			const size = this._cubeSize;
-
-			_setViewport( cubeUVRenderTarget, col * size, i > 2 ? size : 0, size, size );
-
-			renderer.setRenderTarget( cubeUVRenderTarget );
-
-			if ( useSolidColor ) {
-
-				renderer.render( backgroundBox, cubeCamera );
-
-			}
-
-			renderer.render( scene, cubeCamera );
-
-		}
-
-		backgroundBox.geometry.dispose();
-		backgroundBox.material.dispose();
-
-		renderer.toneMapping = toneMapping;
-		renderer.autoClear = originalAutoClear;
-		scene.background = background;
+		this._lodMax = Math.floor( Math.log2( cubeSize ) );
+		this._cubeSize = Math.pow( 2, this._lodMax );
 
 	}
 
@@ -394,13 +280,13 @@ class PMREMGenerator {
 
 			}
 
-			this._cubemapMaterial.uniforms.flipEnvMap.value = ( texture.isRenderTargetTexture === false ) ? - 1 : 1;
+			//this._cubemapMaterial.uniforms.flipEnvMap.value = ( texture.isRenderTargetTexture === false ) ? - 1 : 1;
 
 		} else {
 
 			if ( this._equirectMaterial === null ) {
 
-				this._equirectMaterial = _getEquirectMaterial();
+				//this._equirectMaterial = _getEquirectMaterial();
 
 			}
 
@@ -409,9 +295,9 @@ class PMREMGenerator {
 		const material = isCubeTexture ? this._cubemapMaterial : this._equirectMaterial;
 		const mesh = new Mesh( this._lodPlanes[ 0 ], material );
 
-		const uniforms = material.uniforms;
+		//const uniforms = material.uniforms;
 
-		uniforms[ 'envMap' ].value = texture;
+		//uniforms[ 'envMap' ].value = texture;
 
 		const size = this._cubeSize;
 
@@ -489,7 +375,7 @@ class PMREMGenerator {
 		const STANDARD_DEVIATIONS = 3;
 
 		const blurMesh = new Mesh( this._lodPlanes[ lodOut ], blurMaterial );
-		const blurUniforms = blurMaterial.uniforms;
+		//const blurUniforms = blurMaterial.uniforms;
 
 		const pixels = this._sizeLods[ lodIn ] - 1;
 		const radiansPerPixel = isFinite( sigmaRadians ) ? Math.PI / ( 2 * pixels ) : 2 * Math.PI / ( 2 * MAX_SAMPLES - 1 );
@@ -531,20 +417,20 @@ class PMREMGenerator {
 
 		}
 
-		blurUniforms[ 'envMap' ].value = targetIn.texture;
-		blurUniforms[ 'samples' ].value = samples;
-		blurUniforms[ 'weights' ].value = weights;
-		blurUniforms[ 'latitudinal' ].value = direction === 'latitudinal';
+		//blurUniforms[ 'envMap' ].value = targetIn.texture;
+		//blurUniforms[ 'samples' ].value = samples;
+		//blurUniforms[ 'weights' ].value = weights;
+		//blurUniforms[ 'latitudinal' ].value = direction === 'latitudinal';
 
 		if ( poleAxis ) {
 
-			blurUniforms[ 'poleAxis' ].value = poleAxis;
+			//blurUniforms[ 'poleAxis' ].value = poleAxis;
 
 		}
 
 		const { _lodMax } = this;
-		blurUniforms[ 'dTheta' ].value = radiansPerPixel;
-		blurUniforms[ 'mipInt' ].value = _lodMax - lodIn;
+		//blurUniforms[ 'dTheta' ].value = radiansPerPixel;
+		//blurUniforms[ 'mipInt' ].value = _lodMax - lodIn;
 
 		const outputSize = this._sizeLods[ lodOut ];
 		const x = 3 * outputSize * ( lodOut > _lodMax - LOD_MIN ? lodOut - _lodMax + LOD_MIN : 0 );
@@ -557,8 +443,6 @@ class PMREMGenerator {
 	}
 
 }
-
-
 
 function _createPlanes( lodMax ) {
 
@@ -661,240 +545,38 @@ function _getBlurShader( lodMax, width, height ) {
 
 	const weights = new Float32Array( MAX_SAMPLES );
 	const poleAxis = new Vector3( 0, 1, 0 );
-	const shaderMaterial = new ShaderMaterial( {
 
-		name: 'SphericalGaussianBlur',
+	const material = new NodeMaterial();
 
-		defines: {
-			'n': MAX_SAMPLES,
-			'CUBEUV_TEXEL_WIDTH': 1.0 / width,
-			'CUBEUV_TEXEL_HEIGHT': 1.0 / height,
-			'CUBEUV_MAX_MIP': `${lodMax}.0`,
-		},
-
-		uniforms: {
-			'envMap': { value: null },
-			'samples': { value: 1 },
-			'weights': { value: weights },
-			'latitudinal': { value: false },
-			'dTheta': { value: 0 },
-			'mipInt': { value: 0 },
-			'poleAxis': { value: poleAxis }
-		},
-
-		vertexShader: _getCommonVertexShader(),
-
-		fragmentShader: /* glsl */`
-
-			precision mediump float;
-			precision mediump int;
-
-			varying vec3 vOutputDirection;
-
-			uniform sampler2D envMap;
-			uniform int samples;
-			uniform float weights[ n ];
-			uniform bool latitudinal;
-			uniform float dTheta;
-			uniform float mipInt;
-			uniform vec3 poleAxis;
-
-			#define ENVMAP_TYPE_CUBE_UV
-			#include <cube_uv_reflection_fragment>
-
-			vec3 getSample( float theta, vec3 axis ) {
-
-				float cosTheta = cos( theta );
-				// Rodrigues' axis-angle rotation
-				vec3 sampleDirection = ( vOutputDirection * cosTheta )
-					+ ( cross( axis, vOutputDirection ) * sin( theta ) )
-					+ ( axis * ( dot( axis, vOutputDirection ) * ( 1.0 - cosTheta ) ) );
-
-				return bilinearCubeUV( envMap, sampleDirection, mipInt );
-
-			}
-
-			void main() {
-
-				vec3 axis = latitudinal ? poleAxis : cross( poleAxis, vOutputDirection );
-
-				if ( all( equal( axis, vec3( 0.0 ) ) ) ) {
-
-					axis = vec3( vOutputDirection.z, 0.0, - vOutputDirection.x );
-
-				}
-
-				axis = normalize( axis );
-
-				gl_FragColor = vec4( 0.0, 0.0, 0.0, 1.0 );
-				gl_FragColor.rgb += weights[ 0 ] * getSample( 0.0, axis );
-
-				for ( int i = 1; i < n; i++ ) {
-
-					if ( i >= samples ) {
-
-						break;
-
-					}
-
-					float theta = dTheta * float( i );
-					gl_FragColor.rgb += weights[ i ] * getSample( -1.0 * theta, axis );
-					gl_FragColor.rgb += weights[ i ] * getSample( theta, axis );
-
-				}
-
-			}
-		`,
-
-		blending: NoBlending,
-		depthTest: false,
-		depthWrite: false
-
-	} );
-
-	return shaderMaterial;
-
-}
-
-function _getEquirectMaterial() {
-
-	return new ShaderMaterial( {
-
-		name: 'EquirectangularToCubeUV',
-
-		uniforms: {
-			'envMap': { value: null }
-		},
-
-		vertexShader: _getCommonVertexShader(),
-
-		fragmentShader: /* glsl */`
-
-			precision mediump float;
-			precision mediump int;
-
-			varying vec3 vOutputDirection;
-
-			uniform sampler2D envMap;
-
-			#include <common>
-
-			void main() {
-
-				vec3 outputDirection = normalize( vOutputDirection );
-				vec2 uv = equirectUv( outputDirection );
-
-				gl_FragColor = vec4( texture2D ( envMap, uv ).rgb, 1.0 );
-
-			}
-		`,
-
-		blending: NoBlending,
-		depthTest: false,
-		depthWrite: false
-
-	} );
+	return material;
 
 }
 
 function _getCubemapMaterial() {
 
-	return new ShaderMaterial( {
+	const material = new NodeMaterial();
 
-		name: 'CubemapToCubeUV',
 
-		uniforms: {
-			'envMap': { value: null },
-			'flipEnvMap': { value: - 1 }
-		},
 
-		vertexShader: _getCommonVertexShader(),
-
-		fragmentShader: /* glsl */`
-
-			precision mediump float;
-			precision mediump int;
-
-			uniform float flipEnvMap;
-
-			varying vec3 vOutputDirection;
-
-			uniform samplerCube envMap;
-
-			void main() {
-
-				gl_FragColor = textureCube( envMap, vec3( flipEnvMap * vOutputDirection.x, vOutputDirection.yz ) );
-
-			}
-		`,
-
-		blending: NoBlending,
-		depthTest: false,
-		depthWrite: false
-
-	} );
+	return material;
 
 }
 
-function _getCommonVertexShader() {
+// TSJ
 
-	return /* glsl */`
+const getSample = tslFn( ( envMap, mipInt, outputDirection, theta, axis ) => {
 
-		precision mediump float;
-		precision mediump int;
+	const cosTheta = cos( theta );
 
-		attribute float faceIndex;
+	// Rodrigues' axis-angle rotation
+	const sampleDirection = outputDirection.mul( cosTheta )
+		.add( axis.cross( outputDirection ).mul( sin ) )
+		.add( axis.mul( axis.dot( outputDirection ).mul( cosTheta.oneMinus() ) ) );
 
-		varying vec3 vOutputDirection;
+	return bilinearCubeUV( envMap, sampleDirection, mipInt );
 
-		// RH coordinate system; PMREM face-indexing convention
-		vec3 getDirection( vec2 uv, float face ) {
+} );
 
-			uv = 2.0 * uv - 1.0;
+//
 
-			vec3 direction = vec3( uv, 1.0 );
-
-			if ( face == 0.0 ) {
-
-				direction = direction.zyx; // ( 1, v, u ) pos x
-
-			} else if ( face == 1.0 ) {
-
-				direction = direction.xzy;
-				direction.xz *= -1.0; // ( -u, 1, -v ) pos y
-
-			} else if ( face == 2.0 ) {
-
-				direction.x *= -1.0; // ( -u, v, 1 ) pos z
-
-			} else if ( face == 3.0 ) {
-
-				direction = direction.zyx;
-				direction.xz *= -1.0; // ( -1, v, -u ) neg x
-
-			} else if ( face == 4.0 ) {
-
-				direction = direction.xzy;
-				direction.xy *= -1.0; // ( -u, -1, v ) neg y
-
-			} else if ( face == 5.0 ) {
-
-				direction.z *= -1.0; // ( u, v, -1 ) neg z
-
-			}
-
-			return direction;
-
-		}
-
-		void main() {
-
-			vOutputDirection = getDirection( uv, faceIndex );
-			gl_Position = vec4( position, 1.0 );
-
-		}
-	`;
-
-}
-
-export { PMREMGenerator };
+export default PMREMNode;
