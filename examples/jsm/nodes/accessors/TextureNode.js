@@ -18,6 +18,7 @@ class TextureNode extends UniformNode {
 
 		this.uvNode = uvNode;
 		this.levelNode = levelNode;
+		this.compareNode = null;
 
 		this.updateType = NodeUpdateType.FRAME;
 
@@ -88,6 +89,7 @@ class TextureNode extends UniformNode {
 
 		const { uvNode, levelNode } = builder.getNodeProperties( this );
 
+		const compareNode = this.compareNode;
 		const texture = this.value;
 
 		if ( ! texture || texture.isTexture !== true ) {
@@ -127,6 +129,12 @@ class TextureNode extends UniformNode {
 					const levelSnippet = levelNode.build( builder, 'float' );
 
 					snippet = builder.getTextureLevel( texture, textureProperty, uvSnippet, levelSnippet );
+
+				} else if ( compareNode !== null ) {
+
+					const compareSnippet = compareNode.build( builder, 'float' );
+
+					snippet = builder.getTextureCompare( texture, textureProperty, uvSnippet, compareSnippet );
 
 				} else {
 
@@ -221,6 +229,15 @@ export default TextureNode;
 
 export const texture = nodeProxy( TextureNode );
 //export const textureLevel = ( value, uv, level ) => texture( value, uv ).level( level );
+
+export const textureCompare = ( value, uv, compare ) => {
+
+	const node = texture( value, uv );
+	node.compareNode = compare;
+
+	return node;
+
+};
 
 export const sampler = ( aTexture ) => ( aTexture.isNode === true ? aTexture : texture( aTexture ) ).convert( 'sampler' );
 

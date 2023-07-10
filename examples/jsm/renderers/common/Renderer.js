@@ -877,6 +877,7 @@ class Renderer {
 		this._nodes.updateForRender( renderObject );
 		this._geometries.updateForRender( renderObject );
 		this._bindings.updateForRender( renderObject );
+		this._pipelines.updateForRender( renderObject );
 
 		//
 
