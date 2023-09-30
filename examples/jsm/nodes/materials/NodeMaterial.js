@@ -291,7 +291,9 @@ class NodeMaterial extends ShaderMaterial {
 
 			const lightingModelNode = this.constructLightingModel( builder );
 
-			outgoingLightNode = lightingContext( lightsNode, lightingModelNode, backdropNode, backdropAlphaNode );
+			outgoingLightNode = float( 1 ).bypass( lightingContext( lightsNode, lightingModelNode, backdropNode, backdropAlphaNode ) );
+			//outgoingLightNode = float( 1 ).bypass( lightingContext( lightsNode, lightingModelNode, backdropNode, backdropAlphaNode ) );
+			//outgoingLightNode = lightsNode;
 
 		} else if ( backdropNode !== null ) {
 

@@ -582,7 +582,7 @@ class WGSLNodeBuilder extends NodeBuilder {
 
 					let attributesSnippet = `@location( ${index} )`;
 
-					if ( varying.type === 'int' || varying.type === 'uint' ) {
+					if ( /^(int|uint|ivec|uvec)/.test( varying.type ) ) {
 
 						attributesSnippet += ' @interpolate( flat )';
 
@@ -780,7 +780,7 @@ class WGSLNodeBuilder extends NodeBuilder {
 
 			this.vertexShader = this._getWGSLVertexCode( shadersData.vertex );
 			this.fragmentShader = this._getWGSLFragmentCode( shadersData.fragment );
-
+			console.log( this.fragmentShader );
 		} else {
 
 			this.computeShader = this._getWGSLComputeCode( shadersData.compute, ( this.object.workgroupSize || [ 64 ] ).join( ', ' ) );

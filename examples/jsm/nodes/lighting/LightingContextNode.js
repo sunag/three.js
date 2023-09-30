@@ -29,10 +29,10 @@ class LightingContextNode extends ContextNode {
 		const context = this.context = {}; // reset context
 		const properties = builder.getNodeProperties( this );
 
-		const directDiffuse = vec3().temp(),
-			directSpecular = vec3().temp(),
-			indirectDiffuse = vec3().temp(),
-			indirectSpecular = vec3().temp();
+		const directDiffuse = vec3().temp( 'directDiffuse' ),
+			directSpecular = vec3().temp( 'directSpecular' ),
+			indirectDiffuse = vec3().temp( 'indirectDiffuse' ),
+			indirectSpecular = vec3().temp( 'indirectSpecular' );
 
 		let totalDiffuse = add( directDiffuse, indirectDiffuse );
 
@@ -43,7 +43,7 @@ class LightingContextNode extends ContextNode {
 		}
 
 		const totalSpecular = add( directSpecular, indirectSpecular );
-		const total = add( totalDiffuse, totalSpecular ).temp();
+		const total = add( totalDiffuse, totalSpecular ).temp( 'reflectedLight' );
 
 		const reflectedLight = {
 			directDiffuse,
@@ -54,10 +54,10 @@ class LightingContextNode extends ContextNode {
 		};
 
 		const lighting = {
-			radiance: vec3().temp(),
-			irradiance: vec3().temp(),
-			iblIrradiance: vec3().temp(),
-			ambientOcclusion: float( 1 ).temp()
+			radiance: vec3().temp( 'radiance' ),
+			irradiance: vec3().temp( 'irradiance' ),
+			iblIrradiance: vec3().temp( 'iblIrradiance' ),
+			ambientOcclusion: float( 1 ).temp( 'ambientOcclusion' )
 		};
 
 		context.reflectedLight = reflectedLight;
@@ -65,6 +65,16 @@ class LightingContextNode extends ContextNode {
 
 		Object.assign( properties, reflectedLight, lighting );
 		Object.assign( context, lighting );
+
+		//const stack = builder.addStack();
+		const stack = builder.stack;
+
+		stack.assign( total, 1 );
+
+		stack.if( total.x.lessThan( 0 ), () => {
+
+
+		} );
 
 		if ( lightingModel ) {
 
@@ -76,6 +86,17 @@ class LightingContextNode extends ContextNode {
 
 		}
 
+		//builder.removeStack();
+
+
+		stack.construct( builder );
+
+
+		properties.stack = stack;
+		this.context.stack = stack;
+
+		//return builder.stack.bypass( node ).bypass( context.reflectedLight.total );
+
 		return super.construct( builder );
 
 	}
@@ -84,6 +105,10 @@ class LightingContextNode extends ContextNode {
 
 		const { context } = this;
 		const type = this.getNodeType( builder );
+
+		
+
+		this.context.stack.build( builder, 'void' );
 
 		super.generate( builder, type );
 

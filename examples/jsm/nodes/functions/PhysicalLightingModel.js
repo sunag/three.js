@@ -278,7 +278,7 @@ class PhysicalLightingModel extends LightingModel {
 
 	}
 
-	indirectSpecular( { radiance, iblIrradiance, reflectedLight, } ) {
+	indirectSpecular( { radiance, iblIrradiance, reflectedLight }, stack ) {
 
 		if ( this.sheen === true ) {
 
@@ -316,10 +316,13 @@ class PhysicalLightingModel extends LightingModel {
 
 		const diffuse = diffuseColor.mul( totalScattering.r.max( totalScattering.g ).max( totalScattering.b ).oneMinus() );
 
-		reflectedLight.indirectSpecular.addAssign( radiance.mul( singleScattering ) );
-		reflectedLight.indirectSpecular.addAssign( multiScattering.mul( cosineWeightedIrradiance ) );
+		console.log( stack );
 
-		reflectedLight.indirectDiffuse.addAssign( diffuse.mul( cosineWeightedIrradiance ) );
+		//reflectedLight.indirectSpecular.addAssign( radiance.mul( singleScattering ) );
+		//reflectedLight.indirectSpecular.addAssign( multiScattering.mul( cosineWeightedIrradiance ) );
+
+		//reflectedLight.indirectDiffuse.addAssign( diffuse.mul( cosineWeightedIrradiance ) );
+		stack.addAssign( reflectedLight.indirectDiffuse, diffuse.mul( cosineWeightedIrradiance ) );
 
 	}
 
