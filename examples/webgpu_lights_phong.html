@@ -27,6 +27,8 @@
 
 			import * as THREE from 'three';
 			import { color, rangeFog, checker, uv, mix, texture, lights, normalMap, MeshPhongNodeMaterial } from 'three/nodes';
+			import GLSLEncoder from './jsm/nodes/transpiler/GLSLEncoder.js';
+			import TSLDecoder from './jsm/nodes/transpiler/TSLDecoder.js';
 
 			import Stats from 'three/addons/libs/stats.module.js';
 
@@ -61,6 +63,21 @@
 				scene.fogNode = rangeFog( color( 0xFF00FF ), 12, 30 );
 
 				const sphereGeometry = new THREE.SphereGeometry( 0.1, 16, 8 );
+
+				//
+				// float a = abc( 12, ( 44 + 6 ), 55 ) + 3;
+				const encoder = new GLSLEncoder( `
+				
+					float abc( float a, float b, float c ) {
+
+						return a.x + b + c + call( 123, 22 );
+
+					}
+
+				` );
+
+				const decoder = new TSLDecoder();
+				decoder.emit( encoder.parse() );
 
 				// textures
 
