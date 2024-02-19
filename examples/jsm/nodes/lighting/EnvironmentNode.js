@@ -12,6 +12,7 @@ import { addNodeClass } from '../core/Node.js';
 import { vec2 } from '../shadernode/ShaderNode.js';
 import { cubeTexture } from '../accessors/CubeTextureNode.js';
 import { reference } from '../accessors/ReferenceNode.js';
+import PMREMNode from './PMREMNode.js';
 
 const envNodeCache = new WeakMap();
 
@@ -40,6 +41,8 @@ class EnvironmentNode extends LightingNode {
 
 				// @TODO: Add dispose logic here
 				const cubeRTT = builder.getCubeRenderTarget( 512 ).fromEquirectangularTexture( renderer, texture );
+
+				console.log( new PMREMNode( builder.renderer ).fromCubemap( cubeRTT.texture ) );
 
 				cacheEnvNode = cubeTexture( cubeRTT.texture );
 
