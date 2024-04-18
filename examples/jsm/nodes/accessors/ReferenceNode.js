@@ -138,6 +138,8 @@ class ReferenceNode extends Node {
 
 		const value = this.getValueFromReference();
 
+		if ( this.property === 'color' ) console.log( 'updateValue', this.reference.name, this.property, '0x' + value.getHex().toString( 16 ) );
+
 		if ( Array.isArray( value ) ) {
 
 			this.node.array = value;

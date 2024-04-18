@@ -22,17 +22,18 @@
 
 			import * as THREE from 'three';
 
+			import WebGPURenderer from 'three/addons/renderers/webgpu/WebGPURenderer.js';
+
 			import Stats from 'three/addons/libs/stats.module.js';
 
 			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 			import { MeshBasicNodeMaterial, vec4, color, positionLocal, mix } from 'three/nodes';
-			import { nodeFrame } from 'three/addons/renderers/webgl-legacy/nodes/WebGLNodes.js';
 
 			let container, stats;
 			let camera, scene, renderer;
 
-			init().then( animate );
+			init();
 
 			async function init() {
 
@@ -74,9 +75,18 @@
 				const sky = new THREE.Mesh( new THREE.SphereGeometry( 4000, 32, 15 ), skyMat );
 				scene.add( sky );
 
+				// MODEL
+
+				const loader = new THREE.ObjectLoader();
+				const object = await loader.loadAsync( 'models/json/lightmap/lightmap.json' );
+				scene.add( object );
+
+				console.log( object );
+
 				// RENDERER
 
-				renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer = new WebGPURenderer( { antialias: true } );
+				renderer.setAnimationLoop( animate );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( innerWidth, innerHeight );
 				container.appendChild( renderer.domElement );
@@ -91,12 +101,6 @@
 
 				stats = new Stats();
 				container.appendChild( stats.dom );
-
-				// MODEL
-
-				const loader = new THREE.ObjectLoader();
-				const object = await loader.loadAsync( 'models/json/lightmap/lightmap.json' );
-				scene.add( object );
 
 				//
 
@@ -116,10 +120,6 @@
 			//
 
 			function animate() {
-
-				requestAnimationFrame( animate );
-
-				nodeFrame.update();
 
 				renderer.render( scene, camera );
 				stats.update();
