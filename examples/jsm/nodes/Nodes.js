@@ -5,16 +5,16 @@
 export * from './core/constants.js';
 
 // core
-export { default as AssignNode, assign } from './core/AssignNode.js';
+export { default as AssignNode } from './core/AssignNode.js';
 export { default as AttributeNode, attribute } from './core/AttributeNode.js';
-export { default as BypassNode, bypass } from './core/BypassNode.js';
-export { default as CacheNode, cache } from './core/CacheNode.js';
+export { default as BypassNode } from './core/BypassNode.js';
+export { default as CacheNode } from './core/CacheNode.js';
 export { default as ConstNode } from './core/ConstNode.js';
-export { default as ContextNode, context, label } from './core/ContextNode.js';
+export { default as ContextNode } from './core/ContextNode.js';
 export { default as IndexNode, vertexIndex, instanceIndex } from './core/IndexNode.js';
 export { default as LightingModel } from './core/LightingModel.js';
 export { default as Node, addNodeClass, createNodeFromType } from './core/Node.js';
-export { default as VarNode, temp } from './core/VarNode.js';
+export { default as VarNode } from './core/VarNode.js';
 export { default as NodeAttribute } from './core/NodeAttribute.js';
 export { default as NodeBuilder } from './core/NodeBuilder.js';
 export { default as NodeCache } from './core/NodeCache.js';
@@ -38,9 +38,12 @@ import * as NodeUtils from './core/NodeUtils.js';
 export { NodeUtils };
 
 // math
-export { default as MathNode, PI, PI2, EPSILON, INFINITY, radians, degrees, exp, exp2, log, log2, sqrt, inverseSqrt, floor, ceil, normalize, fract, sin, cos, tan, asin, acos, atan, abs, sign, length, lengthSq, negate, oneMinus, dFdx, dFdy, round, reciprocal, trunc, fwidth, bitcast, atan2, min, max, mod, step, reflect, distance, difference, dot, cross, pow, pow2, pow3, pow4, transformDirection, mix, clamp, saturate, refract, smoothstep, faceForward, cbrt, all, any, equals } from './math/MathNode.js';
+export { default as MathNode } from './math/MathNode.js';
+export { default as OperatorNode } from './math/OperatorNode.js';
 
-export { default as OperatorNode, add, sub, mul, div, remainder, equal, lessThan, greaterThan, lessThanEqual, greaterThanEqual, and, or, not, xor, bitAnd, bitNot, bitOr, bitXor, shiftLeft, shiftRight } from './math/OperatorNode.js';
+export { PI, PI2, EPSILON, INFINITY, radians, degrees, exp, exp2, log, log2, sqrt, inverseSqrt, floor, ceil, normalize, fract, sin, cos, tan, asin, acos, atan, abs, sign, length, lengthSq, negate, oneMinus, dFdx, dFdy, round, reciprocal, trunc, fwidth, bitcast, atan2, min, max, mod, step, reflect, distance, difference, dot, cross, pow, pow2, pow3, pow4, transformDirection, mix, clamp, saturate, refract, smoothstep, faceForward, cbrt, all, any, equals } from './shadernode/ShaderNode.js';
+
+export { add, sub, mul, div, remainder, equal, lessThan, greaterThan, lessThanEqual, greaterThanEqual, and, or, not, xor, bitAnd, bitNot, bitOr, bitXor, shiftLeft, shiftRight } from './shadernode/ShaderNode.js';
 export { default as CondNode, cond } from './math/CondNode.js';
 export { default as HashNode, hash } from './math/HashNode.js';
 
@@ -92,7 +95,7 @@ export { default as MorphNode, morphReference } from './accessors/MorphNode.js';
 export { default as TextureBicubicNode, textureBicubic } from './accessors/TextureBicubicNode.js';
 export { default as ModelNode, modelDirection, modelViewMatrix, modelNormalMatrix, modelWorldMatrix, modelPosition, modelViewPosition, modelScale } from './accessors/ModelNode.js';
 export { default as ModelViewProjectionNode, modelViewProjection } from './accessors/ModelViewProjectionNode.js';
-export { default as NormalNode, normalGeometry, normalLocal, normalView, normalWorld, transformedNormalView, transformedNormalWorld, transformedClearcoatNormalView } from './accessors/NormalNode.js';
+export * from './accessors/NormalNode.js';
 export { default as Object3DNode, objectDirection, objectViewMatrix, objectNormalMatrix, objectWorldMatrix, objectPosition, objectScale, objectViewPosition } from './accessors/Object3DNode.js';
 export { default as PointUVNode, pointUV } from './accessors/PointUVNode.js';
 export { default as PositionNode, positionGeometry, positionLocal, positionWorld, positionWorldDirection, positionView, positionViewDirection } from './accessors/PositionNode.js';
@@ -129,9 +132,9 @@ export { default as PassNode, pass, depthPass } from './display/PassNode.js';
 
 // code
 export { default as ExpressionNode, expression } from './code/ExpressionNode.js';
-export { default as CodeNode, code, js, wgsl, glsl } from './code/CodeNode.js';
-export { default as FunctionCallNode, call } from './code/FunctionCallNode.js';
-export { default as FunctionNode, wgslFn, glslFn } from './code/FunctionNode.js';
+export { default as CodeNode } from './code/CodeNode.js';
+export { default as FunctionCallNode } from './code/FunctionCallNode.js';
+export { default as FunctionNode } from './code/FunctionNode.js';
 export { default as ScriptableNode, scriptable, global } from './code/ScriptableNode.js';
 export { default as ScriptableValueNode, scriptableValue } from './code/ScriptableValueNode.js';
 

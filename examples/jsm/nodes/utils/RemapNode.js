@@ -1,5 +1,5 @@
 import Node, { addNodeClass } from '../core/Node.js';
-import { float, addNodeElement, nodeProxy } from '../shadernode/ShaderNode.js';
+import { float, nodeProxy } from '../shadernode/ShaderNode.js';
 
 class RemapNode extends Node {
 
@@ -35,8 +35,5 @@ export default RemapNode;
 
 export const remap = nodeProxy( RemapNode, null, null, { doClamp: false } );
 export const remapClamp = nodeProxy( RemapNode );
-
-addNodeElement( 'remap', remap );
-addNodeElement( 'remapClamp', remapClamp );
 
 addNodeClass( 'RemapNode', RemapNode );

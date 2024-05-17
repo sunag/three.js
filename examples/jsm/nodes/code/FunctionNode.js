@@ -1,6 +1,4 @@
 import CodeNode from './CodeNode.js';
-import { addNodeClass } from '../core/Node.js';
-import { nodeObject } from '../shadernode/ShaderNode.js';
 
 class FunctionNode extends CodeNode {
 
@@ -98,33 +96,3 @@ class FunctionNode extends CodeNode {
 }
 
 export default FunctionNode;
-
-const nativeFn = ( code, includes = [], language = '' ) => {
-
-	for ( let i = 0; i < includes.length; i ++ ) {
-
-		const include = includes[ i ];
-
-		// TSL Function: glslFn, wgslFn
-
-		if ( typeof include === 'function' ) {
-
-			includes[ i ] = include.functionNode;
-
-		}
-
-	}
-
-	const functionNode = nodeObject( new FunctionNode( code, includes, language ) );
-
-	const fn = ( ...params ) => functionNode.call( ...params );
-	fn.functionNode = functionNode;
-
-	return fn;
-
-};
-
-export const glslFn = ( code, includes ) => nativeFn( code, includes, 'glsl' );
-export const wgslFn = ( code, includes ) => nativeFn( code, includes, 'wgsl' );
-
-addNodeClass( 'FunctionNode', FunctionNode );

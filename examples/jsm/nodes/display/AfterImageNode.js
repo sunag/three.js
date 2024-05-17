@@ -1,12 +1,11 @@
 import TempNode from '../core/TempNode.js';
-import { nodeObject, addNodeElement, tslFn, float, vec4 } from '../shadernode/ShaderNode.js';
+import { nodeObject, tslFn, float, vec4, sign, max } from '../shadernode/ShaderNode.js';
 import { NodeUpdateType } from '../core/constants.js';
 import { uv } from '../accessors/UVNode.js';
 import { texture } from '../accessors/TextureNode.js';
 import { texturePass } from './PassNode.js';
 import { uniform } from '../core/UniformNode.js';
 import { RenderTarget } from 'three';
-import { sign, max } from '../math/MathNode.js';
 import QuadMesh from '../../objects/QuadMesh.js';
 
 const quadMeshComp = new QuadMesh();
@@ -140,9 +139,6 @@ class AfterImageNode extends TempNode {
 
 }
 
-export const afterImage = ( node, damp ) => nodeObject( new AfterImageNode( nodeObject( node ), damp ) );
-
-addNodeElement( 'afterImage', afterImage );
-
 export default AfterImageNode;
 
+export const afterImage = ( node, damp ) => nodeObject( new AfterImageNode( nodeObject( node ), damp ) );

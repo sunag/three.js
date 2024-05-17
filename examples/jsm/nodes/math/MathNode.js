@@ -1,7 +1,4 @@
 import TempNode from '../core/TempNode.js';
-import { sub, mul, div } from './OperatorNode.js';
-import { addNodeClass } from '../core/Node.js';
-import { addNodeElement, nodeObject, nodeProxy, float, vec3, vec4 } from '../shadernode/ShaderNode.js';
 
 class MathNode extends TempNode {
 
@@ -90,43 +87,9 @@ class MathNode extends TempNode {
 
 		const isWebGL = builder.renderer.isWebGLRenderer === true;
 
-		if ( method === MathNode.TRANSFORM_DIRECTION ) {
-
-			// dir can be either a direction vector or a normal vector
-			// upper-left 3x3 of matrix is assumed to be orthogonal
-
-			let tA = a;
-			let tB = b;
-
-			if ( builder.isMatrix( tA.getNodeType( builder ) ) ) {
-
-				tB = vec4( vec3( tB ), 0.0 );
-
-			} else {
-
-				tA = vec4( vec3( tA ), 0.0 );
-
-			}
-
-			const mulNode = mul( tA, tB ).xyz;
-
-			return normalize( mulNode ).build( builder, output );
-
-		} else if ( method === MathNode.NEGATE ) {
+		if ( method === MathNode.NEGATE ) {
 
 			return builder.format( '( - ' + a.build( builder, inputType ) + ' )', type, output );
-
-		} else if ( method === MathNode.ONE_MINUS ) {
-
-			return sub( 1.0, a ).build( builder, output );
-
-		} else if ( method === MathNode.RECIPROCAL ) {
-
-			return div( 1.0, a ).build( builder, output );
-
-		} else if ( method === MathNode.DIFFERENCE ) {
-
-			return abs( sub( a, b ) ).build( builder, output );
 
 		} else {
 
@@ -229,7 +192,6 @@ MathNode.ABS = 'abs';
 MathNode.SIGN = 'sign';
 MathNode.LENGTH = 'length';
 MathNode.NEGATE = 'negate';
-MathNode.ONE_MINUS = 'oneMinus';
 MathNode.DFDX = 'dFdx';
 MathNode.DFDY = 'dFdy';
 MathNode.ROUND = 'round';
@@ -251,7 +213,6 @@ MathNode.DIFFERENCE = 'difference';
 MathNode.DOT = 'dot';
 MathNode.CROSS = 'cross';
 MathNode.POW = 'pow';
-MathNode.TRANSFORM_DIRECTION = 'transformDirection';
 
 // 3 inputs
 
@@ -262,130 +223,3 @@ MathNode.SMOOTHSTEP = 'smoothstep';
 MathNode.FACEFORWARD = 'faceforward';
 
 export default MathNode;
-
-export const EPSILON = float( 1e-6 );
-export const INFINITY = float( 1e6 );
-export const PI = float( Math.PI );
-export const PI2 = float( Math.PI * 2 );
-
-export const all = nodeProxy( MathNode, MathNode.ALL );
-export const any = nodeProxy( MathNode, MathNode.ANY );
-export const equals = nodeProxy( MathNode, MathNode.EQUALS );
-
-export const radians = nodeProxy( MathNode, MathNode.RADIANS );
-export const degrees = nodeProxy( MathNode, MathNode.DEGREES );
-export const exp = nodeProxy( MathNode, MathNode.EXP );
-export const exp2 = nodeProxy( MathNode, MathNode.EXP2 );
-export const log = nodeProxy( MathNode, MathNode.LOG );
-export const log2 = nodeProxy( MathNode, MathNode.LOG2 );
-export const sqrt = nodeProxy( MathNode, MathNode.SQRT );
-export const inverseSqrt = nodeProxy( MathNode, MathNode.INVERSE_SQRT );
-export const floor = nodeProxy( MathNode, MathNode.FLOOR );
-export const ceil = nodeProxy( MathNode, MathNode.CEIL );
-export const normalize = nodeProxy( MathNode, MathNode.NORMALIZE );
-export const fract = nodeProxy( MathNode, MathNode.FRACT );
-export const sin = nodeProxy( MathNode, MathNode.SIN );
-export const cos = nodeProxy( MathNode, MathNode.COS );
-export const tan = nodeProxy( MathNode, MathNode.TAN );
-export const asin = nodeProxy( MathNode, MathNode.ASIN );
-export const acos = nodeProxy( MathNode, MathNode.ACOS );
-export const atan = nodeProxy( MathNode, MathNode.ATAN );
-export const abs = nodeProxy( MathNode, MathNode.ABS );
-export const sign = nodeProxy( MathNode, MathNode.SIGN );
-export const length = nodeProxy( MathNode, MathNode.LENGTH );
-export const negate = nodeProxy( MathNode, MathNode.NEGATE );
-export const oneMinus = nodeProxy( MathNode, MathNode.ONE_MINUS );
-export const dFdx = nodeProxy( MathNode, MathNode.DFDX );
-export const dFdy = nodeProxy( MathNode, MathNode.DFDY );
-export const round = nodeProxy( MathNode, MathNode.ROUND );
-export const reciprocal = nodeProxy( MathNode, MathNode.RECIPROCAL );
-export const trunc = nodeProxy( MathNode, MathNode.TRUNC );
-export const fwidth = nodeProxy( MathNode, MathNode.FWIDTH );
-export const bitcast = nodeProxy( MathNode, MathNode.BITCAST );
-
-export const atan2 = nodeProxy( MathNode, MathNode.ATAN2 );
-export const min = nodeProxy( MathNode, MathNode.MIN );
-export const max = nodeProxy( MathNode, MathNode.MAX );
-export const mod = nodeProxy( MathNode, MathNode.MOD );
-export const step = nodeProxy( MathNode, MathNode.STEP );
-export const reflect = nodeProxy( MathNode, MathNode.REFLECT );
-export const distance = nodeProxy( MathNode, MathNode.DISTANCE );
-export const difference = nodeProxy( MathNode, MathNode.DIFFERENCE );
-export const dot = nodeProxy( MathNode, MathNode.DOT );
-export const cross = nodeProxy( MathNode, MathNode.CROSS );
-export const pow = nodeProxy( MathNode, MathNode.POW );
-export const pow2 = nodeProxy( MathNode, MathNode.POW, 2 );
-export const pow3 = nodeProxy( MathNode, MathNode.POW, 3 );
-export const pow4 = nodeProxy( MathNode, MathNode.POW, 4 );
-export const transformDirection = nodeProxy( MathNode, MathNode.TRANSFORM_DIRECTION );
-
-export const cbrt = ( a ) => mul( sign( a ), pow( abs( a ), 1.0 / 3.0 ) );
-export const lengthSq = ( a ) => dot( a, a );
-export const mix = nodeProxy( MathNode, MathNode.MIX );
-export const clamp = ( value, low = 0, high = 1 ) => nodeObject( new MathNode( MathNode.CLAMP, nodeObject( value ), nodeObject( low ), nodeObject( high ) ) );
-export const saturate = ( value ) => clamp( value );
-export const refract = nodeProxy( MathNode, MathNode.REFRACT );
-export const smoothstep = nodeProxy( MathNode, MathNode.SMOOTHSTEP );
-export const faceForward = nodeProxy( MathNode, MathNode.FACEFORWARD );
-
-export const mixElement = ( t, e1, e2 ) => mix( e1, e2, t );
-export const smoothstepElement = ( x, low, high ) => smoothstep( low, high, x );
-
-addNodeElement( 'all', all );
-addNodeElement( 'any', any );
-addNodeElement( 'equals', equals );
-
-addNodeElement( 'radians', radians );
-addNodeElement( 'degrees', degrees );
-addNodeElement( 'exp', exp );
-addNodeElement( 'exp2', exp2 );
-addNodeElement( 'log', log );
-addNodeElement( 'log2', log2 );
-addNodeElement( 'sqrt', sqrt );
-addNodeElement( 'inverseSqrt', inverseSqrt );
-addNodeElement( 'floor', floor );
-addNodeElement( 'ceil', ceil );
-addNodeElement( 'normalize', normalize );
-addNodeElement( 'fract', fract );
-addNodeElement( 'sin', sin );
-addNodeElement( 'cos', cos );
-addNodeElement( 'tan', tan );
-addNodeElement( 'asin', asin );
-addNodeElement( 'acos', acos );
-addNodeElement( 'atan', atan );
-addNodeElement( 'abs', abs );
-addNodeElement( 'sign', sign );
-addNodeElement( 'length', length );
-addNodeElement( 'lengthSq', lengthSq );
-addNodeElement( 'negate', negate );
-addNodeElement( 'oneMinus', oneMinus );
-addNodeElement( 'dFdx', dFdx );
-addNodeElement( 'dFdy', dFdy );
-addNodeElement( 'round', round );
-addNodeElement( 'reciprocal', reciprocal );
-addNodeElement( 'trunc', trunc );
-addNodeElement( 'fwidth', fwidth );
-addNodeElement( 'atan2', atan2 );
-addNodeElement( 'min', min );
-addNodeElement( 'max', max );
-addNodeElement( 'mod', mod );
-addNodeElement( 'step', step );
-addNodeElement( 'reflect', reflect );
-addNodeElement( 'distance', distance );
-addNodeElement( 'dot', dot );
-addNodeElement( 'cross', cross );
-addNodeElement( 'pow', pow );
-addNodeElement( 'pow2', pow2 );
-addNodeElement( 'pow3', pow3 );
-addNodeElement( 'pow4', pow4 );
-addNodeElement( 'transformDirection', transformDirection );
-addNodeElement( 'mix', mixElement );
-addNodeElement( 'clamp', clamp );
-addNodeElement( 'refract', refract );
-addNodeElement( 'smoothstep', smoothstepElement );
-addNodeElement( 'faceForward', faceForward );
-addNodeElement( 'difference', difference );
-addNodeElement( 'saturate', saturate );
-addNodeElement( 'cbrt', cbrt );
-
-addNodeClass( 'MathNode', MathNode );

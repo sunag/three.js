@@ -1,6 +1,5 @@
 import Node, { addNodeClass } from '../core/Node.js';
 import { varying } from '../core/VaryingNode.js';
-import { normalize } from '../math/MathNode.js';
 import { cameraViewMatrix } from './CameraNode.js';
 import { normalGeometry, normalLocal, normalView, normalWorld, transformedNormalView } from './NormalNode.js';
 import { tangentGeometry, tangentLocal, tangentView, tangentWorld, transformedTangentView } from './TangentNode.js';
@@ -48,7 +47,7 @@ class BitangentNode extends Node {
 
 		const vertexNode = crossNormalTangent.mul( tangentGeometry.w ).xyz;
 
-		const outputNode = normalize( varying( vertexNode ) );
+		const outputNode = varying( vertexNode ).normalize();
 
 		return outputNode.build( builder, this.getNodeType( builder ) );
 
@@ -83,7 +82,7 @@ export const bitangentGeometry = nodeImmutable( BitangentNode, BitangentNode.GEO
 export const bitangentLocal = nodeImmutable( BitangentNode, BitangentNode.LOCAL );
 export const bitangentView = nodeImmutable( BitangentNode, BitangentNode.VIEW );
 export const bitangentWorld = nodeImmutable( BitangentNode, BitangentNode.WORLD );
-export const transformedBitangentView = normalize( transformedNormalView.cross( transformedTangentView ).mul( tangentGeometry.w ) );
-export const transformedBitangentWorld = normalize( transformedBitangentView.transformDirection( cameraViewMatrix ) );
+export const transformedBitangentView = transformedNormalView.cross( transformedTangentView ).mul( tangentGeometry.w ).normalize();
+export const transformedBitangentWorld = transformedBitangentView.transformDirection( cameraViewMatrix ).normalize();
 
 addNodeClass( 'BitangentNode', BitangentNode );

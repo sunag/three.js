@@ -1,9 +1,6 @@
 import TempNode from '../core/TempNode.js';
-import { addNodeClass } from '../core/Node.js';
-import { addNodeElement, tslFn, nodeObject, float, mat3, vec3 } from '../shadernode/ShaderNode.js';
+import { tslFn, nodeObject, float, mat3, vec3, mul, clamp, log2, max, pow } from '../shadernode/ShaderNode.js';
 import { rendererReference } from '../accessors/RendererReferenceNode.js';
-import { clamp, log2, max, pow } from '../math/MathNode.js';
-import { mul } from '../math/OperatorNode.js';
 
 import { NoToneMapping, LinearToneMapping, ReinhardToneMapping, CineonToneMapping, ACESFilmicToneMapping, AgXToneMapping } from 'three';
 
@@ -182,7 +179,3 @@ export default ToneMappingNode;
 
 export const toneMapping = ( mapping, exposure, color ) => nodeObject( new ToneMappingNode( mapping, nodeObject( exposure ), nodeObject( color ) ) );
 export const toneMappingExposure = rendererReference( 'toneMappingExposure', 'float' );
-
-addNodeElement( 'toneMapping', ( color, mapping, exposure ) => toneMapping( mapping, exposure, color ) );
-
-addNodeClass( 'ToneMappingNode', ToneMappingNode );

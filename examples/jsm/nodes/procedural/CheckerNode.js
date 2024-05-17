@@ -1,7 +1,6 @@
 import TempNode from '../core/TempNode.js';
 import { uv } from '../accessors/UVNode.js';
-import { addNodeClass } from '../core/Node.js';
-import { addNodeElement, tslFn, nodeProxy } from '../shadernode/ShaderNode.js';
+import { tslFn, nodeProxy } from '../shadernode/ShaderNode.js';
 
 const checkerShaderNode = tslFn( ( inputs ) => {
 
@@ -36,7 +35,3 @@ class CheckerNode extends TempNode {
 export default CheckerNode;
 
 export const checker = nodeProxy( CheckerNode );
-
-addNodeElement( 'checker', checker );
-
-addNodeClass( 'CheckerNode', CheckerNode );

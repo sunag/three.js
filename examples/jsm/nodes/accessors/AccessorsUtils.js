@@ -1,8 +1,7 @@
 import { bitangentView } from './BitangentNode.js';
 import { normalView, transformedNormalView } from './NormalNode.js';
 import { tangentView } from './TangentNode.js';
-import { mat3 } from '../shadernode/ShaderNode.js';
-import { mix } from '../math/MathNode.js';
+import { mat3, mix } from '../shadernode/ShaderNode.js';
 import { anisotropy, anisotropyB, roughness } from '../core/PropertyNode.js';
 import { positionViewDirection } from './PositionNode.js';
 

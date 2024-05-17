@@ -1,5 +1,4 @@
-import Node, { addNodeClass } from './Node.js';
-import { addNodeElement, nodeProxy } from '../shadernode/ShaderNode.js';
+import Node from './Node.js';
 
 class VarNode extends Node {
 
@@ -51,10 +50,3 @@ class VarNode extends Node {
 }
 
 export default VarNode;
-
-export const temp = nodeProxy( VarNode );
-
-addNodeElement( 'temp', temp ); // @TODO: Will be removed in the future
-addNodeElement( 'toVar', ( ...params ) => temp( ...params ).append() );
-
-addNodeClass( 'VarNode', VarNode );

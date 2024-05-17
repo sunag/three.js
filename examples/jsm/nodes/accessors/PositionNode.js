@@ -1,7 +1,6 @@
 import Node, { addNodeClass } from '../core/Node.js';
 import { attribute } from '../core/AttributeNode.js';
 import { varying } from '../core/VaryingNode.js';
-import { normalize } from '../math/MathNode.js';
 import { modelWorldMatrix, modelViewMatrix } from './ModelNode.js';
 import { nodeImmutable } from '../shadernode/ShaderNode.js';
 
@@ -54,12 +53,12 @@ class PositionNode extends Node {
 		} else if ( scope === PositionNode.VIEW_DIRECTION ) {
 
 			const vertexPositionNode = positionView.negate();
-			outputNode = normalize( varying( vertexPositionNode ) );
+			outputNode = varying( vertexPositionNode ).normalize();
 
 		} else if ( scope === PositionNode.WORLD_DIRECTION ) {
 
 			const vertexPositionNode = positionLocal.transformDirection( modelWorldMatrix );
-			outputNode = normalize( varying( vertexPositionNode ) );
+			outputNode = varying( vertexPositionNode ).normalize();
 
 		}
 
@@ -95,7 +94,7 @@ PositionNode.VIEW_DIRECTION = 'viewDirection';
 export default PositionNode;
 
 export const positionGeometry = nodeImmutable( PositionNode, PositionNode.GEOMETRY );
-export const positionLocal = nodeImmutable( PositionNode, PositionNode.LOCAL ).temp( 'Position' );
+export const positionLocal = nodeImmutable( PositionNode, PositionNode.LOCAL ).toVar( 'Position' );
 export const positionWorld = nodeImmutable( PositionNode, PositionNode.WORLD );
 export const positionWorldDirection = nodeImmutable( PositionNode, PositionNode.WORLD_DIRECTION );
 export const positionView = nodeImmutable( PositionNode, PositionNode.VIEW );

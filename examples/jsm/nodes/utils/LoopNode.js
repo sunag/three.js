@@ -1,8 +1,6 @@
 import Node, { addNodeClass } from '../core/Node.js';
 import { expression } from '../code/ExpressionNode.js';
-import { bypass } from '../core/BypassNode.js';
-import { context } from '../core/ContextNode.js';
-import { addNodeElement, nodeObject, nodeArray } from '../shadernode/ShaderNode.js';
+import { nodeObject, nodeArray, context } from '../shadernode/ShaderNode.js';
 
 class LoopNode extends Node {
 
@@ -169,7 +167,8 @@ class LoopNode extends Node {
 
 		}
 
-		const stackSnippet = context( stackNode, contextData ).build( builder, 'void' );
+		//const stackSnippet = context( stackNode, contextData ).build( builder, 'void' );
+		const stackSnippet = stackNode.context( contextData ).build( builder, 'void' );
 
 		const returnsSnippet = properties.returnsNode ? properties.returnsNode.build( builder ) : '';
 
@@ -194,7 +193,5 @@ export default LoopNode;
 export const loop = ( ...params ) => nodeObject( new LoopNode( nodeArray( params, 'int' ) ) ).append();
 export const Continue = () => expression( 'continue' ).append();
 export const Break = () => expression( 'break' ).append();
-
-addNodeElement( 'loop', ( returns, ...params ) => bypass( returns, loop( ...params ) ) );
 
 addNodeClass( 'LoopNode', LoopNode );

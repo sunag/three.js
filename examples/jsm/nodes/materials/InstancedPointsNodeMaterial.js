@@ -6,8 +6,7 @@ import { cameraProjectionMatrix } from '../accessors/CameraNode.js';
 import { materialColor, materialPointWidth } from '../accessors/MaterialNode.js'; // or should this be a property, instead?
 import { modelViewMatrix } from '../accessors/ModelNode.js';
 import { positionGeometry } from '../accessors/PositionNode.js';
-import { smoothstep } from '../math/MathNode.js';
-import { tslFn, vec2, vec4 } from '../shadernode/ShaderNode.js';
+import { tslFn, vec2, vec4, smoothstep } from '../shadernode/ShaderNode.js';
 import { uv } from '../accessors/UVNode.js';
 import { viewport } from '../display/ViewportNode.js';
 

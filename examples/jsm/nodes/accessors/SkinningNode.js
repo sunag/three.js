@@ -1,9 +1,8 @@
 import Node, { addNodeClass } from '../core/Node.js';
 import { NodeUpdateType } from '../core/constants.js';
-import { nodeObject } from '../shadernode/ShaderNode.js';
+import { nodeObject, add } from '../shadernode/ShaderNode.js';
 import { attribute } from '../core/AttributeNode.js';
 import { reference, referenceBuffer } from './ReferenceNode.js';
-import { add } from '../math/OperatorNode.js';
 import { normalLocal } from './NormalNode.js';
 import { positionLocal } from './PositionNode.js';
 import { tangentLocal } from './TangentNode.js';

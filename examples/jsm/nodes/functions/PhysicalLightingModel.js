@@ -9,10 +9,8 @@ import LightingModel from '../core/LightingModel.js';
 import { diffuseColor, specularColor, specularF90, roughness, clearcoat, clearcoatRoughness, sheen, sheenRoughness, iridescence, iridescenceIOR, iridescenceThickness, ior, thickness, transmission, attenuationDistance, attenuationColor } from '../core/PropertyNode.js';
 import { transformedNormalView, transformedClearcoatNormalView, transformedNormalWorld } from '../accessors/NormalNode.js';
 import { positionViewDirection, positionWorld } from '../accessors/PositionNode.js';
-import { tslFn, float, vec2, vec3, vec4, mat3, If } from '../shadernode/ShaderNode.js';
-import { cond } from '../math/CondNode.js';
-import { mix, normalize, refract, length, clamp, log2, log, exp, smoothstep } from '../math/MathNode.js';
-import { div } from '../math/OperatorNode.js';
+import { tslFn, float, vec2, vec3, vec4, mat3, div, mix, normalize, refract, length, clamp, log2, log, exp, smoothstep } from '../shadernode/ShaderNode.js';
+import { cond, If } from '../math/CondNode.js';
 import { cameraPosition, cameraProjectionMatrix, cameraViewMatrix } from '../accessors/CameraNode.js';
 import { modelWorldMatrix } from '../accessors/ModelNode.js';
 import { viewportResolution } from '../display/ViewportNode.js';
@@ -319,16 +317,16 @@ class PhysicalLightingModel extends LightingModel {
 
 		if ( this.clearcoat === true ) {
 
-			this.clearcoatRadiance = vec3().temp( 'clearcoatRadiance' );
-			this.clearcoatSpecularDirect = vec3().temp( 'clearcoatSpecularDirect' );
-			this.clearcoatSpecularIndirect = vec3().temp( 'clearcoatSpecularIndirect' );
+			this.clearcoatRadiance = vec3().toVar( 'clearcoatRadiance' );
+			this.clearcoatSpecularDirect = vec3().toVar( 'clearcoatSpecularDirect' );
+			this.clearcoatSpecularIndirect = vec3().toVar( 'clearcoatSpecularIndirect' );
 
 		}
 
 		if ( this.sheen === true ) {
 
-			this.sheenSpecularDirect = vec3().temp( 'sheenSpecularDirect' );
-			this.sheenSpecularIndirect = vec3().temp( 'sheenSpecularIndirect' );
+			this.sheenSpecularDirect = vec3().toVar( 'sheenSpecularDirect' );
+			this.sheenSpecularIndirect = vec3().toVar( 'sheenSpecularIndirect' );
 
 		}
 
@@ -468,8 +466,8 @@ class PhysicalLightingModel extends LightingModel {
 
 		// Both indirect specular and indirect diffuse light accumulate here
 
-		const singleScattering = vec3().temp( 'singleScattering' );
-		const multiScattering = vec3().temp( 'multiScattering' );
+		const singleScattering = vec3().toVar( 'singleScattering' );
+		const multiScattering = vec3().toVar( 'multiScattering' );
 		const cosineWeightedIrradiance = iblIrradiance.mul( 1 / Math.PI );
 
 		this.computeMultiscattering( singleScattering, multiScattering, specularF90 );

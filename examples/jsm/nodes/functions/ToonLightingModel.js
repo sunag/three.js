@@ -2,8 +2,7 @@ import LightingModel from '../core/LightingModel.js';
 import BRDF_Lambert from './BSDF/BRDF_Lambert.js';
 import { diffuseColor } from '../core/PropertyNode.js';
 import { normalGeometry } from '../accessors/NormalNode.js';
-import { tslFn, float, vec2, vec3 } from '../shadernode/ShaderNode.js';
-import { mix, smoothstep } from '../math/MathNode.js';
+import { tslFn, float, vec2, vec3, mix, smoothstep } from '../shadernode/ShaderNode.js';
 import { materialReference } from '../accessors/MaterialReferenceNode.js';
 
 const getGradientIrradiance = tslFn( ( { normal, lightDirection, builder } ) => {

@@ -25,7 +25,7 @@
 		<script type="module">
 
 			import * as THREE from 'three';
-			import { color, depth, vec2, pass, depthTexture, normalWorld, triplanarTexture, texture, objectPosition, viewportTopLeft, viewportDepthTexture, viewportSharedTexture, mx_worley_noise_float, positionWorld, timerLocal, MeshStandardNodeMaterial, MeshBasicNodeMaterial } from 'three/nodes';
+			import { color, depth, vec2, pass, depthTexture, normalWorld, triplanarTexture, gaussianBlur, texture, cond, objectPosition, viewportTopLeft, viewportDepthTexture, viewportSharedTexture, mx_worley_noise_float, positionWorld, timerLocal, remapClamp, MeshStandardNodeMaterial, MeshBasicNodeMaterial } from 'three/nodes';
 
 			import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
@@ -158,15 +158,16 @@
 				const waterColor = waterIntensity.mul( 1.4 ).mix( color( 0x0487e2 ), color( 0x74ccf4 ) );
 
 				const depthWater = depthTexture( viewportDepthTexture() ).sub( depth );
-				const depthEffect = depthWater.remapClamp( - .002, .04 );
+				const depthEffect = remapClamp( depthWater, - .002, .04 );
 
 				const refractionUV = viewportTopLeft.add( vec2( 0, waterIntensity.mul( .1 ) ) );
 
 				const depthTestForRefraction = depthTexture( viewportDepthTexture( refractionUV ) ).sub( depth );
 
-				const depthRefraction = depthTestForRefraction.remapClamp( 0, .1 );
+				const depthRefraction = remapClamp( depthTestForRefraction, 0, .1 );
 
-				const finalUV = depthTestForRefraction.lessThan( 0 ).cond( viewportTopLeft, refractionUV );
+				//const finalUV = depthTestForRefraction.lessThan( 0 ).cond( viewportTopLeft, refractionUV );
+				const finalUV = cond( depthTestForRefraction.lessThan( 0 ), viewportTopLeft, refractionUV );
 
 				const viewportTexture = viewportSharedTexture( finalUV );
 
@@ -191,7 +192,7 @@
 				const waterPosY = positionWorld.y.sub( water.position.y );
 
 				let transition = waterPosY.add( .1 ).saturate().oneMinus();
-				transition = waterPosY.lessThan( 0 ).cond( transition, normalWorld.y.mix( transition, 0 ) ).toVar();
+				transition = cond( waterPosY.lessThan( 0 ), transition, normalWorld.y.mix( transition, 0 ) ).toVar();
 
 				const colorNode = transition.mix( material.colorNode, material.colorNode.add( waterLayer0 ) );
 
@@ -230,17 +231,17 @@
 
 				const scenePass = pass( scene, camera );
 				const scenePassColor = scenePass.getTextureNode();
-				const scenePassDepth = scenePass.getDepthNode().remapClamp( .3, .5 );
+				const scenePassDepth = remapClamp( scenePass.getDepthNode(), .3, .5 );
 
 				const waterMask = objectPosition( camera ).y.greaterThan( 0 );
 
-				const scenePassColorBlurred = scenePassColor.gaussianBlur();
-				scenePassColorBlurred.directionNode = waterMask.cond( scenePassDepth, scenePass.getDepthNode().mul( 5 ) );
+				const scenePassColorBlurred = gaussianBlur( scenePassColor );
+				scenePassColorBlurred.directionNode = cond( waterMask, scenePassDepth, scenePass.getDepthNode().mul( 5 ) );
 
 				const vignet = viewportTopLeft.distance( .5 ).mul( 1.35 ).clamp().oneMinus();
 
 				postProcessing = new PostProcessing( renderer );
-				postProcessing.outputNode = waterMask.cond( scenePassColorBlurred, scenePassColorBlurred.mul( color( 0x74ccf4 ) ).mul( vignet ) );
+				postProcessing.outputNode = cond( waterMask, scenePassColorBlurred, scenePassColorBlurred.mul( color( 0x74ccf4 ) ).mul( vignet ) );
 
 				//
 

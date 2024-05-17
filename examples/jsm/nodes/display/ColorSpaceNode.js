@@ -1,7 +1,5 @@
 import TempNode from '../core/TempNode.js';
-import { mix } from '../math/MathNode.js';
-import { addNodeClass } from '../core/Node.js';
-import { addNodeElement, tslFn, nodeObject, nodeProxy, vec4 } from '../shadernode/ShaderNode.js';
+import { tslFn, nodeObject, nodeProxy, vec4, mix } from '../shadernode/ShaderNode.js';
 
 import { LinearSRGBColorSpace, SRGBColorSpace } from 'three';
 
@@ -99,10 +97,3 @@ export const colorSpaceToLinear = ( node, colorSpace ) => nodeObject( new ColorS
 
 export const linearTosRGB = nodeProxy( ColorSpaceNode, ColorSpaceNode.LINEAR_TO_sRGB );
 export const sRGBToLinear = nodeProxy( ColorSpaceNode, ColorSpaceNode.sRGB_TO_LINEAR );
-
-addNodeElement( 'linearTosRGB', linearTosRGB );
-addNodeElement( 'sRGBToLinear', sRGBToLinear );
-addNodeElement( 'linearToColorSpace', linearToColorSpace );
-addNodeElement( 'colorSpaceToLinear', colorSpaceToLinear );
-
-addNodeClass( 'ColorSpaceNode', ColorSpaceNode );

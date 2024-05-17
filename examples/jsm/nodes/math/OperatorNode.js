@@ -1,6 +1,4 @@
 import TempNode from '../core/TempNode.js';
-import { addNodeClass } from '../core/Node.js';
-import { addNodeElement, nodeProxy } from '../shadernode/ShaderNode.js';
 
 class OperatorNode extends TempNode {
 
@@ -226,49 +224,3 @@ class OperatorNode extends TempNode {
 }
 
 export default OperatorNode;
-
-export const add = nodeProxy( OperatorNode, '+' );
-export const sub = nodeProxy( OperatorNode, '-' );
-export const mul = nodeProxy( OperatorNode, '*' );
-export const div = nodeProxy( OperatorNode, '/' );
-export const remainder = nodeProxy( OperatorNode, '%' );
-export const equal = nodeProxy( OperatorNode, '==' );
-export const notEqual = nodeProxy( OperatorNode, '!=' );
-export const lessThan = nodeProxy( OperatorNode, '<' );
-export const greaterThan = nodeProxy( OperatorNode, '>' );
-export const lessThanEqual = nodeProxy( OperatorNode, '<=' );
-export const greaterThanEqual = nodeProxy( OperatorNode, '>=' );
-export const and = nodeProxy( OperatorNode, '&&' );
-export const or = nodeProxy( OperatorNode, '||' );
-export const not = nodeProxy( OperatorNode, '!' );
-export const xor = nodeProxy( OperatorNode, '^^' );
-export const bitAnd = nodeProxy( OperatorNode, '&' );
-export const bitNot = nodeProxy( OperatorNode, '~' );
-export const bitOr = nodeProxy( OperatorNode, '|' );
-export const bitXor = nodeProxy( OperatorNode, '^' );
-export const shiftLeft = nodeProxy( OperatorNode, '<<' );
-export const shiftRight = nodeProxy( OperatorNode, '>>' );
-
-addNodeElement( 'add', add );
-addNodeElement( 'sub', sub );
-addNodeElement( 'mul', mul );
-addNodeElement( 'div', div );
-addNodeElement( 'remainder', remainder );
-addNodeElement( 'equal', equal );
-addNodeElement( 'notEqual', notEqual );
-addNodeElement( 'lessThan', lessThan );
-addNodeElement( 'greaterThan', greaterThan );
-addNodeElement( 'lessThanEqual', lessThanEqual );
-addNodeElement( 'greaterThanEqual', greaterThanEqual );
-addNodeElement( 'and', and );
-addNodeElement( 'or', or );
-addNodeElement( 'not', not );
-addNodeElement( 'xor', xor );
-addNodeElement( 'bitAnd', bitAnd );
-addNodeElement( 'bitNot', bitNot );
-addNodeElement( 'bitOr', bitOr );
-addNodeElement( 'bitXor', bitXor );
-addNodeElement( 'shiftLeft', shiftLeft );
-addNodeElement( 'shiftRight', shiftRight );
-
-addNodeClass( 'OperatorNode', OperatorNode );

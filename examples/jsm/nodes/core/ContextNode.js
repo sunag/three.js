@@ -1,5 +1,4 @@
-import Node, { addNodeClass } from './Node.js';
-import { addNodeElement, nodeProxy } from '../shadernode/ShaderNode.js';
+import Node from './Node.js';
 
 class ContextNode extends Node {
 
@@ -51,11 +50,3 @@ class ContextNode extends Node {
 }
 
 export default ContextNode;
-
-export const context = nodeProxy( ContextNode );
-export const label = ( node, name ) => context( node, { label: name } );
-
-addNodeElement( 'context', context );
-addNodeElement( 'label', label );
-
-addNodeClass( 'ContextNode', ContextNode );

@@ -1,7 +1,6 @@
 import TextureNode from './TextureNode.js';
 import { reflectVector } from './ReflectVectorNode.js';
-import { addNodeClass } from '../core/Node.js';
-import { addNodeElement, nodeProxy, vec3 } from '../shadernode/ShaderNode.js';
+import { nodeProxy, vec3 } from '../shadernode/ShaderNode.js';
 import { WebGPUCoordinateSystem } from 'three';
 
 class CubeTextureNode extends TextureNode {
@@ -55,7 +54,3 @@ class CubeTextureNode extends TextureNode {
 export default CubeTextureNode;
 
 export const cubeTexture = nodeProxy( CubeTextureNode );
-
-addNodeElement( 'cubeTexture', cubeTexture );
-
-addNodeClass( 'CubeTextureNode', CubeTextureNode );

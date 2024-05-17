@@ -1,8 +1,5 @@
 import TempNode from '../core/TempNode.js';
-import { dot, mix } from '../math/MathNode.js';
-import { add } from '../math/OperatorNode.js';
-import { addNodeClass } from '../core/Node.js';
-import { addNodeElement, tslFn, nodeProxy, float, vec3 } from '../shadernode/ShaderNode.js';
+import { tslFn, nodeProxy, float, vec3, add, dot, mix } from '../shadernode/ShaderNode.js';
 
 const saturationNode = tslFn( ( { color, adjustment } ) => {
 
@@ -90,10 +87,3 @@ export const lumaCoeffs = vec3( 0.2125, 0.7154, 0.0721 );
 export const luminance = ( color, luma = lumaCoeffs ) => dot( color, luma );
 
 export const threshold = ( color, threshold ) => mix( vec3( 0.0 ), color, luminance( color ).sub( threshold ).max( 0 ) );
-
-addNodeElement( 'saturation', saturation );
-addNodeElement( 'vibrance', vibrance );
-addNodeElement( 'hue', hue );
-addNodeElement( 'threshold', threshold );
-
-addNodeClass( 'ColorAdjustmentNode', ColorAdjustmentNode );

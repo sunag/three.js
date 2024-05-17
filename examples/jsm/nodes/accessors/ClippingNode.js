@@ -3,9 +3,8 @@ import Node from '../core/Node.js';
 import { nodeObject } from '../shadernode/ShaderNode.js';
 import { positionView } from './PositionNode.js';
 import { diffuseColor, property } from '../core/PropertyNode.js';
-import { tslFn } from '../shadernode/ShaderNode.js';
+import { tslFn, smoothstep } from '../shadernode/ShaderNode.js';
 import { loop } from '../utils/LoopNode.js';
-import { smoothstep } from '../math/MathNode.js';
 import { uniforms } from './UniformsNode.js';
 
 class ClippingNode extends Node {

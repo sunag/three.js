@@ -16,10 +16,10 @@ class LightsNode extends Node {
 
 		super( 'vec3' );
 
-		this.totalDiffuseNode = vec3().temp( 'totalDiffuse' );
-		this.totalSpecularNode = vec3().temp( 'totalSpecular' );
+		this.totalDiffuseNode = vec3().toVar( 'totalDiffuse' );
+		this.totalSpecularNode = vec3().toVar( 'totalSpecular' );
 
-		this.outgoingLightNode = vec3().temp( 'outgoingLight' );
+		this.outgoingLightNode = vec3().toVar( 'outgoingLight' );
 
 		this.lightNodes = lightNodes;
 

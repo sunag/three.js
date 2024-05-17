@@ -1,10 +1,22 @@
-import Node, { addNodeClass } from '../core/Node.js';
+import Node from '../core/Node.js';
+import AssignNode from '../core/AssignNode.js';
+import OperatorNode from '../math/OperatorNode.js';
+import MathNode from '../math/MathNode.js';
 import ArrayElementNode from '../utils/ArrayElementNode.js';
+import StorageArrayElementNode from '../utils/StorageArrayElementNode.js';
 import ConvertNode from '../utils/ConvertNode.js';
 import JoinNode from '../utils/JoinNode.js';
 import SplitNode from '../utils/SplitNode.js';
 import SetNode from '../utils/SetNode.js';
 import ConstNode from '../core/ConstNode.js';
+import BypassNode from '../core/BypassNode.js';
+import CacheNode from '../core/CacheNode.js';
+import ContextNode from '../core/ContextNode.js';
+import VarNode from '../core/VarNode.js';
+import CodeNode from '../code/CodeNode.js';
+import FunctionNode from '../code/FunctionNode.js';
+import FunctionCallNode from '../code/FunctionCallNode.js';
+
 import { getValueFromType, getValueType } from '../core/NodeUtils.js';
 
 //
@@ -13,7 +25,7 @@ let currentStack = null;
 
 const NodeElements = new Map(); // @TODO: Currently only a few nodes are added, probably also add others
 
-export function addNodeElement( name, nodeElement ) {
+function addNodeElement( name, nodeElement ) {
 
 	if ( NodeElements.has( name ) ) {
 
@@ -58,7 +70,7 @@ const shaderNodeHandler = {
 
 				const nodeElement = NodeElements.get( prop );
 
-				return node.isStackNode ? ( ...params ) => nodeObj.add( nodeElement( ...params ) ) : ( ...params ) => nodeElement( nodeObj, ...params );
+				return node.isStackNode && prop !== 'context' ? ( ...params ) => nodeObj.add( nodeElement( ...params ) ) : ( ...params ) => nodeElement( nodeObj, ...params );
 
 			} else if ( prop === 'self' ) {
 
@@ -251,9 +263,15 @@ class ShaderCallNodeInternal extends Node {
 
 	getNodeType( builder ) {
 
-		const { outputNode } = builder.getNodeProperties( this );
+		const properties = builder.getNodeProperties( this );
 
-		return outputNode ? outputNode.getNodeType( builder ) : super.getNodeType( builder );
+		if ( properties.outputNode === null ) {
+
+			properties.outputNode = this.setupOutput( builder );
+
+		}
+
+		return properties.outputNode.getNodeType( builder );
 
 	}
 
@@ -301,6 +319,14 @@ class ShaderCallNodeInternal extends Node {
 	}
 
 	setup( builder ) {
+
+		const { outputNode } = builder.getNodeProperties( this );
+
+		return outputNode || this.setupOutput( builder );
+
+	}
+
+	setupOutput( builder ) {
 
 		builder.addStack();
 
@@ -513,8 +539,6 @@ export const tslFn = ( jsFunc ) => {
 
 };
 
-addNodeClass( 'ShaderNode', ShaderNode );
-
 //
 
 export const setCurrentStack = ( stack ) => {
@@ -531,8 +555,6 @@ export const setCurrentStack = ( stack ) => {
 
 export const getCurrentStack = () => currentStack;
 
-export const If = ( ...params ) => currentStack.if( ...params );
-
 export function append( node ) {
 
 	if ( currentStack ) currentStack.add( node );
@@ -543,8 +565,9 @@ export function append( node ) {
 
 addNodeElement( 'append', append );
 
-// types
-// @TODO: Maybe export from ConstNode.js?
+//
+// Types
+//
 
 export const color = new ConvertType( 'color' );
 
@@ -619,8 +642,308 @@ addNodeElement( 'toBmat4', bmat4 );
 // basic nodes
 // HACK - we cannot export them from the corresponding files because of the cyclic dependency
 export const element = nodeProxy( ArrayElementNode );
+export const storageElement = nodeProxy( StorageArrayElementNode );
+
 export const convert = ( node, types ) => nodeObject( new ConvertNode( nodeObject( node ), types ) );
 export const split = ( node, channels ) => nodeObject( new SplitNode( nodeObject( node ), channels ) );
 
 addNodeElement( 'element', element );
+addNodeElement( 'storageElement', storageElement );
+
 addNodeElement( 'convert', convert );
+
+//
+// Code
+//
+
+export const code = nodeProxy( CodeNode );
+
+export const js = ( src, includes ) => code( src, includes, 'js' );
+export const wgsl = ( src, includes ) => code( src, includes, 'wgsl' );
+export const glsl = ( src, includes ) => code( src, includes, 'glsl' );
+
+//
+// Function
+//
+
+const nativeFn = ( code, includes = [], language = '' ) => {
+
+	for ( let i = 0; i < includes.length; i ++ ) {
+
+		const include = includes[ i ];
+
+		// TSL Function: glslFn, wgslFn
+
+		if ( typeof include === 'function' ) {
+
+			includes[ i ] = include.functionNode;
+
+		}
+
+	}
+
+	const functionNode = nodeObject( new FunctionNode( code, includes, language ) );
+
+	const fn = ( ...params ) => functionNode.call( ...params );
+	fn.functionNode = functionNode;
+
+	return fn;
+
+};
+
+export const glslFn = ( code, includes ) => nativeFn( code, includes, 'glsl' );
+export const wgslFn = ( code, includes ) => nativeFn( code, includes, 'wgsl' );
+
+//
+// Function Call
+//
+
+export const call = ( func, ...params ) => {
+
+	params = params.length > 1 || ( params[ 0 ] && params[ 0 ].isNode === true ) ? nodeArray( params ) : nodeObjects( params[ 0 ] );
+
+	return nodeObject( new FunctionCallNode( nodeObject( func ), params ) );
+
+};
+
+addNodeElement( 'call', call );
+
+//
+// Variable
+//
+
+export const createVar = nodeProxy( VarNode );
+
+addNodeElement( 'toVar', ( ...params ) => createVar( ...params ).append() );
+
+//
+// Bypass
+//
+
+export const bypass = nodeProxy( BypassNode );
+
+addNodeElement( 'bypass', bypass );
+
+//
+// Cache
+//
+
+export const cache = nodeProxy( CacheNode );
+
+addNodeElement( 'cache', cache );
+
+//
+// Context
+//
+
+export const context = nodeProxy( ContextNode );
+export const label = ( node, name ) => context( node, { label: name } );
+
+addNodeElement( 'context', context );
+addNodeElement( 'label', label );
+
+//
+// Assign
+//
+
+export const assign = nodeProxy( AssignNode );
+
+addNodeElement( 'assign', assign );
+
+//
+// Operators
+//
+
+export const add = nodeProxy( OperatorNode, '+' );
+export const sub = nodeProxy( OperatorNode, '-' );
+export const mul = nodeProxy( OperatorNode, '*' );
+export const div = nodeProxy( OperatorNode, '/' );
+export const remainder = nodeProxy( OperatorNode, '%' );
+export const equal = nodeProxy( OperatorNode, '==' );
+export const notEqual = nodeProxy( OperatorNode, '!=' );
+export const lessThan = nodeProxy( OperatorNode, '<' );
+export const greaterThan = nodeProxy( OperatorNode, '>' );
+export const lessThanEqual = nodeProxy( OperatorNode, '<=' );
+export const greaterThanEqual = nodeProxy( OperatorNode, '>=' );
+export const and = nodeProxy( OperatorNode, '&&' );
+export const or = nodeProxy( OperatorNode, '||' );
+export const not = nodeProxy( OperatorNode, '!' );
+export const xor = nodeProxy( OperatorNode, '^^' );
+export const bitAnd = nodeProxy( OperatorNode, '&' );
+export const bitNot = nodeProxy( OperatorNode, '~' );
+export const bitOr = nodeProxy( OperatorNode, '|' );
+export const bitXor = nodeProxy( OperatorNode, '^' );
+export const shiftLeft = nodeProxy( OperatorNode, '<<' );
+export const shiftRight = nodeProxy( OperatorNode, '>>' );
+
+addNodeElement( 'add', add );
+addNodeElement( 'sub', sub );
+addNodeElement( 'mul', mul );
+addNodeElement( 'div', div );
+addNodeElement( 'remainder', remainder );
+addNodeElement( 'equal', equal );
+addNodeElement( 'notEqual', notEqual );
+addNodeElement( 'lessThan', lessThan );
+addNodeElement( 'greaterThan', greaterThan );
+addNodeElement( 'lessThanEqual', lessThanEqual );
+addNodeElement( 'greaterThanEqual', greaterThanEqual );
+addNodeElement( 'and', and );
+addNodeElement( 'or', or );
+addNodeElement( 'not', not );
+addNodeElement( 'xor', xor );
+addNodeElement( 'bitAnd', bitAnd );
+addNodeElement( 'bitNot', bitNot );
+addNodeElement( 'bitOr', bitOr );
+addNodeElement( 'bitXor', bitXor );
+addNodeElement( 'shiftLeft', shiftLeft );
+addNodeElement( 'shiftRight', shiftRight );
+
+//
+// Math
+//
+
+export const EPSILON = /*#__PURE__*/ float( 1e-6 );
+export const INFINITY = /*#__PURE__*/ float( 1e6 );
+export const PI = /*#__PURE__*/ float( Math.PI );
+export const PI2 = /*#__PURE__*/ float( Math.PI * 2 );
+
+export const all = nodeProxy( MathNode, MathNode.ALL );
+export const any = nodeProxy( MathNode, MathNode.ANY );
+export const equals = nodeProxy( MathNode, MathNode.EQUALS );
+
+export const radians = nodeProxy( MathNode, MathNode.RADIANS );
+export const degrees = nodeProxy( MathNode, MathNode.DEGREES );
+export const exp = nodeProxy( MathNode, MathNode.EXP );
+export const exp2 = nodeProxy( MathNode, MathNode.EXP2 );
+export const log = nodeProxy( MathNode, MathNode.LOG );
+export const log2 = nodeProxy( MathNode, MathNode.LOG2 );
+export const sqrt = nodeProxy( MathNode, MathNode.SQRT );
+export const inverseSqrt = nodeProxy( MathNode, MathNode.INVERSE_SQRT );
+export const floor = nodeProxy( MathNode, MathNode.FLOOR );
+export const ceil = nodeProxy( MathNode, MathNode.CEIL );
+export const normalize = nodeProxy( MathNode, MathNode.NORMALIZE );
+export const fract = nodeProxy( MathNode, MathNode.FRACT );
+export const sin = nodeProxy( MathNode, MathNode.SIN );
+export const cos = nodeProxy( MathNode, MathNode.COS );
+export const tan = nodeProxy( MathNode, MathNode.TAN );
+export const asin = nodeProxy( MathNode, MathNode.ASIN );
+export const acos = nodeProxy( MathNode, MathNode.ACOS );
+export const atan = nodeProxy( MathNode, MathNode.ATAN );
+export const abs = nodeProxy( MathNode, MathNode.ABS );
+export const sign = nodeProxy( MathNode, MathNode.SIGN );
+export const length = nodeProxy( MathNode, MathNode.LENGTH );
+export const negate = nodeProxy( MathNode, MathNode.NEGATE );
+export const dFdx = nodeProxy( MathNode, MathNode.DFDX );
+export const dFdy = nodeProxy( MathNode, MathNode.DFDY );
+export const round = nodeProxy( MathNode, MathNode.ROUND );
+export const trunc = nodeProxy( MathNode, MathNode.TRUNC );
+export const fwidth = nodeProxy( MathNode, MathNode.FWIDTH );
+export const bitcast = nodeProxy( MathNode, MathNode.BITCAST );
+
+export const atan2 = nodeProxy( MathNode, MathNode.ATAN2 );
+export const min = nodeProxy( MathNode, MathNode.MIN );
+export const max = nodeProxy( MathNode, MathNode.MAX );
+export const mod = nodeProxy( MathNode, MathNode.MOD );
+export const step = nodeProxy( MathNode, MathNode.STEP );
+export const reflect = nodeProxy( MathNode, MathNode.REFLECT );
+export const distance = nodeProxy( MathNode, MathNode.DISTANCE );
+export const dot = nodeProxy( MathNode, MathNode.DOT );
+export const cross = nodeProxy( MathNode, MathNode.CROSS );
+export const pow = nodeProxy( MathNode, MathNode.POW );
+export const pow2 = nodeProxy( MathNode, MathNode.POW, 2 );
+export const pow3 = nodeProxy( MathNode, MathNode.POW, 3 );
+export const pow4 = nodeProxy( MathNode, MathNode.POW, 4 );
+
+export const cbrt = ( a ) => mul( sign( a ), pow( abs( a ), 1.0 / 3.0 ) );
+export const lengthSq = ( a ) => dot( a, a );
+export const mix = nodeProxy( MathNode, MathNode.MIX );
+export const clamp = ( value, low = 0, high = 1 ) => nodeObject( new MathNode( MathNode.CLAMP, nodeObject( value ), nodeObject( low ), nodeObject( high ) ) );
+export const saturate = ( value ) => clamp( value );
+export const refract = nodeProxy( MathNode, MathNode.REFRACT );
+export const smoothstep = nodeProxy( MathNode, MathNode.SMOOTHSTEP );
+export const faceForward = nodeProxy( MathNode, MathNode.FACEFORWARD );
+
+export const oneMinus = ( a ) => sub( 1.0, a );
+export const reciprocal = ( a ) => div( 1.0, a );
+export const difference = ( a, b ) => abs( sub( a, b ) );
+export const transformDirection = tslFn( ( [ a, b ], stack, builder ) => {
+
+	// dir can be either a direction vector or a normal vector
+	// upper-left 3x3 of matrix is assumed to be orthogonal
+
+	let tA = a;
+	let tB = b;
+
+	if ( builder.isMatrix( tA.getNodeType( builder ) ) ) {
+
+		tB = vec4( vec3( tB ), 0.0 );
+
+	} else {
+
+		tA = vec4( vec3( tA ), 0.0 );
+
+	}
+
+	return tA.mul( tB ).xyz.normalize();
+
+} );
+
+export const mixElement = ( t, e1, e2 ) => mix( e1, e2, t );
+export const smoothstepElement = ( x, low, high ) => smoothstep( low, high, x );
+
+addNodeElement( 'all', all );
+addNodeElement( 'any', any );
+addNodeElement( 'equals', equals );
+
+addNodeElement( 'radians', radians );
+addNodeElement( 'degrees', degrees );
+addNodeElement( 'exp', exp );
+addNodeElement( 'exp2', exp2 );
+addNodeElement( 'log', log );
+addNodeElement( 'log2', log2 );
+addNodeElement( 'sqrt', sqrt );
+addNodeElement( 'inverseSqrt', inverseSqrt );
+addNodeElement( 'floor', floor );
+addNodeElement( 'ceil', ceil );
+addNodeElement( 'normalize', normalize );
+addNodeElement( 'fract', fract );
+addNodeElement( 'sin', sin );
+addNodeElement( 'cos', cos );
+addNodeElement( 'tan', tan );
+addNodeElement( 'asin', asin );
+addNodeElement( 'acos', acos );
+addNodeElement( 'atan', atan );
+addNodeElement( 'abs', abs );
+addNodeElement( 'sign', sign );
+addNodeElement( 'length', length );
+addNodeElement( 'lengthSq', lengthSq );
+addNodeElement( 'negate', negate );
+addNodeElement( 'oneMinus', oneMinus );
+addNodeElement( 'dFdx', dFdx );
+addNodeElement( 'dFdy', dFdy );
+addNodeElement( 'round', round );
+addNodeElement( 'reciprocal', reciprocal );
+addNodeElement( 'trunc', trunc );
+addNodeElement( 'fwidth', fwidth );
+addNodeElement( 'atan2', atan2 );
+addNodeElement( 'min', min );
+addNodeElement( 'max', max );
+addNodeElement( 'mod', mod );
+addNodeElement( 'step', step );
+addNodeElement( 'reflect', reflect );
+addNodeElement( 'distance', distance );
+addNodeElement( 'dot', dot );
+addNodeElement( 'cross', cross );
+addNodeElement( 'pow', pow );
+addNodeElement( 'pow2', pow2 );
+addNodeElement( 'pow3', pow3 );
+addNodeElement( 'pow4', pow4 );
+addNodeElement( 'transformDirection', transformDirection );
+addNodeElement( 'mix', mixElement );
+addNodeElement( 'clamp', clamp );
+addNodeElement( 'refract', refract );
+addNodeElement( 'smoothstep', smoothstepElement );
+addNodeElement( 'faceForward', faceForward );
+addNodeElement( 'difference', difference );
+addNodeElement( 'saturate', saturate );
+addNodeElement( 'cbrt', cbrt );

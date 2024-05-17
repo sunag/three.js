@@ -1,7 +1,6 @@
 import TempNode from '../core/TempNode.js';
-import { nodeObject, addNodeElement, tslFn, float, vec2, vec4 } from '../shadernode/ShaderNode.js';
+import { nodeObject, tslFn, float, vec2, vec4, mul } from '../shadernode/ShaderNode.js';
 import { NodeUpdateType } from '../core/constants.js';
-import { mul } from '../math/OperatorNode.js';
 import { uv } from '../accessors/UVNode.js';
 import { texturePass } from './PassNode.js';
 import { uniform } from '../core/UniformNode.js';
@@ -182,9 +181,6 @@ class GaussianBlurNode extends TempNode {
 
 }
 
-export const gaussianBlur = ( node, sigma ) => nodeObject( new GaussianBlurNode( nodeObject( node ), sigma ) );
-
-addNodeElement( 'gaussianBlur', gaussianBlur );
-
 export default GaussianBlurNode;
 
+export const gaussianBlur = ( node, sigma ) => nodeObject( new GaussianBlurNode( nodeObject( node ), sigma ) );

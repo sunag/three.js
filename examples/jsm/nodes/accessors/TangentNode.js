@@ -1,11 +1,9 @@
 import Node, { addNodeClass } from '../core/Node.js';
 import { attribute } from '../core/AttributeNode.js';
-import { temp } from '../core/VarNode.js';
 import { varying } from '../core/VaryingNode.js';
-import { normalize } from '../math/MathNode.js';
 import { cameraViewMatrix } from './CameraNode.js';
 import { modelViewMatrix } from './ModelNode.js';
-import { nodeImmutable, vec4 } from '../shadernode/ShaderNode.js';
+import { nodeImmutable, vec4, normalize, createVar } from '../shadernode/ShaderNode.js';
 
 class TangentNode extends Node {
 
@@ -61,12 +59,12 @@ class TangentNode extends Node {
 		} else if ( scope === TangentNode.VIEW ) {
 
 			const vertexNode = modelViewMatrix.mul( vec4( tangentLocal, 0 ) ).xyz;
-			outputNode = normalize( varying( vertexNode ) );
+			outputNode = varying( vertexNode ).normalize();
 
 		} else if ( scope === TangentNode.WORLD ) {
 
 			const vertexNode = tangentView.transformDirection( cameraViewMatrix );
-			outputNode = normalize( varying( vertexNode ) );
+			outputNode = varying( vertexNode ).normalize();
 
 		}
 
@@ -103,7 +101,7 @@ export const tangentGeometry = nodeImmutable( TangentNode, TangentNode.GEOMETRY 
 export const tangentLocal = nodeImmutable( TangentNode, TangentNode.LOCAL );
 export const tangentView = nodeImmutable( TangentNode, TangentNode.VIEW );
 export const tangentWorld = nodeImmutable( TangentNode, TangentNode.WORLD );
-export const transformedTangentView = temp( tangentView, 'TransformedTangentView' );
+export const transformedTangentView = createVar( tangentView, 'TransformedTangentView' );
 export const transformedTangentWorld = normalize( transformedTangentView.transformDirection( cameraViewMatrix ) );
 
 addNodeClass( 'TangentNode', TangentNode );

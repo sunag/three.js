@@ -1,7 +1,5 @@
-import { tslFn, int, float, vec2, vec3, vec4, If } from '../shadernode/ShaderNode.js';
-import { cos, sin, abs, max, exp2, log2, clamp, fract, mix, floor, normalize, cross, all } from '../math/MathNode.js';
-import { mul } from '../math/OperatorNode.js';
-import { cond } from '../math/CondNode.js';
+import { tslFn, int, float, vec2, vec3, vec4, mul, cos, sin, abs, max, exp2, log2, clamp, fract, mix, floor, normalize, cross, all } from '../shadernode/ShaderNode.js';
+import { cond, If } from '../math/CondNode.js';
 import { loop, Break } from '../utils/LoopNode.js';
 
 // These defines must match with PMREMGenerator

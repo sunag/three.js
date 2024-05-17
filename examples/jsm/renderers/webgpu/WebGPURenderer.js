@@ -1,4 +1,4 @@
-import WebGPU from '../../capabilities/WebGPU.js';
+//import WebGPU from '../../capabilities/WebGPU.js';
 
 import Renderer from '../common/Renderer.js';
 import WebGLBackend from '../webgl/WebGLBackend.js';
@@ -27,13 +27,9 @@ class WebGPURenderer extends Renderer {
 
 			BackendClass = WebGLBackend;
 
-		} else if ( WebGPU.isAvailable() ) {
-
-			BackendClass = WebGPUBackend;
-
 		} else {
 
-			BackendClass = WebGLBackend;
+			BackendClass = WebGPUBackend;
 
 			console.warn( 'THREE.WebGPURenderer: WebGPU is not available, running under WebGL2 backend.' );
 
