@@ -176,7 +176,7 @@ class PassNode extends TempNode {
 			const cameraNear = this._cameraNear;
 			const cameraFar = this._cameraFar;
 
-			this._viewZNode = perspectiveDepthToViewZ( this._depthTextureNode, cameraNear, cameraFar );
+			this._viewZNode = perspectiveDepthToViewZ( this.getTextureNode( 'depth' ), cameraNear, cameraFar );
 
 		}
 
@@ -236,7 +236,7 @@ class PassNode extends TempNode {
 		this._cameraFar.value = camera.far;
 
 		renderer.setRenderTarget( this.renderTarget );
-		if ( this._mrt !== null ) renderer.setMRT( this._mrt );
+		renderer.setMRT( this._mrt );
 
 		renderer.render( scene, camera );
 
