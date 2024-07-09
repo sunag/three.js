@@ -45659,11 +45659,22 @@ class NodeMaterial extends Material {
 
 			if ( renderTarget !== null ) {
 
-				const mrt = this.mrtNode || builder.renderer.getMRT();
+				const mrt = builder.renderer.getMRT();
+				const materialMRT = this.mrtNode;
 
 				if ( mrt !== null ) {
 
 					resultNode = mrt;
+
+					if ( materialMRT !== null ) {
+
+						resultNode = mrt.merge( materialMRT );
+
+					}
+
+				} else if ( materialMRT !== null ) {
+
+					resultNode = materialMRT;
 
 				}
 
@@ -49429,6 +49440,14 @@ class MRTNode extends OutputStructNode {
 
 	}
 
+	merge( mrtNode ) {
+
+		const outputs = { ...this.outputNodes, ...mrtNode.outputNodes };
+
+		return mrt( outputs );
+
+	}
+
 	setup( builder ) {
 
 		const outputNodes = this.outputNodes;
@@ -52329,7 +52348,7 @@ class PassNode extends TempNode {
 			const cameraNear = this._cameraNear;
 			const cameraFar = this._cameraFar;
 
-			this._viewZNode = perspectiveDepthToViewZ( this._depthTextureNode, cameraNear, cameraFar );
+			this._viewZNode = perspectiveDepthToViewZ( this.getTextureNode( 'depth' ), cameraNear, cameraFar );
 
 		}
 
@@ -52389,7 +52408,7 @@ class PassNode extends TempNode {
 		this._cameraFar.value = camera.far;
 
 		renderer.setRenderTarget( this.renderTarget );
-		if ( this._mrt !== null ) renderer.setMRT( this._mrt );
+		renderer.setMRT( this._mrt );
 
 		renderer.render( scene, camera );
 
@@ -74138,22 +74157,6 @@ class PostProcessing {
 
 		this.needsUpdate = true;
 
-		this.mrt = null;
-
-	}
-
-	setMRT( mrt ) {
-
-		this.mrt = mrt;
-
-		return this;
-
-	}
-
-	getMRT() {
-
-		return this.mrt;
-
 	}
 
 	render() {
@@ -74164,14 +74167,11 @@ class PostProcessing {
 
 		const toneMapping = renderer.toneMapping;
 		const outputColorSpace = renderer.outputColorSpace;
-		const currentMRT = renderer.getMRT();
 
 		renderer.toneMapping = NoToneMapping;
 		renderer.outputColorSpace = LinearSRGBColorSpace;
 
 		//
-
-		if ( this.mrt !== null ) renderer.setMRT( this.mrt );
 
 		quadMesh.render( renderer );
 
@@ -74179,7 +74179,6 @@ class PostProcessing {
 
 		renderer.toneMapping = toneMapping;
 		renderer.outputColorSpace = outputColorSpace;
-		renderer.setMRT( currentMRT );
 
 	}
 
@@ -74209,14 +74208,11 @@ class PostProcessing {
 
 		const toneMapping = renderer.toneMapping;
 		const outputColorSpace = renderer.outputColorSpace;
-		const currentMRT = renderer.getMRT();
 
 		renderer.toneMapping = NoToneMapping;
 		renderer.outputColorSpace = LinearSRGBColorSpace;
 
 		//
-
-		if ( this.mrt !== null ) renderer.setMRT( this.mrt );
 
 		await quadMesh.renderAsync( renderer );
 
@@ -74224,7 +74220,6 @@ class PostProcessing {
 
 		renderer.toneMapping = toneMapping;
 		renderer.outputColorSpace = outputColorSpace;
-		renderer.setMRT( currentMRT );
 
 	}
 
