@@ -61,7 +61,7 @@ class LightsNode extends Node {
 
 			for ( const lightNode of this._lightNodes ) {
 
-				hash.push( lightNode.getHash() );
+				hash.push( lightNode.getSelf().getHash() );
 
 			}
 
@@ -92,7 +92,7 @@ class LightsNode extends Node {
 		const previousLightNodes = this._lightNodes;
 
 		const lights = sortLights( this._lights );
-		const nodeLibrary = builder.renderer.nodes.library;
+		const nodeLibrary = builder.renderer.library;
 
 		for ( const light of lights ) {
 
@@ -125,7 +125,7 @@ class LightsNode extends Node {
 
 					if ( ! _lightsNodeRef.has( light ) ) {
 
-						lightNode = new lightNodeClass( light );
+						lightNode = nodeObject( new lightNodeClass( light ) );
 						_lightsNodeRef.set( light, lightNode );
 
 					} else {
@@ -143,6 +143,16 @@ class LightsNode extends Node {
 		}
 
 		this._lightNodes = lightNodes;
+
+	}
+
+	setupLights( builder, lightNodes ) {
+
+		for ( const lightNode of lightNodes ) {
+
+			lightNode.build( builder );
+
+		}
 
 	}
 
@@ -174,11 +184,7 @@ class LightsNode extends Node {
 
 			// lights
 
-			for ( const lightNode of _lightNodes ) {
-
-				lightNode.build( builder );
-
-			}
+			this.setupLights( builder, _lightNodes );
 
 			//
 

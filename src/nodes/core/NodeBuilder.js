@@ -1308,7 +1308,7 @@ class NodeBuilder {
 
 		if ( material !== null ) {
 
-			let nodeMaterial = renderer.nodes.library.fromMaterial( material );
+			let nodeMaterial = renderer.library.fromMaterial( material );
 
 			if ( nodeMaterial === null ) {
 

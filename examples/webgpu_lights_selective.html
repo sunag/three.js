@@ -16,8 +16,8 @@
 		<script type="importmap">
 			{
 				"imports": {
-					"three": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.webgpu.js",
+					"three": "../src/Three.WebGPU.js",
+					"three/tsl": "../src/Three.WebGPU.js",
 					"three/addons/": "./jsm/"
 				}
 			}
@@ -26,7 +26,9 @@
 		<script type="module">
 
 			import * as THREE from 'three';
-			import { rangeFog, color, lights, texture, normalMap } from 'three/tsl';
+			import { rangeFog, color, texture, pass, userData, normalMap } from 'three/tsl';
+			import { tiledLights } from 'three/addons/tsl/lighting/TiledLightsNode.js';
+			import { TiledLighting } from 'three/addons/lighting/TiledLighting.js';
 
 			import Stats from 'three/addons/libs/stats.module.js';
 
@@ -37,19 +39,24 @@
 
 			let camera, scene, renderer,
 				light1, light2, light3, light4,
-				stats, controls;
+				stats, controls,
+				postProcessing;
 
 			init();
 
 			function init() {
 
-				camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.01, 100 );
+				camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 600 );
 				camera.position.z = 7;
 
 				scene = new THREE.Scene();
-				scene.fogNode = rangeFog( color( 0xFF00FF ), 12, 30 );
+				//scene.fogNode = rangeFog( color( 0xFF00FF ), 12, 30 );
 
 				const sphereGeometry = new THREE.SphereGeometry( 0.1, 16, 8 );
+
+				const material = new THREE.MeshStandardNodeMaterial();
+				material.colorNode = userData( 'color', 'color' );
+				material.lights = false;
 
 				//textures
 
@@ -59,19 +66,16 @@
 				normalMapTexture.wrapS = THREE.RepeatWrapping;
 				normalMapTexture.wrapT = THREE.RepeatWrapping;
 
-				const alphaTexture = textureLoader.load( './textures/roughness_map.jpg' );
+				const alphaTexture = textureLoader.load( './textures/uv_grid_opengl.jpg' );
 				alphaTexture.wrapS = THREE.RepeatWrapping;
 				alphaTexture.wrapT = THREE.RepeatWrapping;
 
 				//lights
 
-				const addLight = ( hexColor, power = 1700, distance = 100 ) => {
-
-					const material = new THREE.MeshStandardNodeMaterial();
-					material.colorNode = color( hexColor );
-					material.lights = false;
+				const addLight = ( hexColor, power = 10000, distance = 3 ) => {
 
 					const mesh = new THREE.Mesh( sphereGeometry, material );
+					mesh.userData.color = new THREE.Color( hexColor );
 
 					const light = new THREE.PointLight( hexColor, 1, distance );
 					light.power = power;
@@ -83,55 +87,93 @@
 
 				};
 
+				/*for( let i = 0; i < 1024; i ++ ) {
+
+					const light = addLight( Math.random() * 0xffffff + 0x003366 );
+					light.position.set( Math.random() * 200 - 100, - 0.5, Math.random() * 200 - 100 );
+
+				}*/
+
+				for( let i = 0; i < 2000; i ++ ) {
+
+					const light = addLight( Math.random() * 0xffffff + 0x003366 );
+					light.position.set( Math.random() * 300 - 150, - 0.5, Math.random() * 300 - 150 );
+
+				}
+
 				light1 = addLight( 0xff0040 );
 				light2 = addLight( 0x0040ff );
 				light3 = addLight( 0x80ff80 );
 				light4 = addLight( 0xffaa00 );
 
+
+				const lightAmbient = new THREE.AmbientLight( 0x404040, 10 );
+				scene.add( lightAmbient );
+
+				//
+
+				const planeGeometry = new THREE.PlaneGeometry( 200, 200 );
+				const planeMaterial = new THREE.MeshPhongMaterial( {
+					color: 0x999999
+				} );
+
+				const ground = new THREE.Mesh( planeGeometry, planeMaterial );
+				ground.rotation.x = - Math.PI / 2;
+				ground.scale.multiplyScalar( 3 );
+				ground.position.y = - 1;
+				ground.castShadow = true;
+				ground.receiveShadow = true;
+				scene.add( ground );
+
 				//light nodes ( selective lights )
 
-				const redLightsNode = lights( [ light1 ] );
-				const blueLightsNode = lights( [ light2 ] );
+				//const customLights = tiledLights( [ light1, light2 ] );
 
 				//models
 
 				const geometryTeapot = new TeapotGeometry( .8, 18 );
 
 				const leftObject = new THREE.Mesh( geometryTeapot, new THREE.MeshStandardNodeMaterial( { color: 0x555555 } ) );
-				leftObject.material.lightsNode = redLightsNode;
+				//leftObject.material.lightsNode = customLights;
 				leftObject.material.roughnessNode = texture( alphaTexture );
 				leftObject.material.metalness = 0;
 				leftObject.position.x = - 3;
-				scene.add( leftObject );
+				//scene.add( leftObject );
 
 				const centerObject = new THREE.Mesh( geometryTeapot, new THREE.MeshStandardNodeMaterial( { color: 0x555555 } ) );
 				centerObject.material.normalNode = normalMap( texture( normalMapTexture ) );
 				centerObject.material.metalness = .5;
 				centerObject.material.roughness = .5;
-				scene.add( centerObject );
+				centerObject.material.colorNode = texture( alphaTexture );
+				//centerObject.material.lightsNode = customLights;
+				//scene.add( centerObject );
 
 				const rightObject = new THREE.Mesh( geometryTeapot, new THREE.MeshStandardNodeMaterial( { color: 0x555555 } ) );
-				rightObject.material.lightsNode = blueLightsNode;
+				//rightObject.material.lightsNode = customLights;
 				rightObject.material.metalnessNode = texture( alphaTexture );
 				rightObject.position.x = 3;
-				scene.add( rightObject );
+				//scene.add( rightObject );
 
 				leftObject.rotation.y = centerObject.rotation.y = rightObject.rotation.y = Math.PI * - 0.5;
 				leftObject.position.y = centerObject.position.y = rightObject.position.y = - 1;
 
 				//renderer
 
+				const lighting = new TiledLighting();
+				const customLights = lighting.getNode( scene, camera );
+
 				renderer = new THREE.WebGPURenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setAnimationLoop( animate );
+				renderer.lighting = lighting;
 				document.body.appendChild( renderer.domElement );
 
 				//controls
 
 				controls = new OrbitControls( camera, renderer.domElement );
-				controls.minDistance = 3;
-				controls.maxDistance = 25;
+				//controls.minDistance = 3;
+				//controls.maxDistance = 25;
 
 				//stats
 
@@ -139,6 +181,15 @@
 				document.body.appendChild( stats.dom );
 
 				window.addEventListener( 'resize', onWindowResize );
+
+				//
+
+				const scenePass = pass( scene, camera );
+				let composite = scenePass;
+				//composite = composite.add( customLights.indexes.toColor().mul( .02 ) );
+
+				postProcessing = new THREE.PostProcessing( renderer );
+				postProcessing.outputNode = composite;
 
 				//gui
 
@@ -167,6 +218,10 @@
 				light1.position.y = Math.cos( lightTime * 0.5 ) * 4;
 				light1.position.z = Math.cos( lightTime * 0.3 ) * 3;
 
+				//light1.position.x = 1;
+				//light1.position.y = 1;
+				//light1.position.z = 1;
+
 				light2.position.x = Math.cos( lightTime * 0.3 ) * 3;
 				light2.position.y = Math.sin( lightTime * 0.5 ) * 4;
 				light2.position.z = Math.sin( lightTime * 0.7 ) * 3;
@@ -186,7 +241,8 @@
 				if ( time > 3.0 && light3.parent === null ) scene.add( light3 );
 				if ( time > 3.5 && light4.parent === null ) scene.add( light4 );
 				*/
-				renderer.render( scene, camera );
+				//renderer.render( scene, camera );
+				postProcessing.render();
 
 				stats.update();
 

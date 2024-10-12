@@ -460,7 +460,9 @@ class NodeMaterial extends Material {
 
 		if ( materialLightsNode.length > 0 ) {
 
-			lightsN = lights( [ ...lightsN.getLights(), ...materialLightsNode ] );
+			const { scene, camera } = builder;
+
+			lightsN = builder.lighting.createNode( scene, camera ).setLights( [ ...lightsN.getLights(), ...materialLightsNode ] );
 
 		}
 

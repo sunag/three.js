@@ -164,6 +164,8 @@ export * from './Three.Legacy.js';
 
 export * from './materials/nodes/NodeMaterials.js';
 export { default as WebGPURenderer } from './renderers/webgpu/WebGPURenderer.Nodes.js';
+export { default as ChainMap } from './renderers/common/ChainMap.js';
+export { default as Lighting } from './renderers/common/Lighting.js';
 export { default as QuadMesh } from './renderers/common/QuadMesh.js';
 export { default as PMREMGenerator } from './renderers/common/extras/PMREMGenerator.js';
 export { default as PostProcessing } from './renderers/common/PostProcessing.js';
