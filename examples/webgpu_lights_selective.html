@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<title>three.js webgpu - selective lights</title>
+		<title>three.js webgpu - tiled lighting</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<link type="text/css" rel="stylesheet" href="main.css">
@@ -55,9 +55,8 @@
 
 				const sphereGeometry = new THREE.SphereGeometry( 0.1, 16, 8 );
 
-				const material = new THREE.MeshStandardNodeMaterial();
+				const material = new THREE.NodeMaterial();
 				material.colorNode = userData( 'lightColor', 'color' );
-				material.lights = false;
 
 				// lights
 
@@ -120,12 +119,14 @@
 
 				// renderer
 
-				const lighting = new TiledLighting();
+				const lighting = new TiledLighting(); // TiledLighting( maxLights = 1024, tileSize = 16 )
 
-				renderer = new THREE.WebGPURenderer( { antialias: true } );
+				renderer = new THREE.WebGPURenderer( { antialias: true, forceWebGL: false } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setAnimationLoop( animate );
+				renderer.toneMapping = THREE.NeutralToneMapping;
+				renderer.toneMappingExposure = 5;
 				renderer.lighting = lighting;
 				document.body.appendChild( renderer.domElement );
 
@@ -144,10 +145,10 @@
 				// post processing
 
 				const scenePass = pass( scene, camera );
-				const bloomPass = bloom( scenePass, 3, .9, .4 );
+				const bloomPass = bloom( scenePass, 3, .9, .2 );
 
 				const tileInfluence = uniform( 0 );
-				const tileBlockIndexes = lighting.getNode( scene, camera ).getTileBlock().toColor().div( 1024 );
+				const tileBlockIndexes = lighting.getNode( scene, camera ).getBlock().toColor().div( 2048 );
 
 				postProcessing = new THREE.PostProcessing( renderer );
 				postProcessing.outputNode = scenePass.add( bloomPass ).add( tileBlockIndexes.mul( tileInfluence ) );
@@ -183,7 +184,6 @@
 
 				}
 
-				//renderer.render( scene, camera );
 				postProcessing.render();
 
 				stats.update();

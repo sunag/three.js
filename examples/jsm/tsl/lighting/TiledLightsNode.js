@@ -1,8 +1,6 @@
 import {
-	storageObject, nodeProxy, uint, float, vec2, uniform, Break, Loop,
-	Fn, ivec2, int, If, textureLoad, instanceIndex, screenCoordinate, directPointLight,
-	uvec4,
-	Return
+	storageObject, nodeProxy, int, float, vec2, ivec2, ivec4, uniform, Break, Loop,
+	Fn, If, Return, texture, textureLoad, instanceIndex, screenCoordinate, directPointLight
 } from 'three/tsl';
 
 import * as THREE from 'three';
@@ -59,7 +57,7 @@ class TiledLightsNode extends THREE.LightsNode {
 
 	}
 
-	constructor() {
+	constructor( maxLights = 1024, tileSize = 16 ) {
 
 		super();
 
@@ -67,12 +65,12 @@ class TiledLightsNode extends THREE.LightsNode {
 		this.tiledLights = [];
 
 		this.bufferSize = new THREE.Vector2( 2048, 2048 );
-		this.tileSize = 16;
-		this.maxLights = 1024;
+		this.maxLights = maxLights;
+		this.tileSize = tileSize;
 		this.lineSize = Math.floor( this.bufferSize.width / this.tileSize );
 		this.count = Math.floor( ( this.bufferSize.width * this.bufferSize.height ) / this.tileSize );
 
-		this.lightsCount = uniform( 0, 'uint' );
+		this.lightsCount = uniform( 0, 'int' );
 		this.tileLightCount = 8;
 		this.screenSize = uniform( new THREE.Vector2() );
 		this.cameraProjectionMatrix = uniform( 'mat4' );
@@ -165,21 +163,21 @@ class TiledLightsNode extends THREE.LightsNode {
 
 	}
 
-	getTileBlock( block = 0 ) {
+	getBlock( block = 0 ) {
 
-		return this.lightIndexes.element( this.screenTileIndex.mul( uint( 2 ).add( int( block ) ) ) );
+		return this.lightIndexes.element( this.screenTileIndex.mul( int( 2 ).add( int( block ) ) ) );
 
 	}
 
-	getTileIndex( elementIndex ) {
+	getTile( element ) {
 
-		elementIndex = int( elementIndex );
+		element = int( element );
 
 		const stride = int( 4 );
-		const tileOffset = elementIndex.div( stride );
+		const tileOffset = element.div( stride );
 		const tileIndex = this.screenTileIndex.mul( int( 2 ) ).add( tileOffset );
 
-		return this.lightIndexes.element( tileIndex ).element( elementIndex.modInt( stride ) );
+		return this.lightIndexes.element( tileIndex ).element( element.modInt( stride ) );
 
 	}
 
@@ -218,7 +216,7 @@ class TiledLightsNode extends THREE.LightsNode {
 
 			Loop( this.tileLightCount, ( { i } ) => {
 
-				const lightIndex = this.getTileIndex( i );
+				const lightIndex = this.getTile( i );
 
 				If( lightIndex.equal( int( 0 ) ), () => {
 
@@ -253,15 +251,14 @@ class TiledLightsNode extends THREE.LightsNode {
 
 		const lightsData = new Float32Array( this.maxLights * 4 * 2 ); // 2048 lights, 4 elements(rgba), 2 components, 1 component per line (position, distance, color, decay)
 		const lightsTexture = new THREE.DataTexture( lightsData, lightsData.length / 8, 2, THREE.RGBAFormat, THREE.FloatType );
-		lightsTexture.needsUpdate = true;
 
-		const lightIndexesArray = new Uint16Array( count * 4 * 2 );
+		const lightIndexesArray = new Int32Array( count * 4 * 2 );
 		const lightIndexesAttribute = new THREE.StorageBufferAttribute( lightIndexesArray, 4 );
-		const lightIndexes = storageObject( lightIndexesAttribute, 'uvec4' ).label( 'lightIndexes' );
+		const lightIndexes = storageObject( lightIndexesAttribute, 'ivec4', lightIndexesAttribute.count ).label( 'lightIndexes' );
 
 		// compute
 
-		const getBlockIndex = ( index ) => {
+		const getBlock = ( index ) => {
 
 			const tileIndex = instanceIndex.mul( int( 2 ) ).add( int( index ) );
 
@@ -269,7 +266,7 @@ class TiledLightsNode extends THREE.LightsNode {
 
 		};
 
-		const getTileIndex = ( elementIndex ) => {
+		const getTile = ( elementIndex ) => {
 
 			elementIndex = int( elementIndex );
 
@@ -298,8 +295,8 @@ class TiledLightsNode extends THREE.LightsNode {
 
 			const index = int( 0 ).toVar();
 
-			getBlockIndex( 0 ).assign( uvec4( 0 ) );
-			getBlockIndex( 1 ).assign( uvec4( 0 ) );
+			getBlock( 0 ).assign( ivec4( 0 ) );
+			getBlock( 1 ).assign( ivec4( 0 ) );
 
 			Loop( this.maxLights, ( { i } ) => {
 
@@ -320,7 +317,7 @@ class TiledLightsNode extends THREE.LightsNode {
 
 				If( circleIntersectsAABB( screenPosition, pointRadius, minBounds, maxBounds ), () => {
 
-					getTileIndex( index ).assign( i.add( int( 1 ) ) );
+					getTile( index ).assign( i.add( int( 1 ) ) );
 					index.addAssign( int( 1 ) );
 
 				} );
