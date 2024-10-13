@@ -161,11 +161,16 @@
 				const scenePass = pass( scene, camera );
 				const bloomPass = bloom( scenePass, 3, .9, .2 );
 
+				// tile indexes debug
+
+				const debugBlockIndexes = lighting.getNode( scene, camera ).setSize( window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio ).getBlock().toColor().div( count * 2 );
+
+				// compose
+
 				const tileInfluence = uniform( 0 );
-				const tileBlockIndexes = lighting.getNode( scene, camera ).setSize( window.innerWidth, window.innerHeight ).getBlock().toColor().div( 2048 );
 
 				postProcessing = new THREE.PostProcessing( renderer );
-				postProcessing.outputNode = scenePass.add( bloomPass ).add( tileBlockIndexes.mul( tileInfluence ) );
+				postProcessing.outputNode = scenePass.add( bloomPass ).add( debugBlockIndexes.mul( tileInfluence ) );
 
 				// gui
 
