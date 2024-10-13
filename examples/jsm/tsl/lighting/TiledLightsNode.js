@@ -64,11 +64,10 @@ class TiledLightsNode extends THREE.LightsNode {
 		this.materialLights = [];
 		this.tiledLights = [];
 
-		this.bufferSize = new THREE.Vector2( 2048, 2048 );
 		this.maxLights = maxLights;
 		this.tileSize = tileSize;
-		this.lineSize = Math.floor( this.bufferSize.width / this.tileSize );
-		this.count = Math.floor( ( this.bufferSize.width * this.bufferSize.height ) / this.tileSize );
+
+		this.bufferSize = null;
 
 		this.lightsCount = uniform( 0, 'int' );
 		this.tileLightCount = 8;
@@ -77,8 +76,6 @@ class TiledLightsNode extends THREE.LightsNode {
 		this.cameraViewMatrix = uniform( 'mat4' );
 
 		this.updateBeforeType = THREE.NodeUpdateType.RENDER;
-
-		this.create();
 
 	}
 
@@ -122,6 +119,8 @@ class TiledLightsNode extends THREE.LightsNode {
 	updateBefore( frame ) {
 
 		const { renderer, camera } = frame;
+
+		this.updateProgram( renderer );
 
 		this.updateLightsTexture( camera );
 
@@ -206,6 +205,10 @@ class TiledLightsNode extends THREE.LightsNode {
 
 	setupLights( builder, lightNodes ) {
 
+		this.updateProgram( builder.renderer );
+
+		//
+
 		const lightingModel = builder.context.reflectedLight;
 
 		// force declaration order, before of the loop
@@ -243,13 +246,57 @@ class TiledLightsNode extends THREE.LightsNode {
 
 	}
 
-	create() {
+	getPowerOfTwo( value ) {
 
-		const { count, tileSize, lineSize } = this;
+		return Math.pow( 2, Math.ceil( Math.log2( value ) ) );
+
+	}
+
+	setSize( width, height ) {
+
+		width = this.getPowerOfTwo( width );
+		height = this.getPowerOfTwo( height );
+
+		if ( ! this.bufferSize || this.bufferSize.width !== width || this.bufferSize.height !== height ) {
+
+			this.create( width, height );
+
+		}
+
+		return this;
+
+	}
+
+	updateProgram( renderer ) {
+
+		renderer.getDrawingBufferSize( _size );
+
+		const width = this.getPowerOfTwo( _size.width );
+		const height = this.getPowerOfTwo( _size.height );
+
+		if ( this.bufferSize === null ) {
+
+			this.create( width, height );
+
+		} else if ( this.bufferSize.width !== width || this.bufferSize.height !== height ) {
+
+			this.create( width, height );
+
+		}
+
+	}
+
+	create( width, height ) {
+
+		const { tileSize, maxLights } = this;
+
+		const bufferSize = new THREE.Vector2( width, height );
+		const lineSize = Math.floor( bufferSize.width / tileSize );
+		const count = Math.floor( ( bufferSize.width * bufferSize.height ) / tileSize );
 
 		// buffers
 
-		const lightsData = new Float32Array( this.maxLights * 4 * 2 ); // 2048 lights, 4 elements(rgba), 2 components, 1 component per line (position, distance, color, decay)
+		const lightsData = new Float32Array( maxLights * 4 * 2 ); // 2048 lights, 4 elements(rgba), 2 components, 1 component per line (position, distance, color, decay)
 		const lightsTexture = new THREE.DataTexture( lightsData, lightsData.length / 8, 2, THREE.RGBAFormat, THREE.FloatType );
 
 		const lightIndexesArray = new Int32Array( count * 4 * 2 );
@@ -274,7 +321,7 @@ class TiledLightsNode extends THREE.LightsNode {
 			const tileOffset = elementIndex.div( stride );
 			const tileIndex = instanceIndex.mul( int( 2 ) ).add( tileOffset );
 
-			return this.lightIndexes.element( tileIndex ).element( elementIndex.modInt( stride ) );
+			return lightIndexes.element( tileIndex ).element( elementIndex.modInt( stride ) );
 
 		};
 
@@ -333,6 +380,7 @@ class TiledLightsNode extends THREE.LightsNode {
 
 		// assigns
 
+		this.bufferSize = bufferSize;
 		this.lightIndexes = lightIndexes;
 		this.screenTileIndex = screenTileIndex;
 		this.compute = compute;

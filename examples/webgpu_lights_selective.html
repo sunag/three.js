@@ -162,7 +162,7 @@
 				const bloomPass = bloom( scenePass, 3, .9, .2 );
 
 				const tileInfluence = uniform( 0 );
-				const tileBlockIndexes = lighting.getNode( scene, camera ).getBlock().toColor().div( 2048 );
+				const tileBlockIndexes = lighting.getNode( scene, camera ).setSize( window.innerWidth, window.innerHeight ).getBlock().toColor().div( 2048 );
 
 				postProcessing = new THREE.PostProcessing( renderer );
 				postProcessing.outputNode = scenePass.add( bloomPass ).add( tileBlockIndexes.mul( tileInfluence ) );
@@ -170,7 +170,7 @@
 				// gui
 
 				const gui = new GUI();
-				gui.add( tileInfluence, 'value', 0, 1 ).name( 'tile indexes debug');
+				gui.add( tileInfluence, 'value', 0, 1 ).name( 'tile indexes debug' );
 
 			}
 
