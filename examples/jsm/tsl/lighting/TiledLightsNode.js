@@ -1,6 +1,6 @@
 import {
 	storageObject, nodeProxy, int, float, vec2, ivec2, ivec4, uniform, Break, Loop,
-	Fn, If, Return, texture, textureLoad, instanceIndex, screenCoordinate, directPointLight
+	Fn, If, Return, textureLoad, instanceIndex, screenCoordinate, directPointLight
 } from 'three/tsl';
 
 import * as THREE from 'three';
@@ -57,7 +57,7 @@ class TiledLightsNode extends THREE.LightsNode {
 
 	}
 
-	constructor( maxLights = 1024, tileSize = 16 ) {
+	constructor( maxLights = 1024, tileSize = 32 ) {
 
 		super();
 
