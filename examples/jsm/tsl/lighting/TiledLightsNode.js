@@ -1,6 +1,6 @@
 import {
-	nodeObject, storageObject, nodeProxy, uint, float, vec2, vec4, uniform, Break, Loop,
-	vec3, Fn, ivec2, int, uvec2, If, texture, textureLoad, instanceIndex, screenUV, screenCoordinate, directPointLight,
+	storageObject, nodeProxy, uint, float, vec2, uniform, Break, Loop,
+	Fn, ivec2, int, If, textureLoad, instanceIndex, screenCoordinate, directPointLight,
 	uvec4,
 	Return
 } from 'three/tsl';
@@ -49,6 +49,7 @@ export const circleIntersectsAABB = /*@__PURE__*/ Fn( ( [ circleCenter, radius, 
 } );
 
 const _vector3 = /*@__PURE__*/ new THREE.Vector3();
+const _size = /*@__PURE__*/ new THREE.Vector2();
 
 class TiledLightsNode extends THREE.LightsNode {
 
@@ -66,8 +67,8 @@ class TiledLightsNode extends THREE.LightsNode {
 		this.tiledLights = [];
 
 		this.bufferSize = new THREE.Vector2( 2048, 2048 );
-		this.tileSize = 8;
-		this.maxLights = 2048;
+		this.tileSize = 16;
+		this.maxLights = 1024;
 		this.lineSize = Math.floor( this.bufferSize.width / this.tileSize );
 		this.count = Math.floor( ( this.bufferSize.width * this.bufferSize.height ) / this.tileSize );
 
@@ -76,8 +77,6 @@ class TiledLightsNode extends THREE.LightsNode {
 		this.screenSize = uniform( new THREE.Vector2() );
 		this.cameraProjectionMatrix = uniform( 'mat4' );
 		this.cameraViewMatrix = uniform( 'mat4' );
-
-		this.indexes = null;
 
 		this.updateBeforeType = THREE.NodeUpdateType.RENDER;
 
@@ -131,7 +130,8 @@ class TiledLightsNode extends THREE.LightsNode {
 		this.cameraProjectionMatrix.value = camera.projectionMatrix;
 		this.cameraViewMatrix.value = camera.matrixWorldInverse;
 
-		this.screenSize.value.set( window.innerWidth, window.innerHeight );
+		renderer.getDrawingBufferSize( _size );
+		this.screenSize.value.copy( _size );
 
 		renderer.compute( this.compute );
 
@@ -162,6 +162,12 @@ class TiledLightsNode extends THREE.LightsNode {
 		tiledLights.length = tiledIndex;
 
 		return super.setLights( materialLights );
+
+	}
+
+	getTileBlock( block = 0 ) {
+
+		return this.lightIndexes.element( this.screenTileIndex.mul( uint( 2 ).add( int( block ) ) ) );
 
 	}
 
@@ -249,7 +255,7 @@ class TiledLightsNode extends THREE.LightsNode {
 		const lightsTexture = new THREE.DataTexture( lightsData, lightsData.length / 8, 2, THREE.RGBAFormat, THREE.FloatType );
 		lightsTexture.needsUpdate = true;
 
-		const lightIndexesArray = new Uint32Array( count * 4 * 2 );
+		const lightIndexesArray = new Uint16Array( count * 4 * 2 );
 		const lightIndexesAttribute = new THREE.StorageBufferAttribute( lightIndexesArray, 4 );
 		const lightIndexes = storageObject( lightIndexesAttribute, 'uvec4' ).label( 'lightIndexes' );
 
@@ -290,14 +296,14 @@ class TiledLightsNode extends THREE.LightsNode {
 			const minBounds = tileScreen;
 			const maxBounds = minBounds.add( blockSize );
 
-			const index = uint( 0 ).toVar();
+			const index = int( 0 ).toVar();
 
 			getBlockIndex( 0 ).assign( uvec4( 0 ) );
 			getBlockIndex( 1 ).assign( uvec4( 0 ) );
 
 			Loop( this.maxLights, ( { i } ) => {
 
-				If( index.greaterThanEqual( this.tileLightCount ).or( uint( i ).greaterThanEqual( uint( this.lightsCount ) ) ), () => {
+				If( index.greaterThanEqual( this.tileLightCount ).or( int( i ).greaterThanEqual( int( this.lightsCount ) ) ), () => {
 
 					Return();
 
@@ -315,7 +321,7 @@ class TiledLightsNode extends THREE.LightsNode {
 				If( circleIntersectsAABB( screenPosition, pointRadius, minBounds, maxBounds ), () => {
 
 					getTileIndex( index ).assign( i.add( int( 1 ) ) );
-					index.addAssign( uint( 1 ) );
+					index.addAssign( int( 1 ) );
 
 				} );
 
@@ -328,13 +334,10 @@ class TiledLightsNode extends THREE.LightsNode {
 		const screenTile = screenCoordinate.div( tileSize ).floor().toVar();
 		const screenTileIndex = screenTile.x.add( screenTile.y.mul( lineSize ) );
 
-		const indexes = lightIndexes.element( screenTileIndex.mul( uint( 2 ) ) );
-
 		// assigns
 
 		this.lightIndexes = lightIndexes;
 		this.screenTileIndex = screenTileIndex;
-		this.indexes = indexes;
 		this.compute = compute;
 		this.lightsTexture = lightsTexture;
 

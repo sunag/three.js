@@ -9,8 +9,7 @@
 	<body>
 
 		<div id="info">
-			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> webgpu - selective lights<br />
-			<b style="color:red">Left: Red lights</b> - <b>Center: All lights</b> - <b style="color:blue">Right: blue light</b>
+			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> webgpu - Compute-based Tiled Lighting<br />
 		</div>
 
 		<script type="importmap">
@@ -26,8 +25,9 @@
 		<script type="module">
 
 			import * as THREE from 'three';
-			import { rangeFog, color, texture, pass, userData, normalMap } from 'three/tsl';
-			import { tiledLights } from 'three/addons/tsl/lighting/TiledLightsNode.js';
+			import { texture, uv, pass, userData, uniform } from 'three/tsl';
+			import { bloom } from 'three/addons/tsl/display/BloomNode.js';
+
 			import { TiledLighting } from 'three/addons/lighting/TiledLighting.js';
 
 			import Stats from 'three/addons/libs/stats.module.js';
@@ -35,10 +35,9 @@
 			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
 			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-			import { TeapotGeometry } from 'three/addons/geometries/TeapotGeometry.js';
 
 			let camera, scene, renderer,
-				light1, light2, light3, light4,
+				lights,
 				stats, controls,
 				postProcessing;
 
@@ -47,120 +46,81 @@
 			function init() {
 
 				camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 600 );
-				camera.position.z = 7;
+				camera.position.z = 200;
+				camera.position.y = 30;
 
 				scene = new THREE.Scene();
-				//scene.fogNode = rangeFog( color( 0xFF00FF ), 12, 30 );
+				scene.fog = new THREE.Fog( 0x111111, 300, 500 );
+				scene.background = new THREE.Color( 0x111111 );
 
 				const sphereGeometry = new THREE.SphereGeometry( 0.1, 16, 8 );
 
 				const material = new THREE.MeshStandardNodeMaterial();
-				material.colorNode = userData( 'color', 'color' );
+				material.colorNode = userData( 'lightColor', 'color' );
 				material.lights = false;
 
-				//textures
+				// lights
 
-				const textureLoader = new THREE.TextureLoader();
-
-				const normalMapTexture = textureLoader.load( './textures/water/Water_1_M_Normal.jpg' );
-				normalMapTexture.wrapS = THREE.RepeatWrapping;
-				normalMapTexture.wrapT = THREE.RepeatWrapping;
-
-				const alphaTexture = textureLoader.load( './textures/uv_grid_opengl.jpg' );
-				alphaTexture.wrapS = THREE.RepeatWrapping;
-				alphaTexture.wrapT = THREE.RepeatWrapping;
-
-				//lights
+				lights = new THREE.Group();
+				scene.add( lights );
 
 				const addLight = ( hexColor, power = 10000, distance = 3 ) => {
 
 					const mesh = new THREE.Mesh( sphereGeometry, material );
-					mesh.userData.color = new THREE.Color( hexColor );
+					mesh.userData.lightColor = new THREE.Color( hexColor );
 
 					const light = new THREE.PointLight( hexColor, 1, distance );
+					light.position.set( Math.random() * 300 - 150, 1, Math.random() * 300 - 150 );
 					light.power = power;
+					light.userData.fixedPosition = light.position.clone();
 					light.add( mesh );
 
-					scene.add( light );
+					lights.add( light );
 
 					return light;
 
 				};
 
-				/*for( let i = 0; i < 1024; i ++ ) {
+				for ( let i = 0; i < 1000; i ++ ) {
 
-					const light = addLight( Math.random() * 0xffffff + 0x003366 );
-					light.position.set( Math.random() * 200 - 100, - 0.5, Math.random() * 200 - 100 );
-
-				}*/
-
-				for( let i = 0; i < 2000; i ++ ) {
-
-					const light = addLight( Math.random() * 0xffffff + 0x003366 );
-					light.position.set( Math.random() * 300 - 150, - 0.5, Math.random() * 300 - 150 );
+					addLight( ( Math.random() * 0xffffff ) + 0x666666 );
 
 				}
 
-				light1 = addLight( 0xff0040 );
-				light2 = addLight( 0x0040ff );
-				light3 = addLight( 0x80ff80 );
-				light4 = addLight( 0xffaa00 );
-
-
-				const lightAmbient = new THREE.AmbientLight( 0x404040, 10 );
-				scene.add( lightAmbient );
-
 				//
 
-				const planeGeometry = new THREE.PlaneGeometry( 200, 200 );
-				const planeMaterial = new THREE.MeshPhongMaterial( {
-					color: 0x999999
+				const lightAmbient = new THREE.AmbientLight( 0xffffff, .1 );
+				scene.add( lightAmbient );
+
+				// textures
+
+				const textureLoader = new THREE.TextureLoader();
+
+				const floorColor = textureLoader.load( 'textures/floors/FloorsCheckerboard_S_Diffuse.jpg' );
+				floorColor.wrapS = THREE.RepeatWrapping;
+				floorColor.wrapT = THREE.RepeatWrapping;
+				floorColor.colorSpace = THREE.SRGBColorSpace;
+
+				const floorNormal = textureLoader.load( 'textures/floors/FloorsCheckerboard_S_Normal.jpg' );
+				floorNormal.wrapS = THREE.RepeatWrapping;
+				floorNormal.wrapT = THREE.RepeatWrapping;
+
+				const planeGeometry = new THREE.PlaneGeometry( 1000, 1000 );
+				const planeMaterial = new THREE.MeshPhongNodeMaterial( {
+					colorNode: texture( floorColor, uv().mul( 50 ) ),
+					normalMap: floorNormal
 				} );
 
 				const ground = new THREE.Mesh( planeGeometry, planeMaterial );
 				ground.rotation.x = - Math.PI / 2;
-				ground.scale.multiplyScalar( 3 );
-				ground.position.y = - 1;
+				ground.position.y = 0;
 				ground.castShadow = true;
 				ground.receiveShadow = true;
 				scene.add( ground );
 
-				//light nodes ( selective lights )
-
-				//const customLights = tiledLights( [ light1, light2 ] );
-
-				//models
-
-				const geometryTeapot = new TeapotGeometry( .8, 18 );
-
-				const leftObject = new THREE.Mesh( geometryTeapot, new THREE.MeshStandardNodeMaterial( { color: 0x555555 } ) );
-				//leftObject.material.lightsNode = customLights;
-				leftObject.material.roughnessNode = texture( alphaTexture );
-				leftObject.material.metalness = 0;
-				leftObject.position.x = - 3;
-				//scene.add( leftObject );
-
-				const centerObject = new THREE.Mesh( geometryTeapot, new THREE.MeshStandardNodeMaterial( { color: 0x555555 } ) );
-				centerObject.material.normalNode = normalMap( texture( normalMapTexture ) );
-				centerObject.material.metalness = .5;
-				centerObject.material.roughness = .5;
-				centerObject.material.colorNode = texture( alphaTexture );
-				//centerObject.material.lightsNode = customLights;
-				//scene.add( centerObject );
-
-				const rightObject = new THREE.Mesh( geometryTeapot, new THREE.MeshStandardNodeMaterial( { color: 0x555555 } ) );
-				//rightObject.material.lightsNode = customLights;
-				rightObject.material.metalnessNode = texture( alphaTexture );
-				rightObject.position.x = 3;
-				//scene.add( rightObject );
-
-				leftObject.rotation.y = centerObject.rotation.y = rightObject.rotation.y = Math.PI * - 0.5;
-				leftObject.position.y = centerObject.position.y = rightObject.position.y = - 1;
-
-				//renderer
+				// renderer
 
 				const lighting = new TiledLighting();
-				const customLights = lighting.getNode( scene, camera );
 
 				renderer = new THREE.WebGPURenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
@@ -169,34 +129,33 @@
 				renderer.lighting = lighting;
 				document.body.appendChild( renderer.domElement );
 
-				//controls
+				// controls
 
 				controls = new OrbitControls( camera, renderer.domElement );
-				//controls.minDistance = 3;
-				//controls.maxDistance = 25;
+				controls.maxDistance = 400;
 
-				//stats
+				// stats
 
 				stats = new Stats();
 				document.body.appendChild( stats.dom );
 
 				window.addEventListener( 'resize', onWindowResize );
 
-				//
+				// post processing
 
 				const scenePass = pass( scene, camera );
-				let composite = scenePass;
-				//composite = composite.add( customLights.indexes.toColor().mul( .02 ) );
+				const bloomPass = bloom( scenePass, 3, .9, .4 );
+
+				const tileInfluence = uniform( 0 );
+				const tileBlockIndexes = lighting.getNode( scene, camera ).getTileBlock().toColor().div( 1024 );
 
 				postProcessing = new THREE.PostProcessing( renderer );
-				postProcessing.outputNode = composite;
+				postProcessing.outputNode = scenePass.add( bloomPass ).add( tileBlockIndexes.mul( tileInfluence ) );
 
-				//gui
+				// gui
 
 				const gui = new GUI();
-
-				gui.add( centerObject.material, 'roughness', 0, 1, 0.01 );
-				gui.add( centerObject.material, 'metalness', 0, 1, 0.01 );
+				gui.add( tileInfluence, 'value', 0, 1 ).name( 'tile indexes debug');
 
 			}
 
@@ -212,35 +171,18 @@
 			function animate() {
 
 				const time = performance.now() / 1000;
-				const lightTime = time * 0.5;
 
-				light1.position.x = Math.sin( lightTime * 0.7 ) * 3;
-				light1.position.y = Math.cos( lightTime * 0.5 ) * 4;
-				light1.position.z = Math.cos( lightTime * 0.3 ) * 3;
+				for ( const light of lights.children ) {
 
-				//light1.position.x = 1;
-				//light1.position.y = 1;
-				//light1.position.z = 1;
+					const lightTime = ( time * 0.5 ) + light.id;
 
-				light2.position.x = Math.cos( lightTime * 0.3 ) * 3;
-				light2.position.y = Math.sin( lightTime * 0.5 ) * 4;
-				light2.position.z = Math.sin( lightTime * 0.7 ) * 3;
+					light.position.copy( light.userData.fixedPosition );
+					light.position.x += Math.sin( lightTime * 0.7 ) * 3;
+					light.position.y += Math.cos( lightTime * 0.5 ) * .5;
+					light.position.z += Math.cos( lightTime * 0.3 ) * 3;
 
-				light3.position.x = Math.sin( lightTime * 0.7 ) * 3;
-				light3.position.y = Math.cos( lightTime * 0.3 ) * 4;
-				light3.position.z = Math.sin( lightTime * 0.5 ) * 3;
+				}
 
-				light4.position.x = Math.sin( lightTime * 0.3 ) * 3;
-				light4.position.y = Math.cos( lightTime * 0.7 ) * 4;
-				light4.position.z = Math.sin( lightTime * 0.5 ) * 3;
-				/*
-				@TODO: Used to test scene light change ( currently unavailable )
-
-				if ( time > 2.0 && light1.parent === null ) scene.add( light1 );
-				if ( time > 2.5 && light2.parent === null ) scene.add( light2 );
-				if ( time > 3.0 && light3.parent === null ) scene.add( light3 );
-				if ( time > 3.5 && light4.parent === null ) scene.add( light4 );
-				*/
 				//renderer.render( scene, camera );
 				postProcessing.render();
 
