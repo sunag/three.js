@@ -269,7 +269,7 @@ class TiledLightsNode extends THREE.LightsNode {
 
 	updateProgram( renderer ) {
 
-		renderer.getDrawingBufferSize( _size );
+		renderer.getSize( _size ); // ignore pixel ratio!
 
 		const width = this.getPowerOfTwo( _size.width );
 		const height = this.getPowerOfTwo( _size.height );
