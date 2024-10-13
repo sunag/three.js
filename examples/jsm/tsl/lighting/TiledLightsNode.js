@@ -246,16 +246,18 @@ class TiledLightsNode extends THREE.LightsNode {
 
 	}
 
-	getPowerOfTwo( value ) {
+	getBufferFitSize( value ) {
 
-		return Math.pow( 2, Math.ceil( Math.log2( value ) ) );
+		const multiple = this.tileSize;
+
+		return Math.ceil( value / multiple ) * multiple;
 
 	}
 
 	setSize( width, height ) {
 
-		width = this.getPowerOfTwo( width );
-		height = this.getPowerOfTwo( height );
+		width = this.getBufferFitSize( width );
+		height = this.getBufferFitSize( height );
 
 		if ( ! this.bufferSize || this.bufferSize.width !== width || this.bufferSize.height !== height ) {
 
@@ -271,8 +273,8 @@ class TiledLightsNode extends THREE.LightsNode {
 
 		renderer.getDrawingBufferSize( _size );
 
-		const width = this.getPowerOfTwo( _size.width );
-		const height = this.getPowerOfTwo( _size.height );
+		const width = this.getBufferFitSize( _size.width );
+		const height = this.getBufferFitSize( _size.height );
 
 		if ( this.bufferSize === null ) {
 
