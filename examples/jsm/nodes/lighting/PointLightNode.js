@@ -36,7 +36,8 @@ class PointLightNode extends AnalyticLightNode {
 
 		const lightingModel = builder.context.lightingModel;
 
-		const lVector = objectViewPosition( light ).sub( positionView ); // @TODO: Add it into LightNode
+		const lightViewPosition = objectViewPosition( light );
+		const lVector = lightViewPosition.sub( positionView ); // @TODO: Add it into LightNode
 
 		const lightDirection = lVector.normalize();
 		const lightDistance = lVector.length();
@@ -54,7 +55,9 @@ class PointLightNode extends AnalyticLightNode {
 		lightingModel.direct( {
 			lightDirection,
 			lightColor,
-			reflectedLight
+			reflectedLight,
+			light,
+			lightViewPosition
 		}, builder.stack, builder );
 
 	}

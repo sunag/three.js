@@ -19,7 +19,8 @@
 			{
 				"imports": {
 					"three": "../build/three.module.js",
-					"three/addons/": "./jsm/"
+					"three/addons/": "./jsm/",
+					"three/nodes": "./jsm/nodes/Nodes.js"
 				}
 			}
 		</script>
@@ -32,6 +33,10 @@
 			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
 
 			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+			import WebGPURenderer from 'three/addons/renderers/webgpu/WebGPURenderer.js';
+
+			import VolumetricLightingHandler from 'three/addons/handlers/VolumetricLightingHandler.js';
 
 			let camera, scene, renderer, bulbLight, bulbMat, hemiLight, stats;
 			let ballMat, cubeMat, floorMat;
@@ -90,6 +95,7 @@
 				camera.position.y = 2;
 
 				scene = new THREE.Scene();
+				//scene.add( new THREE.AmbientLight( 0xffffff ) );
 
 				const bulbGeometry = new THREE.SphereGeometry( 0.02, 16, 8 );
 				bulbLight = new THREE.PointLight( 0xffee88, 1, 100, 2 );
@@ -202,6 +208,14 @@
 				floorMesh.rotation.x = - Math.PI / 2.0;
 				scene.add( floorMesh );
 
+				const walls = new THREE.Mesh( new THREE.BoxGeometry( 20, 20, 20 ), floorMat );
+				walls.position.set( 0, 9, 0 );
+				walls.castShadow = true;
+				//walls.material.side = THREE.DoubleSide;
+				walls.geometry.scale(-1, 1, 1);
+				scene.add( walls );
+
+
 				const ballGeometry = new THREE.SphereGeometry( 0.25, 32, 32 );
 				const ballMesh = new THREE.Mesh( ballGeometry, ballMat );
 				ballMesh.position.set( 1, 0.25, 1 );
@@ -227,12 +241,14 @@
 
 
 				renderer = new THREE.WebGLRenderer();
+				renderer = new WebGPURenderer();
 				renderer.shadowMap.enabled = true;
 				renderer.toneMapping = THREE.ReinhardToneMapping;
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				container.appendChild( renderer.domElement );
 
+				renderer.handlers.lightingHandler = new VolumetricLightingHandler();
 
 				const controls = new OrbitControls( camera, renderer.domElement );
 				controls.minDistance = 1;

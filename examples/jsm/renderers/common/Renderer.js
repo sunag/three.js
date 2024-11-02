@@ -9,6 +9,7 @@ import RenderLists from './RenderLists.js';
 import RenderContexts from './RenderContexts.js';
 import Textures from './Textures.js';
 import Background from './Background.js';
+import Handlers from './Handlers.js';
 import Nodes from './nodes/Nodes.js';
 import Color4 from './Color4.js';
 import { Scene, Frustum, Matrix4, Vector2, Vector3, Vector4, DoubleSide, BackSide, FrontSide, SRGBColorSpace, NoToneMapping } from 'three';
@@ -59,6 +60,8 @@ class Renderer {
 		this.stencil = true;
 
 		this.info = new Info();
+
+		this.handlers = new Handlers();
 
 		// internals
 

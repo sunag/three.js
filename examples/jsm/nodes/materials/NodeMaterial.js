@@ -309,7 +309,7 @@ class NodeMaterial extends ShaderMaterial {
 
 	setupLighting( builder ) {
 
-		const { material } = builder;
+		const { material, renderer } = builder;
 		const { backdropNode, backdropAlphaNode, emissiveNode } = this;
 
 		// OUTGOING LIGHT
@@ -323,8 +323,18 @@ class NodeMaterial extends ShaderMaterial {
 		if ( lightsNode && lightsNode.hasLight !== false ) {
 
 			const lightingModel = this.setupLightingModel( builder );
+			const lightHandler = renderer.handlers.lightingHandler;
 
-			outgoingLightNode = lightingContext( lightsNode, lightingModel, backdropNode, backdropAlphaNode );
+			if ( lightHandler !== null ) {
+
+				lightHandler.setup( {
+					renderer,
+					lightingModel
+				} );
+
+			}
+
+			outgoingLightNode = lightingContext( lightsNode, lightHandler || lightingModel, backdropNode, backdropAlphaNode );
 
 		} else if ( backdropNode !== null ) {
 

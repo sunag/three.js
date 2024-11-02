@@ -40,6 +40,8 @@
 
 			import WebGPURenderer from 'three/addons/renderers/webgpu/WebGPURenderer.js';
 
+			import VolumetricLightingHandler from 'three/addons/handlers/VolumetricLightingHandler.js';
+
 			let camera, scene, renderer,
 				light1, light2, light3, light4,
 				stats, controls;
@@ -64,7 +66,7 @@
 
 				const sphereGeometry = new THREE.SphereGeometry( 0.1, 16, 8 );
 
-				//textures
+				// textures
 
 				const textureLoader = new THREE.TextureLoader();
 
@@ -76,7 +78,7 @@
 				alphaTexture.wrapS = THREE.RepeatWrapping;
 				alphaTexture.wrapT = THREE.RepeatWrapping;
 
-				//lights
+				// lights
 
 				const addLight = ( hexColor, power = 1700, distance = 100 ) => {
 
@@ -101,12 +103,12 @@
 				light3 = addLight( 0x80ff80 );
 				light4 = addLight( 0xffaa00 );
 
-				//light nodes ( selective lights )
+				// light nodes ( selective lights )
 
 				const redLightsNode = lights( [ light1 ] );
 				const blueLightsNode = lights( [ light2 ] );
 
-				//models
+				// models
 
 				const geometryTeapot = new TeapotGeometry( .8, 18 );
 
@@ -132,7 +134,7 @@
 				leftObject.rotation.y = centerObject.rotation.y = rightObject.rotation.y = Math.PI * - 0.5;
 				leftObject.position.y = centerObject.position.y = rightObject.position.y = - 1;
 
-				//renderer
+				// renderer
 
 				renderer = new WebGPURenderer( { antialias: true } );
 				renderer.setPixelRatio( window.devicePixelRatio );
@@ -140,20 +142,24 @@
 				renderer.setAnimationLoop( animate );
 				document.body.appendChild( renderer.domElement );
 
-				//controls
+				// lighting handler
+
+				renderer.handlers.lightingHandler = new VolumetricLightingHandler();
+
+				// controls
 
 				controls = new OrbitControls( camera, renderer.domElement );
 				controls.minDistance = 3;
 				controls.maxDistance = 25;
 
-				//stats
+				// stats
 
 				stats = new Stats();
 				document.body.appendChild( stats.dom );
 
 				window.addEventListener( 'resize', onWindowResize );
 
-				//gui
+				// gui
 
 				const gui = new GUI();
 
