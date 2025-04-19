@@ -44801,6 +44801,14 @@ class LightShadow {
 		this.mapSize = new Vector2( 512, 512 );
 
 		/**
+		 * The type of shadow texture. The default is `UnsignedByteType`.
+		 *
+		 * @type {number}
+		 * @default UnsignedByteType
+		 */
+		this.mapType = UnsignedByteType;
+
+		/**
 		 * The depth map generated using the internal camera; a location beyond a
 		 * pixel's depth is in shadow. Computed internally during rendering.
 		 *
