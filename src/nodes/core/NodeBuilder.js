@@ -1862,6 +1862,26 @@ class NodeBuilder {
 
 	}
 
+	getNamespace( property = '' ) {
+
+		const ns = this.context.namespace;
+
+		let nsName;
+
+		if ( ns ) {
+
+			nsName = property ? ( ns + '_' + property ) : ns;
+
+		} else {
+
+			nsName = property;
+
+		}
+
+		return nsName;
+
+	}
+
 	/**
 	 * Registers a node declaration in the current shader stage.
 	 *
@@ -1885,7 +1905,6 @@ class NodeBuilder {
 
 		}
 
-
 		if ( index > 1 ) {
 
 			node.name = name;
@@ -1893,7 +1912,6 @@ class NodeBuilder {
 			console.warn( `THREE.TSL: Declaration name '${ property }' of '${ node.type }' already in use. Renamed to '${ name }'.` );
 
 		}
-
 
 		declarations[ name ] = node;
 

@@ -81,9 +81,9 @@ export const normalWorld = /*@__PURE__*/ ( Fn( ( builder ) => {
 
 	}
 
-	return normal;
+	return normal.normalize().toVar( 'normalWorld' );
 
-}, 'vec3' ).once() )().normalize().toVar( 'normalWorld' );
+}, 'vec3' ).once( 'NORMAL' ) )();
 
 /**
  * TSL object that represents the transformed vertex normal in view space of the current rendered object.

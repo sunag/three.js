@@ -325,7 +325,14 @@ class ShaderCallNodeInternal extends Node {
 		const { shaderNode, inputNodes } = this;
 
 		const properties = builder.getNodeProperties( shaderNode );
-		if ( properties.onceOutput ) return properties.onceOutput;
+
+		if ( properties.onceOutput && ( ! properties.onceNamespace || properties.namespace === builder.context.namespace ) ) {
+
+			console.log( builder.shaderStage );
+
+			return properties.onceOutput;
+
+		}
 
 		//
 
@@ -368,7 +375,15 @@ class ShaderCallNodeInternal extends Node {
 
 		if ( shaderNode.once ) {
 
+			properties.namespace = builder.context.namespace;
+			properties.onceNamespace = shaderNode.namespace ? shaderNode.namespace === builder.context.namespace : false;
 			properties.onceOutput = result;
+
+			if ( properties.onceNamespace === false ) {
+
+				console.log( properties.onceOutput );
+
+			}
 
 		}
 
@@ -428,6 +443,7 @@ class ShaderNodeInternal extends Node {
 		this.global = true;
 
 		this.once = false;
+		this.namespace = null;
 
 	}
 
@@ -632,9 +648,10 @@ export const Fn = ( jsFunc, layout = null ) => {
 
 	};
 
-	fn.once = () => {
+	fn.once = ( namespace = 'default' ) => {
 
 		shaderNode.once = true;
+		shaderNode.namespace = namespace;
 
 		return fn;
 
@@ -672,16 +689,6 @@ export const Fn = ( jsFunc, layout = null ) => {
 	return fn;
 
 };
-
-//
-
-addMethodChaining( 'toGlobal', ( node ) => {
-
-	node.global = true;
-
-	return node;
-
-} );
 
 //
 
