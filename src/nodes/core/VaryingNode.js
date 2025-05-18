@@ -71,15 +71,20 @@ class VaryingNode extends Node {
 		 */
 		this.interpolationSampling = null;
 
-		/**
-		 * This flag is used for global cache.
-		 *
-		 * @type {boolean}
-		 * @default true
-		 */
-		this.global = true;
+	}
+
+	/**
+	 * The method is overwritten so it always returns `true`.
+	 *
+	 * @param {NodeBuilder} builder - The current node builder.
+	 * @return {boolean} Whether this node is global or not.
+	 */
+	isGlobal( /*builder*/ ) {
+
+		return true;
 
 	}
+
 
 	/**
 	 * Defines the interpolation type of the varying.
@@ -99,7 +104,7 @@ class VaryingNode extends Node {
 
 	getHash( builder ) {
 
-		return builder.getNamespace( this.name || super.getHash( builder ) );
+		return this.name || super.getHash( builder );
 
 	}
 
@@ -163,7 +168,9 @@ class VaryingNode extends Node {
 		const properties = builder.getNodeProperties( this );
 		const varying = this.setupVarying( builder );
 
-		if ( properties.propertyName === undefined ) {
+		const needsReassign = builder.shaderStage === 'fragment' && properties.reassignPosition === true && builder.context.needsPositionReassign;
+
+		if ( properties.propertyName === undefined || needsReassign ) {
 
 			const type = this.getNodeType( builder );
 			const propertyName = builder.getPropertyName( varying, NodeShaderStage.VERTEX );
@@ -172,6 +179,17 @@ class VaryingNode extends Node {
 			builder.flowNodeFromShaderStage( NodeShaderStage.VERTEX, this.node, type, propertyName );
 
 			properties.propertyName = propertyName;
+
+			if ( needsReassign ) {
+
+				// once reassign varying in fragment stage
+				properties.reassignPosition = false;
+
+			} else if ( properties.reassignPosition === undefined && builder.context.isPositionNodeInput ) {
+
+				properties.reassignPosition = true;
+
+			}
 
 		}
 
