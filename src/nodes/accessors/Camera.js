@@ -103,7 +103,9 @@ export const cameraProjectionMatrixInverse = /*@__PURE__*/ ( Fn( ( { camera } ) 
  * @tsl
  * @type {UniformNode<mat4>}
  */
-export const cameraViewMatrix = /*@__PURE__*/ ( Fn( ( { camera } ) => {
+export const cameraViewMatrix = /*@__PURE__*/ ( Fn( ( builder ) => {
+
+	const { camera } = builder;
 
 	let cameraViewMatrix;
 
@@ -126,7 +128,7 @@ export const cameraViewMatrix = /*@__PURE__*/ ( Fn( ( { camera } ) => {
 		cameraViewMatrix = uniform( 'mat4' ).label( 'cameraViewMatrix' ).setGroup( renderGroup ).onRenderUpdate( ( { camera } ) => camera.matrixWorldInverse );
 
 	}
-
+console.log( 'cameraViewMatrix', builder.getNamespace() );
 	return cameraViewMatrix;
 
 } ).once() )();
