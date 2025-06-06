@@ -245,6 +245,8 @@ class GTAONode extends TempNode {
 
 		const { renderer } = frame;
 
+		console.log( 'gtao' );
+
 		_rendererState = RendererUtils.resetRendererState( renderer, _rendererState );
 
 		//
@@ -299,7 +301,7 @@ class GTAONode extends TempNode {
 		const sampleNormal = ( uv ) => ( this.normalNode !== null ) ? this.normalNode.sample( uv ).rgb.normalize() : getNormalFromDepth( uv, this.depthNode.value, this._cameraProjectionMatrixInverse );
 
 		const ao = Fn( () => {
-
+console.log( 'gtao fn' );
 			const depth = sampleDepth( uvNode ).toVar();
 
 			depth.greaterThanEqual( 1.0 ).discard();

@@ -1914,6 +1914,22 @@ class NodeBuilder {
 
 	}
 
+	getMaterialInput( name ) {
+
+		let node = this.material[ name + 'Node' ] || null;
+
+		const handler = this.renderer.handler;
+
+		if ( handler && handler.has( name ) ) {
+
+			node = handler.handle( name, node, this );
+
+		}
+
+		return node;
+
+	}
+
 	/**
 	 * Registers a node declaration in the current shader stage.
 	 *

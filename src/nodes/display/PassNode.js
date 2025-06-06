@@ -1,4 +1,5 @@
 import TempNode from '../core/TempNode.js';
+import NodeHandler from '../../renderers/common/NodeHandler.js';
 import { default as TextureNode/*, texture*/ } from '../accessors/TextureNode.js';
 import { NodeUpdateType } from '../core/constants.js';
 import { nodeObject } from '../tsl/TSLBase.js';
@@ -9,6 +10,7 @@ import { HalfFloatType/*, FloatType*/ } from '../../constants.js';
 import { Vector2 } from '../../math/Vector2.js';
 import { DepthTexture } from '../../textures/DepthTexture.js';
 import { RenderTarget } from '../../core/RenderTarget.js';
+import { screenUV } from './ScreenNode.js';
 
 const _size = /*@__PURE__*/ new Vector2();
 
@@ -33,7 +35,7 @@ class PassTextureNode extends TextureNode {
 	 */
 	constructor( passNode, texture ) {
 
-		super( texture );
+		super( texture, screenUV );
 
 		/**
 		 * A reference to the pass node.
@@ -48,7 +50,7 @@ class PassTextureNode extends TextureNode {
 
 	setup( builder ) {
 
-		if ( builder.object.isQuadMesh ) this.passNode.build( builder );
+		this.passNode.build( builder );
 
 		return super.setup( builder );
 
@@ -194,6 +196,11 @@ class PassNode extends TempNode {
 		 * @type {Object}
 		 */
 		this.options = options;
+
+		this.transparent = true;
+		this.opaque = true;
+		this.handler = null;
+		this.overrideMaterial = null;
 
 		/**
 		 * The pass's pixel ratio. Will be kept automatically kept in sync with the renderer's pixel ratio.
@@ -412,6 +419,20 @@ class PassNode extends TempNode {
 
 	}
 
+	input( name, callback ) {
+
+		if ( this.handler === null ) {
+
+			this.handler = new NodeHandler();
+
+		}
+
+		this.handler.onHandle( name, callback );
+
+		return this;
+
+	}
+
 	/**
 	 * Returns the texture for the given output name.
 	 *
@@ -624,9 +645,18 @@ class PassNode extends TempNode {
 
 		this.setSize( _size.width, _size.height );
 
+		const currentHandler = renderer.handler;
+		const currentTransparent = renderer.transparent;
+		const currentOpaque = renderer.opaque;
+
 		const currentRenderTarget = renderer.getRenderTarget();
 		const currentMRT = renderer.getMRT();
 		const currentMask = camera.layers.mask;
+		const currentMaterialOverride = scene.overrideMaterial;
+
+		//
+
+		scene.overrideMaterial = this.overrideMaterial;
 
 		this._cameraNear.value = camera.near;
 		this._cameraFar.value = camera.far;
@@ -643,15 +673,25 @@ class PassNode extends TempNode {
 
 		}
 
+		renderer.handler = this.handler;
+		renderer.opaque = this.opaque;
+		renderer.transparent = this.transparent;
+
 		renderer.setRenderTarget( this.renderTarget );
 		renderer.setMRT( this._mrt );
 
 		renderer.render( scene, camera );
 
+		renderer.handler = currentHandler;
 		renderer.setRenderTarget( currentRenderTarget );
 		renderer.setMRT( currentMRT );
 
+		renderer.transparent = currentTransparent;
+		renderer.opaque = currentOpaque;
+
 		camera.layers.mask = currentMask;
+
+		scene.overrideMaterial = currentMaterialOverride;
 
 	}
 
@@ -683,6 +723,25 @@ class PassNode extends TempNode {
 		this._pixelRatio = pixelRatio;
 
 		this.setSize( this._width, this._height );
+
+	}
+
+	/**
+	 * Set this property to `true` when the node should be regenerated.
+	 *
+	 * @type {boolean}
+	 * @default false
+	 * @param {boolean} value
+	 */
+	set needsUpdate( value ) {
+
+		if ( this.handler !== null ) {
+
+			this.handler.needsUpdate = value;
+
+		}
+
+		super.needsUpdate = value;
 
 	}
 

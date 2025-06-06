@@ -176,7 +176,7 @@ output = vec4( finalColor, opacity );
 							const nodes = await ( new AsyncFunction( 'THREE', tslCode )( THREE ) );
 
 							mesh.material.fragmentNode = nodes.output;
-							mesh.material.needsUpdate = true;
+							mesh.material.dispose();
 
 							compiling = true;
 

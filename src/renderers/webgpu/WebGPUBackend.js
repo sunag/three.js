@@ -1831,6 +1831,7 @@ class WebGPUBackend extends Backend {
 	 */
 	createTexture( texture, options ) {
 
+		console.log( texture.id )
 		this.textureUtils.createTexture( texture, options );
 
 	}
