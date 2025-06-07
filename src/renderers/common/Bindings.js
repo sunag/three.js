@@ -252,7 +252,7 @@ class Bindings extends DataMap {
 
 				const texturesTextureData = this.textures.get( binding.texture );
 
-				/*if ( binding.needsBindingsUpdate( texturesTextureData.generation ) )*/ needsBindingsUpdate = true;
+				if ( binding.needsBindingsUpdate( texturesTextureData.generation ) ) needsBindingsUpdate = true;
 
 				const updated = binding.update();
 

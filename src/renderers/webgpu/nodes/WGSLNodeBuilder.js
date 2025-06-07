@@ -1882,9 +1882,6 @@ ${ flowData.code }
 
 			this.vertexShader = this._getWGSLVertexCode( shadersData.vertex );
 			this.fragmentShader = this._getWGSLFragmentCode( shadersData.fragment );
-			//console.log( '-- SHADER --' );
-			//console.log( this.vertexShader );
-			//console.log( this.fragmentShader );
 
 		} else {
 

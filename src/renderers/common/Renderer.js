@@ -245,8 +245,6 @@ class Renderer {
 			modelNormalViewMatrix: null
 		};
 
-		this.handler = null;
-
 		/**
 		 * The node library defines how certain library objects like materials, lights
 		 * or tone mapping functions are mapped to node types. This is required since
@@ -716,7 +714,7 @@ class Renderer {
 				await this.compileAsync( scene, camera );
 
 				const renderList = this._renderLists.get( scene, camera );
-				const renderContext = this._renderContexts.get( scene, camera, this._renderTarget, this.handler );
+				const renderContext = this._renderContexts.get( scene, camera, this._renderTarget );
 
 				const material = scene.overrideMaterial || object.material;
 
@@ -863,7 +861,7 @@ class Renderer {
 		if ( targetScene === null ) targetScene = scene;
 
 		const renderTarget = this._renderTarget;
-		const renderContext = this._renderContexts.get( targetScene, camera, renderTarget, this.handler );
+		const renderContext = this._renderContexts.get( targetScene, camera, renderTarget );
 		const activeMipmapLevel = this._activeMipmapLevel;
 
 		const compilationPromises = [];
@@ -1318,7 +1316,7 @@ class Renderer {
 
 		//
 
-		const renderContext = this._renderContexts.get( scene, camera, renderTarget, this.handler );
+		const renderContext = this._renderContexts.get( scene, camera, renderTarget );
 
 		this._currentRenderContext = renderContext;
 		this._currentRenderObjectFunction = this._renderObjectFunction || this.renderObject;

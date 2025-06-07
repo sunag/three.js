@@ -332,7 +332,6 @@ class Textures extends DataMap {
 
 				texture.removeEventListener( 'dispose', onDispose );
 
-				console.log( 'THREE.Renderer: Texture disposed.', texture.id );
 				this._destroyTexture( texture );
 
 			};

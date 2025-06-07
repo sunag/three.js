@@ -497,7 +497,6 @@ class NodeMaterialObserver {
 	 */
 	needsRefresh( renderObject, nodeFrame ) {
 
-		//return true;
 		if ( this.hasNode || this.hasAnimation || this.firstInitialization( renderObject ) || this.needsVelocity( nodeFrame.renderer ) )
 			return true;
 
