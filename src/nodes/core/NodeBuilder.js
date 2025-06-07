@@ -1915,6 +1915,31 @@ class NodeBuilder {
 	}
 
 	/**
+	 * Retrieves the material input node associated with the given name.
+	 *
+	 * If a NodeHandler is present in the renderer and can handle the material input,
+	 * it delegates the handling to the NodeHandler.
+	 *
+	 * @param {string} name - The name of the material input to retrieve.
+	 * @returns {?Object} The corresponding node for the material input, or null if not found.
+	 */
+	getMaterialInput( name ) {
+
+		let node = this.material[ name + 'Node' ] || null;
+
+		const handler = this.renderer.handler;
+
+		if ( handler && handler.has( name ) ) {
+
+			node = handler.handle( name, node, this );
+
+		}
+
+		return node;
+
+	}
+
+	/**
 	 * Registers a node declaration in the current shader stage.
 	 *
 	 * @param {Object} node - The node to be registered.

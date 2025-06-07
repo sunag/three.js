@@ -845,15 +845,29 @@ class RenderObject {
 
 		}
 
+		//
+
 		if ( this.camera.isArrayCamera ) {
 
 			cacheKey = hash( cacheKey, this.camera.cameras.length );
 
 		}
 
+		//
+
 		if ( this.object.receiveShadow ) {
 
 			cacheKey = hash( cacheKey, 1 );
+
+		}
+
+		//
+
+		const handler = this.context.handler;
+
+		if ( this.context.handler ) {
+
+			cacheKey = hash( cacheKey, handler.id, handler.version );
 
 		}
 

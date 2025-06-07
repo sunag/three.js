@@ -781,21 +781,26 @@ class NodeMaterial extends Material {
 	 * @param {NodeBuilder} builder - The current node builder.
 	 * @param {BufferGeometry} geometry - The geometry.
 	 */
-	setupDiffuseColor( { object, geometry } ) {
+	setupDiffuseColor( builder ) {
+
+		const { object, geometry } = builder;
+
+		const maskInput = builder.getMaterialInput( 'mask' );
+		const colorInput = builder.getMaterialInput( 'color' );
 
 		// MASK
 
-		if ( this.maskNode !== null ) {
+		if ( maskInput !== null ) {
 
 			// Discard if the mask is `false`
 
-			bool( this.maskNode ).not().discard();
+			bool( maskInput ).not().discard();
 
 		}
 
 		// COLOR
 
-		let colorNode = this.colorNode ? vec4( this.colorNode ) : materialColor;
+		let colorNode = colorInput ? vec4( colorInput ) : materialColor;
 
 		// VERTEX COLORS
 
@@ -955,6 +960,8 @@ class NodeMaterial extends Material {
 	 */
 	setupLights( builder ) {
 
+		const aoInput = builder.getMaterialInput( 'ao' );
+
 		const materialLightsNode = [];
 
 		//
@@ -975,9 +982,9 @@ class NodeMaterial extends Material {
 
 		}
 
-		if ( this.aoNode !== null || builder.material.aoMap ) {
+		if ( aoInput !== null || builder.material.aoMap ) {
 
-			const aoNode = this.aoNode !== null ? this.aoNode : materialAO;
+			const aoNode = aoInput !== null ? aoInput : materialAO;
 
 			materialLightsNode.push( new AONode( aoNode ) );
 
