@@ -35,21 +35,12 @@ class RenderContexts {
 	 * @param {Scene} scene - The scene.
 	 * @param {Camera} camera - The camera that is used to render the scene.
 	 * @param {?RenderTarget} [renderTarget=null] - The active render target.
-	 * @param {?NodeHandler} [handler=null] - The node handler that is used to handle nodes in the scene.
 	 * @return {RenderContext} The render context.
 	 */
-	get( scene, camera, renderTarget = null, handler = null ) {
+	get( scene, camera, renderTarget = null ) {
 
-		let keyIndex = 0;
-
-		if ( handler !== null ) {
-
-			_chainKeys[ keyIndex ++ ] = handler;
-
-		}
-
-		_chainKeys[ keyIndex ++ ] = scene;
-		_chainKeys[ keyIndex ++ ] = camera;
+		_chainKeys[ 0 ] = scene;
+		_chainKeys[ 1 ] = camera;
 
 		let attachmentState;
 
@@ -73,7 +64,6 @@ class RenderContexts {
 		if ( renderState === undefined ) {
 
 			renderState = new RenderContext();
-			renderState.handler = handler;
 
 			chainMap.set( _chainKeys, renderState );
 

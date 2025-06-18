@@ -5,7 +5,6 @@ import { Fn, nodeImmutable, vec2 } from '../tsl/TSLBase.js';
 
 import { Vector2 } from '../../math/Vector2.js';
 import { Vector4 } from '../../math/Vector4.js';
-import { uv } from '../accessors/UV.js';
 
 let screenSizeVec, viewportVec;
 
@@ -158,27 +157,15 @@ class ScreenNode extends Node {
 
 		if ( this.scope === ScreenNode.COORDINATE ) {
 
-			let coord;
+			let coord = builder.getFragCoord();
 
-			if ( builder.shaderStage === 'fragment' ) {
+			if ( builder.isFlipY() ) {
 
-				coord = builder.getFragCoord();
+				// follow webgpu standards
 
-				if ( builder.isFlipY() ) {
+				const size = builder.getNodeProperties( screenSize ).outputNode.build( builder );
 
-					// follow webgpu standards
-
-					const size = builder.getNodeProperties( screenSize ).outputNode.build( builder );
-
-					coord = `${ builder.getType( 'vec2' ) }( ${ coord }.x, ${ size }.y - ${ coord }.y )`;
-
-				}
-
-			} else {
-
-				// fallback to uv coordinates
-
-				coord = uv().build( builder );
+				coord = `${ builder.getType( 'vec2' ) }( ${ coord }.x, ${ size }.y - ${ coord }.y )`;
 
 			}
 
