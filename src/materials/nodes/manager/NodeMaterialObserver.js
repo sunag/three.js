@@ -85,6 +85,13 @@ class NodeMaterialObserver {
 		this.hasNode = this.containsNode( builder );
 
 		/**
+		 * Whether the renderer has a node handler or not.
+		 *
+		 * @type {boolean}
+		 */
+		this.hasHandler = builder.renderer.handler != null;
+
+		/**
 		 * Whether the node builder's 3D object is animated or not.
 		 *
 		 * @type {boolean}
@@ -497,7 +504,7 @@ class NodeMaterialObserver {
 	 */
 	needsRefresh( renderObject, nodeFrame ) {
 
-		if ( this.hasNode || this.hasAnimation || this.firstInitialization( renderObject ) || this.needsVelocity( nodeFrame.renderer ) )
+		if ( this.hasNode || this.hasAnimation || this.hasHandler || this.firstInitialization( renderObject ) || this.needsVelocity( nodeFrame.renderer ) )
 			return true;
 
 		const { renderId } = nodeFrame;

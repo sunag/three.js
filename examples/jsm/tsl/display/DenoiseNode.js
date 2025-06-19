@@ -1,6 +1,7 @@
 import { DataTexture, RepeatWrapping, Vector2, Vector3, TempNode } from 'three/webgpu';
 import { texture, getNormalFromDepth, getViewPosition, convertToTexture, nodeObject, Fn, float, NodeUpdateType, uv, uniform, Loop, luminance, vec2, vec3, vec4, uniformArray, int, dot, max, pow, abs, If, textureSize, sin, cos, mat2, PI, property } from 'three/tsl';
 import { SimplexNoise } from '../../math/SimplexNoise.js';
+import { screenUV } from '../../../../src/nodes/display/ScreenNode.js';
 
 /**
  * Post processing node for denoising data like raw screen-space ambient occlusion output.
@@ -154,7 +155,7 @@ class DenoiseNode extends TempNode {
 	 */
 	setup( /* builder */ ) {
 
-		const uvNode = uv();
+		const uvNode = screenUV;
 
 		const sampleTexture = ( uv ) => this.textureNode.sample( uv );
 		const sampleDepth = ( uv ) => this.depthNode.sample( uv ).x;
