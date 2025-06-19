@@ -360,6 +360,8 @@ class NodeBuilder {
 		 */
 		this.tab = '\t';
 
+		this.instances = null;
+
 		/**
 		 * Reference to the current function node.
 		 *

@@ -70,7 +70,7 @@ class RenderObject {
 	 * @param {RenderContext} renderContext - The render context.
 	 * @param {ClippingContext} clippingContext - The clipping context.
 	 */
-	constructor( nodes, geometries, renderer, object, material, scene, camera, lightsNode, renderContext, clippingContext ) {
+	constructor( nodes, geometries, renderer, object, material, scene, camera, lightsNode, renderContext, clippingContext, instances ) {
 
 		this.id = _id ++;
 

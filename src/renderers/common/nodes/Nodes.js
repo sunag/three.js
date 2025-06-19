@@ -193,6 +193,7 @@ class Nodes extends DataMap {
 			if ( nodeBuilderState === undefined ) {
 
 				const nodeBuilder = this.backend.createNodeBuilder( renderObject.object, this.renderer );
+				nodeBuilder.instances = renderObject.instances;
 				nodeBuilder.scene = renderObject.scene;
 				nodeBuilder.material = renderObject.material;
 				nodeBuilder.camera = renderObject.camera;
@@ -280,7 +281,7 @@ class Nodes extends DataMap {
 	 */
 	_createNodeBuilderState( nodeBuilder ) {
 
-		return new NodeBuilderState(
+		const state = new NodeBuilderState(
 			nodeBuilder.vertexShader,
 			nodeBuilder.fragmentShader,
 			nodeBuilder.computeShader,
@@ -292,6 +293,10 @@ class Nodes extends DataMap {
 			nodeBuilder.observer,
 			nodeBuilder.transforms
 		);
+
+		state.instances = nodeBuilder.instances;
+
+		return state;
 
 	}
 

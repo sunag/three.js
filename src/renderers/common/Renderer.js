@@ -1395,6 +1395,8 @@ class Renderer {
 
 		// process render lists
 
+		this._filterRenderList( renderList, camera, sceneRef );
+
 		const {
 			bundles,
 			lightsNode,
@@ -2500,6 +2502,61 @@ class Renderer {
 
 	}
 
+	_filterRenderList( renderList, camera, scene, passId = null ) {
+
+		const lightsNode = renderList.lightsNode;
+
+		renderList.opaque = this._filterObjects( renderList.opaque, camera, scene, lightsNode, passId );
+		renderList.transparent = this._filterObjects( renderList.transparent, camera, scene, lightsNode, passId );
+		renderList.transparentDoublePass = this._filterObjects( renderList.transparentDoublePass, camera, scene, lightsNode, passId );
+
+	}
+
+	_filterObjects( renderItems, camera, scene, lightsNode, passId = null ) {
+
+		const renderList = [];
+		const renderId = this._nodes.nodeFrame.renderId;
+
+		for ( const renderItem of renderItems ) {
+
+			const { geometry, material, clippingContext } = renderItem;
+
+			const chainMap = this._objects.getChainMap( passId );
+			const chainKeys = [ material, geometry, scene, camera, lightsNode, this._currentRenderContext, clippingContext ];
+
+			let map = chainMap.get( chainKeys );
+
+			if ( map === undefined ) {
+
+				map = {
+					renderItem: null,
+					renderId: - 1
+				};
+
+				chainMap.set( chainKeys, map );
+
+			}
+
+			if ( map.renderId !== renderId ) {
+
+				map.renderId = renderId;
+				map.renderItem = renderItem;
+
+				renderList.push( renderItem );
+
+			} else {
+
+				map.renderItem.instances = map.renderItem.instances || [];
+				map.renderItem.instances.push( renderItem.object );
+
+			}
+
+		}
+
+		return renderList;
+
+	}
+
 	/**
 	 * Analyzes the given 3D object's hierarchy and builds render lists from the
 	 * processed hierarchy.
@@ -2713,9 +2770,9 @@ class Renderer {
 
 		for ( let i = 0, il = renderList.length; i < il; i ++ ) {
 
-			const { object, geometry, material, group, clippingContext } = renderList[ i ];
+			const { object, geometry, material, group, clippingContext, instances } = renderList[ i ];
 
-			this._currentRenderObjectFunction( object, scene, camera, geometry, material, group, lightsNode, clippingContext, passId );
+			this._currentRenderObjectFunction( object, scene, camera, geometry, material, group, lightsNode, clippingContext, passId, instances );
 
 		}
 
@@ -2735,7 +2792,7 @@ class Renderer {
 	 * @param {?ClippingContext} clippingContext - The clipping context.
 	 * @param {?string} [passId=null] - An optional ID for identifying the pass.
 	 */
-	renderObject( object, scene, camera, geometry, material, group, lightsNode, clippingContext = null, passId = null ) {
+	renderObject( object, scene, camera, geometry, material, group, lightsNode, clippingContext = null, passId = null, instances = null ) {
 
 		let overridePositionNode;
 		let overrideColorNode;
@@ -2791,16 +2848,16 @@ class Renderer {
 		if ( material.transparent === true && material.side === DoubleSide && material.forceSinglePass === false ) {
 
 			material.side = BackSide;
-			this._handleObjectFunction( object, material, scene, camera, lightsNode, group, clippingContext, 'backSide' ); // create backSide pass id
+			this._handleObjectFunction( object, material, scene, camera, lightsNode, group, clippingContext, 'backSide', instances ); // create backSide pass id
 
 			material.side = FrontSide;
-			this._handleObjectFunction( object, material, scene, camera, lightsNode, group, clippingContext, passId ); // use default pass id
+			this._handleObjectFunction( object, material, scene, camera, lightsNode, group, clippingContext, passId, instances ); // use default pass id
 
 			material.side = DoubleSide;
 
 		} else {
 
-			this._handleObjectFunction( object, material, scene, camera, lightsNode, group, clippingContext, passId );
+			this._handleObjectFunction( object, material, scene, camera, lightsNode, group, clippingContext, passId, instances );
 
 		}
 
@@ -2844,9 +2901,9 @@ class Renderer {
 	 * @param {ClippingContext} clippingContext - The clipping context.
 	 * @param {?string} [passId=null] - An optional ID for identifying the pass.
 	 */
-	_renderObjectDirect( object, material, scene, camera, lightsNode, group, clippingContext, passId ) {
+	_renderObjectDirect( object, material, scene, camera, lightsNode, group, clippingContext, passId, instances ) {
 
-		const renderObject = this._objects.get( object, material, scene, camera, lightsNode, this._currentRenderContext, clippingContext, passId );
+		const renderObject = this._objects.get( object, material, scene, camera, lightsNode, this._currentRenderContext, clippingContext, passId, instances );
 		renderObject.drawRange = object.geometry.drawRange;
 		renderObject.group = group;
 

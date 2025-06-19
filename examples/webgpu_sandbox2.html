@@ -14,7 +14,7 @@
 		<script type="importmap">
 			{
 				"imports": {
-					"three": "../src/three.webgpu.js",
+					"three": "../src/three.js",
 					"three/webgpu": "../src/three.webgpu.js",
 					"three/tsl": "../src/three.tsl.js",
 					"three/addons/": "./jsm/"
@@ -38,36 +38,16 @@ const scene = new THREE.Scene();
 
 const cube = new THREE.BoxGeometry( 1, 1, 1 );
 const cubeMat = new THREE.MeshNormalMaterial();
-//cubeMat.transparent = true;
-//cubeMat.opacity = 0.01;
-//cubeMat.depthWrite = false;
 
 const cubes = [];
-//const MESHES_COUNT = 20000;
-const MESHES_COUNT = 100;
+const MESHES_COUNT = 20000;
 
 for ( let i = 0; i < MESHES_COUNT; i ++ ) {
 
   const cubeMesh = new THREE.Mesh( cube, cubeMat );
-  //cubeMesh.static = true;
   cubes.push( cubeMesh );
 
 }
-
-setTimeout( () => {
-
-	for ( let i = 0; i < MESHES_COUNT; i ++ ) {
-
-		const cubeMesh = new THREE.Mesh( cube, cubeMat );
-		//cubeMesh.static = true;
-		cubes.push( cubeMesh );
-		scene.add( cubeMesh );
-
-	}
-
-	console.log( 'added' );
-
-}, 1000 );
 
 scene.add( ...cubes );
 
@@ -86,7 +66,7 @@ scene.add( light1 );
 
 //
 
-const renderer = new THREE.WebGPURenderer( { forceWebGL: false } );
+const renderer = new THREE.WebGLRenderer( { forceWebGL: false } );
 renderer.setSize( window.innerWidth, window.innerHeight );
 renderer.setAnimationLoop( animate );
 document.body.appendChild( renderer.domElement );
@@ -122,20 +102,16 @@ window.addEventListener( 'resize', () => {
 
 function animate() {
 
+  cubes.forEach( ( cubeMesh ) => {
 
-	for ( let i = 0; i < MESHES_COUNT; i ++ ) {
+    cubeMesh.rotateX( 0.01 );
+    cubeMesh.rotateY( 0.03 );
 
-		const cubeMesh = cubes[ i ];
-		const p = ( i / MESHES_COUNT );
-		cubeMesh.rotateX( 0.01 + ( p * 0.01 ) );
-		cubeMesh.rotateY( 0.03 + ( p * 0.01 ) );
+  } );
 
-	}
+  renderer.render( scene, camera );
 
-
-	renderer.render( scene, camera );
-
-	stats.update();
+  stats.update();
 
 }
 

@@ -4,6 +4,7 @@ import UniformNode from '../core/UniformNode.js';
 import { nodeProxy } from '../tsl/TSLBase.js';
 import { Vector3 } from '../../math/Vector3.js';
 import { Sphere } from '../../math/Sphere.js';
+import UniformGroupNode from '../core/UniformGroupNode.js';
 
 const _sphere = /*@__PURE__*/ new Sphere();
 
@@ -110,6 +111,7 @@ class Object3DNode extends Node {
 		if ( scope === Object3DNode.WORLD_MATRIX ) {
 
 			uniformNode.value = object.matrixWorld;
+			//uniformNode.setGroup( new UniformGroupNode( 'world' ) )
 
 		} else if ( scope === Object3DNode.POSITION ) {
 

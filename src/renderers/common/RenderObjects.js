@@ -87,7 +87,7 @@ class RenderObjects {
 	 * @param {string} [passId] - An optional ID for identifying the pass.
 	 * @return {RenderObject} The render object.
 	 */
-	get( object, material, scene, camera, lightsNode, renderContext, clippingContext, passId ) {
+	get( object, material, scene, camera, lightsNode, renderContext, clippingContext, passId, instances ) {
 
 		const chainMap = this.getChainMap( passId );
 
@@ -101,7 +101,7 @@ class RenderObjects {
 
 		if ( renderObject === undefined ) {
 
-			renderObject = this.createRenderObject( this.nodes, this.geometries, this.renderer, object, material, scene, camera, lightsNode, renderContext, clippingContext, passId );
+			renderObject = this.createRenderObject( this.nodes, this.geometries, this.renderer, object, material, scene, camera, lightsNode, renderContext, clippingContext, passId, instances );
 
 			chainMap.set( _chainKeys, renderObject );
 
@@ -114,6 +114,11 @@ class RenderObjects {
 				renderObject.setGeometry( object.geometry );
 
 			}
+
+			const builderCount = renderObject.getNodeBuilderState().instances ? renderObject.getNodeBuilderState().instances.length : 0;
+			const instanceCount = instances ? instances.length : 0;
+
+			if ( instanceCount > 0 ) console.log( '<<>>', instanceCount, builderCount );
 
 			if ( renderObject.version !== material.version || renderObject.needsUpdate ) {
 
@@ -132,8 +137,6 @@ class RenderObjects {
 			}
 
 		}
-
-		_chainKeys.length = 0;
 
 		return renderObject;
 
@@ -176,11 +179,12 @@ class RenderObjects {
 	 * @param {string} [passId] - An optional ID for identifying the pass.
 	 * @return {RenderObject} The render object.
 	 */
-	createRenderObject( nodes, geometries, renderer, object, material, scene, camera, lightsNode, renderContext, clippingContext, passId ) {
+	createRenderObject( nodes, geometries, renderer, object, material, scene, camera, lightsNode, renderContext, clippingContext, passId, instances ) {
 
 		const chainMap = this.getChainMap( passId );
 
 		const renderObject = new RenderObject( nodes, geometries, renderer, object, material, scene, camera, lightsNode, renderContext, clippingContext );
+		renderObject.instances = instances;
 
 		renderObject.onDispose = () => {
 
