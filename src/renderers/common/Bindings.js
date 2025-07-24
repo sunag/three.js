@@ -260,6 +260,8 @@ class Bindings extends DataMap {
 
 				if ( updated ) {
 
+					this.backend.delete( bindGroup );
+
 					this.textures.updateTexture( texture );
 
 				}

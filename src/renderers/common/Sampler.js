@@ -43,6 +43,39 @@ class Sampler extends Binding {
 
 	}
 
+	onDisposeTexture() {
+
+		console.log( this, 'SampledTexture: Texture disposed.' );
+		this.destroyed = true;
+
+	}
+
+	set texture( value ) {
+
+		if ( this._texture === value ) return;
+
+		if ( this._texture ) {
+
+			this._texture.removeEventListener( 'dispose', this.onDisposeTexture );
+
+		}
+
+		this._texture = value;
+
+		if ( this._texture ) {
+
+			this._texture.addEventListener( 'dispose', this.onDisposeTexture.bind( this ) );
+
+		}
+
+	}
+
+	get texture() {
+
+		return this._texture;
+
+	}
+
 }
 
 export default Sampler;

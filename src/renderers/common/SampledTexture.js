@@ -69,6 +69,38 @@ class SampledTexture extends Binding {
 
 	}
 
+	onDisposeTexture() {
+
+		this.destroyed = true;
+
+	}
+
+	set texture( value ) {
+
+		if ( this._texture === value ) return;
+
+		if ( this._texture ) {
+
+			this._texture.removeEventListener( 'dispose', this.onDisposeTexture );
+
+		}
+
+		this._texture = value;
+
+		if ( this._texture ) {
+
+			this._texture.addEventListener( 'dispose', this.onDisposeTexture.bind( this ) );
+
+		}
+
+	}
+
+	get texture() {
+
+		return this._texture;
+
+	}
+
 	/**
 	 * Returns `true` whether this binding requires an update for the
 	 * given generation.
@@ -81,6 +113,7 @@ class SampledTexture extends Binding {
 		if ( generation !== this.generation ) {
 
 			this.generation = generation;
+			console.log( this.generation );
 
 			return true;
 
@@ -99,6 +132,14 @@ class SampledTexture extends Binding {
 	update() {
 
 		const { texture, version } = this;
+
+		if ( this.destroyed ) {
+
+			this.destroyed = false;
+
+			return true;
+
+		}
 
 		if ( version !== texture.version ) {
 
