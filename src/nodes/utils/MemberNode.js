@@ -15,21 +15,21 @@ class MemberNode extends Node {
 	}
 
 	/**
-	 * Constructs an array element node.
+	 * Constructs a member node.
 	 *
-	 * @param {Node} node - The array-like node.
+	 * @param {Node} structNode - The struct node.
 	 * @param {string} property - The property name.
 	 */
-	constructor( node, property ) {
+	constructor( structNode, property ) {
 
 		super();
 
 		/**
-		 * The array-like node.
+		 * The struct node.
 		 *
 		 * @type {Node}
 		 */
-		this.node = node;
+		this.structNode = structNode;
 
 		/**
 		 * The property name.
@@ -51,13 +51,24 @@ class MemberNode extends Node {
 
 	getNodeType( builder ) {
 
-		return this.node.getMemberType( builder, this.property );
+		return this.structNode.getMemberType( builder, this.property );
+
+	}
+
+	getMemberType( builder, name ) {
+
+		const type = this.getNodeType( builder );
+		const struct = builder.getStructTypeNode( type );
+
+		return struct.getMemberType( builder, name );
+
+		//return this.structNode.getMemberType( builder, name );
 
 	}
 
 	generate( builder ) {
 
-		const propertyName = this.node.build( builder );
+		const propertyName = this.structNode.build( builder );
 
 		return propertyName + '.' + this.property;
 
