@@ -17,7 +17,6 @@ import RenderBundles from './RenderBundles.js';
 import NodeLibrary from './nodes/NodeLibrary.js';
 import Lighting from './Lighting.js';
 import XRManager from './XRManager.js';
-import AbstractInspector from './AbstractInspector.js';
 
 import NodeMaterial from '../../materials/nodes/NodeMaterial.js';
 
@@ -267,8 +266,6 @@ class Renderer {
 		 * @type {Lighting}
 		 */
 		this.lighting = new Lighting();
-
-		this.inspector = new AbstractInspector();
 
 		// internals
 
@@ -792,7 +789,7 @@ class Renderer {
 			}
 
 			this._nodes = new Nodes( this, backend );
-			this._animation = new Animation( this, this._nodes, this.info );
+			this._animation = new Animation( this._nodes, this.info );
 			this._attributes = new Attributes( backend );
 			this._background = new Background( this, this._nodes );
 			this._geometries = new Geometries( this._attributes, this.info );
@@ -996,21 +993,6 @@ class Renderer {
 	async waitForGPU() {
 
 		await this.backend.waitForGPU();
-
-	}
-
-	// -------
-
-	set inspector( value ) {
-
-		this._inspector = value;
-		this._inspector.renderer = this;
-
-	}
-
-	get inspector() {
-
-		return this._inspector;
 
 	}
 
@@ -1301,8 +1283,6 @@ class Renderer {
 
 		if ( this._isDeviceLost === true ) return;
 
-		//
-
 		const frameBufferTarget = useFrameBufferTarget ? this._getFrameBufferTarget() : null;
 
 		// preserve render tree
@@ -1352,12 +1332,6 @@ class Renderer {
 		this.info.render.frameCalls ++;
 
 		nodeFrame.renderId = this.info.calls;
-
-		//
-
-		this.backend.updateTimeStampUID( renderContext );
-
-		this.inspector.beginRender( this.backend.getTimestampUID( renderContext ), scene, camera, renderTarget );
 
 		//
 
@@ -1555,10 +1529,6 @@ class Renderer {
 		//
 
 		sceneRef.onAfterRender( this, scene, camera, renderTarget );
-
-		//
-
-		this.inspector.finishRender( this.backend.getTimestampUID( renderContext ) );
 
 		//
 
@@ -2393,12 +2363,6 @@ class Renderer {
 
 		//
 
-		this.backend.updateTimeStampUID( computeNodes );
-
-		this.inspector.beginCompute( this.backend.getTimestampUID( computeNodes ), computeNodes );
-
-		//
-
 		const backend = this.backend;
 		const pipelines = this._pipelines;
 		const bindings = this._bindings;
@@ -2459,10 +2423,6 @@ class Renderer {
 		//
 
 		nodeFrame.renderId = previousRenderId;
-
-		//
-
-		this.inspector.finishCompute( this.backend.getTimestampUID( computeNodes ) );
 
 	}
 

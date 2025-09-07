@@ -1,1541 +1,249 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Profiler Dinâmico com Classes</title>
-</head>
-<body>
-    <div class="game-world">
-        <h1>Meu Game Engine</h1>
-        <p>Profiler construído dinamicamente com classes.</p>
-    </div>
-
-    <!-- O Profiler será anexado ao body -->
-    
-    <script type="module">
-
-/**
-         * Style.init()
-         * Adiciona o CSS completo para o profiler.
-         */
-class Style {
-
-	static init() {
-
-		if ( document.getElementById( 'profiler-styles' ) ) return;
-
-		const css = `
-:root {
-	--profiler-bg: #1e1e24;
-	--profiler-header: #2a2a33;
-	--profiler-border: #4a4a5a;
-	--text-primary: #e0e0e0;
-	--text-secondary: #9a9aab;
-	--accent-color: #00aaff;
-	--color-green: #4caf50;
-	--color-yellow: #ffc107;
-	--color-red: #f44336;
-	--font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-	--font-mono: 'Fira Code', 'Courier New', Courier, monospace;
-}
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Fira+Code&display=swap');
-
-body {
-	margin: 0;
-	padding: 0;
-	background-color: #333;
-	overflow: hidden;
-}
-
-.game-world {
-	height: 100vh;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	flex-direction: column;
-	background: linear-gradient(45deg, #2c3e50, #3498db);
-	text-align: center;
-	font-family: var(--font-family);
-	color: white;
-}
-
-.game-world h1 {
-	font-size: clamp(2.5rem, 8vw, 4rem);
-	text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.6);
-}
-
-.game-world p {
-	font-size: clamp(1rem, 4vw, 1.2rem);
-	text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.5);
-}
-
-#profiler-toggle {
-	position: fixed;
-	top: 15px;
-	right: 15px;
-	background-color: rgba(30, 30, 36, 0.85);
-	border: 1px solid var(--profiler-border);
-	border-radius: 6px 12px 12px 6px;
-	color: var(--text-primary);
-	cursor: pointer;
-	z-index: 1001;
-	transition: all 0.2s ease-in-out;
-	font-size: 14px;
-	backdrop-filter: blur(8px);
-	box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-	display: flex;
-	align-items: stretch;
-	padding: 0;
-	overflow: hidden;
-	font-family: var(--font-family);
-}
-
-#profiler-toggle:hover {
-	border-color: var(--accent-color);
-}
-
-#profiler-toggle.hidden {
-	opacity: 0;
-	pointer-events: none;
-}
-
-#toggle-icon {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 40px;
-	font-size: 20px;
-	transition: background-color 0.2s;
-}
-
-#profiler-toggle:hover #toggle-icon {
-	background-color: rgba(255, 255, 255, 0.05);
-}
-
-.toggle-separator {
-	width: 1px;
-	background-color: var(--profiler-border);
-}
-
-#toggle-text {
-	display: flex;
-	align-items: center;
-	padding: 8px 14px;
-	min-width: 80px;
-	justify-content: center;
-}
-
-#toggle-text .fps-label {
-	font-size: 0.8em;
-	margin-left: 4px;
-}
-
-#profiler-panel {
-	position: fixed;
-	bottom: 0;
-	left: 0;
-	right: 0;
-	height: 350px;
-	background-color: var(--profiler-bg);
-	border-top: 2px solid var(--profiler-border);
-	color: var(--text-primary);
-	display: flex;
-	flex-direction: column;
-	z-index: 1000;
-	box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.5);
-	transform: translateY(100%);
-	transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), height 0.3s ease-out;
-	font-family: var(--font-mono);
-}
-
-#profiler-panel.resizing {
-	transition: none;
-	/* Desativa a animação durante o redimensionamento */
-}
-
-#profiler-panel.visible {
-	transform: translateY(0);
-}
-
-#profiler-panel.maximized {
-	height: 100vh;
-}
-
-
-.panel-resizer {
-	position: absolute;
-	top: -2px;
-	left: 0;
-	width: 100%;
-	height: 5px;
-	cursor: ns-resize;
-	z-index: 1001;
-}
-
-.profiler-header {
-	display: flex;
-	background-color: var(--profiler-header);
-	border-bottom: 1px solid var(--profiler-border);
-	flex-shrink: 0;
-	justify-content: space-between;
-	align-items: stretch;
-}
-
-.profiler-tabs {
-	display: flex;
-}
-
-.tab-btn {
-	background: transparent;
-	border: none;
-	border-right: 1px solid var(--profiler-border);
-	color: var(--text-secondary);
-	padding: 8px 18px;
-	cursor: pointer;
-	transition: all 0.2s;
-	display: flex;
-	align-items: center;
-	font-family: var(--font-family);
-}
-
-.tab-btn.active {
-	background-color: var(--accent-color);
-	color: white;
-}
-
-#maximize-btn,
-#hide-panel-btn {
-	background: transparent;
-	border: none;
-	border-left: 1px solid var(--profiler-border);
-	color: var(--text-secondary);
-	width: 45px;
-	cursor: pointer;
-	transition: all 0.2s;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-
-#maximize-btn:hover,
-#hide-panel-btn:hover {
-	background-color: rgba(255, 255, 255, 0.1);
-	color: var(--text-primary);
-}
-
-.profiler-content-wrapper {
-	flex-grow: 1;
-	overflow: hidden;
-	position: relative;
-}
-
-.profiler-content {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	overflow-y: auto;
-	font-size: 13px;
-	visibility: hidden;
-	opacity: 0;
-	transition: opacity 0.2s, visibility 0.2s;
-	box-sizing: border-box;
-	display: flex;
-	flex-direction: column;
-}
-
-.profiler-content.active {
-	visibility: visible;
-	opacity: 1;
-}
-
-/* Estilos da Lista Genérica Adaptados */
-.list-item-row {
-	display: grid;
-	align-items: center;
-	padding: 4px 8px;
-	border-radius: 3px;
-	transition: background-color 0.2s;
-	gap: 10px;
-	border-bottom: none;
-}
-
-.list-item-wrapper.header-wrapper>.list-item-row {
-	color: var(--accent-color);
-	background-color: rgba(0, 170, 255, 0.1);
-}
-
-.list-item-wrapper.header-wrapper>.list-item-row>.list-item-cell:first-child {
-	font-weight: 600;
-}
-
-.list-item-row.collapsible,
-.list-item-row.actionable {
-	cursor: pointer;
-}
-
-.list-item-row.collapsible:hover,
-.list-item-row.actionable:hover {
-	background-color: rgba(0, 170, 255, 0.15);
-}
-
-.list-item-cell {
-	white-space: pre;
-	display: flex;
-	align-items: center;
-}
-
-.list-item-cell:not(:first-child) {
-	justify-content: flex-end;
-	font-weight: 600;
-}
-
-.list-header {
-	display: grid;
-	align-items: center;
-	padding: 4px 8px;
-	font-weight: 600;
-	color: var(--text-secondary);
-	padding-bottom: 6px;
-	border-bottom: 1px solid var(--profiler-border);
-	margin-bottom: 5px;
-	gap: 10px;
-}
-
-.list-item-wrapper.section-start {
-	margin-top: 5px;
-	margin-bottom: 5px;
-}
-
-.list-header .list-header-cell:not(:first-child) {
-	text-align: right;
-}
-
-.list-children-container {
-	padding-left: 1.5em;
-	overflow: hidden;
-	max-height: 1000px;
-	/* Valor alto para permitir a animação */
-	transition: max-height 0.1s ease-out;
-	margin-top: 5px;
-}
-
-.list-children-container.closed {
-	max-height: 0;
-}
-
-.item-toggler {
-	display: inline-block;
-	width: 1.5em;
-	text-align: left;
-}
-
-.list-item-row.open .item-toggler::before {
-	content: '-';
-}
-
-.list-item-row:not(.open) .item-toggler::before {
-	content: '+';
-}
-
-.list-item-cell .value.good {
-	color: var(--color-green);
-}
-
-.list-item-cell .value.warn {
-	color: var(--color-yellow);
-}
-
-.list-item-cell .value.bad {
-	color: var(--color-red);
-}
-
-.list-item-wrapper:not(.header-wrapper):nth-child(odd) > .list-item-row {
-	background-color: rgba(0,0,0,0.1);
-}
-
-/* Estilos do Gráfico */
-.graph-container {
-	width: 100%;
-	box-sizing: border-box;
-	padding: 8px 0;
-	position: relative;
-}
-
-.graph-svg {
-	width: 100%;
-	height: 80px;
-	background-color: #2a2a33;
-	border: 1px solid var(--profiler-border);
-	border-radius: 4px;
-}
-
-.graph-path {
-	stroke-width: 2;
-	fill-opacity: 0.4;
-}
-
-/* Estilos do Console */
-.console-header {
-	padding: 10px;
-	border-bottom: 1px solid var(--profiler-border);
-	display: flex;
-	gap: 20px;
-	flex-shrink: 0;
-}
-
-#console-log {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-	padding: 10px;
-	overflow-y: auto;
-	flex-grow: 1;
-}
-
-.log-message {
-	padding: 2px 5px;
-	white-space: pre-wrap;
-	word-break: break-all;
-}
-
-.log-message.hidden {
-	display: none;
-}
-
-.log-message.info {
-	color: var(--text-primary);
-}
-
-.log-message.warn {
-	color: var(--color-yellow);
-}
-
-.log-message.error {
-	color: var(--color-red);
-	background-color: rgba(244, 67, 54, 0.1);
-}
-
-/* Estilos da Thumbnail */
-.thumbnail-container {
-	display: flex;
-	align-items: center;
-}
-
-.thumbnail-svg {
-	width: 40px;
-	height: 22.5px;
-	flex-shrink: 0;
-	margin-right: 8px;
-}
-
-/* Estilos dos Parâmetros */
-.param-control {
-	display: flex;
-	align-items: center;
-	justify-content: flex-end;
-	gap: 10px;
-	width: 100%;
-}
-
-.param-control input,
-.param-control select,
-.param-control button {
-	background-color: var(--profiler-bg);
-	border: 1px solid var(--profiler-border);
-	color: var(--text-primary);
-	border-radius: 4px;
-	padding: 4px 6px;
-	font-family: var(--font-mono);
-	width: 100%;
-	box-sizing: border-box;
-}
-
-.param-control input[type="number"] {
-	cursor: ns-resize;
-}
-
-.param-control input[type="color"] {
-	padding: 2px;
-}
-
-.param-control button {
-	cursor: pointer;
-	transition: background-color 0.2s;
-}
-
-.param-control button:hover {
-	background-color: var(--profiler-header);
-}
-
-.param-control-vector {
-	display: flex;
-	gap: 5px;
-}
-
-/* Estilos do Checkbox Personalizado */
-.custom-checkbox {
-	display: inline-flex;
-	align-items: center;
-	cursor: pointer;
-	gap: 8px;
-}
-
-.custom-checkbox input {
-	display: none;
-	/* Esconde o checkbox padrão */
-}
-
-.custom-checkbox .checkmark {
-	width: 14px;
-	height: 14px;
-	border: 1px solid var(--profiler-border);
-	border-radius: 3px;
-	display: inline-flex;
-	justify-content: center;
-	align-items: center;
-	transition: background-color 0.2s, border-color 0.2s;
-}
-
-.custom-checkbox .checkmark::after {
-	content: '';
-	width: 8px;
-	height: 8px;
-	background-color: var(--accent-color);
-	border-radius: 1px;
-	display: block;
-	transform: scale(0);
-	transition: transform 0.2s;
-}
-
-.custom-checkbox input:checked+.checkmark {
-	border-color: var(--accent-color);
-}
-
-.custom-checkbox input:checked+.checkmark::after {
-	transform: scale(1);
-}
-
-/* Estilos do Slider Personalizado */
-.param-control input[type="range"] {
-	-webkit-appearance: none;
-	appearance: none;
-	width: 100%;
-	height: 16px;
-	background: var(--profiler-header);
-	border-radius: 5px;
-	border: 1px solid var(--profiler-border);
-	outline: none;
-	padding: 0px;
-	padding-top: 8px;
-}
-
-.param-control input[type="range"]::-webkit-slider-thumb {
-	-webkit-appearance: none;
-	appearance: none;
-	width: 18px;
-	height: 18px;
-	background: var(--profiler-bg);
-	border: 2px solid var(--accent-color);
-	border-radius: 3px;
-	cursor: pointer;
-	margin-top: -8px;
-}
-
-.param-control input[type="range"]::-moz-range-thumb {
-	width: 18px;
-	height: 18px;
-	background: var(--profiler-bg);
-	border: 2px solid var(--accent-color);
-	border-radius: 3px;
-	cursor: pointer;
-}
-
-.param-control input[type="range"]::-moz-range-track {
-	width: 100%;
-	height: 16px;
-	background: var(--profiler-header);
-	border-radius: 5px;
-	border: 1px solid var(--profiler-border);
-}
-`;
-		const styleElement = document.createElement( 'style' );
-		styleElement.id = 'profiler-styles';
-		styleElement.textContent = css;
-		document.head.appendChild( styleElement );
-
-	}
-
-}
-
-class Item {
-
-	constructor( ...data ) {
-
-		this.children = [];
-		this.isOpen = true;
-		this.childrenContainer = null;
-		this.domElement = document.createElement( 'div' );
-		this.domElement.className = 'list-item-wrapper';
-		this.itemRow = document.createElement( 'div' );
-		this.itemRow.className = 'list-item-row';
-
-		if ( data.length === 1 && data[ 0 ] && typeof data[ 0 ] === 'object' && data[ 0 ].content && data[ 0 ].span ) {
-
-			const cell = document.createElement( 'div' );
-			cell.className = 'list-item-cell';
-			cell.style.gridColumn = '1 / -1';
-
-			const cellData = data[ 0 ].content;
-			if ( cellData instanceof HTMLElement ) {
-
-				cell.appendChild( cellData );
-
-			} else {
-
-				cell.append( String( cellData ) );
-
+<html lang="en">
+	<head>
+		<title>three.js webgpu - sandbox</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+	</head>
+	<body>
+
+		<div id="info">
+			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> webgpu - sandbox
+		</div>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../build/three.webgpu.js",
+					"three/webgpu": "../build/three.webgpu.js",
+					"three/tsl": "../build/three.tsl.js",
+					"three/addons/": "./jsm/"
+				}
 			}
+		</script>
 
-			this.itemRow.appendChild( cell );
+		<script type="module">
 
-		} else {
+			import * as THREE from 'three/webgpu';
+			import { time, vec2, uv, texture, mix, checker, normalLocal, positionLocal, color, oscSine, attribute } from 'three/tsl';
 
-			this.data = data;
-			this.data.forEach( ( cellData ) => {
+			import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
 
-				const cell = document.createElement( 'div' );
-				cell.className = 'list-item-cell';
-				if ( cellData instanceof HTMLElement ) {
+			let camera, scene, renderer;
 
-					cell.appendChild( cellData );
+			let box;
 
-				} else {
+			init();
 
-					cell.append( String( cellData ) );
+			async function init() {
+
+				camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 10 );
+				camera.position.z = 4;
+
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0x222222 );
+
+				//
+
+				renderer = new THREE.WebGPURenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.setAnimationLoop( animate );
+				document.body.appendChild( renderer.domElement );
+
+				// textures
+
+				const textureLoader = new THREE.TextureLoader();
+				const uvTexture = textureLoader.load( './textures/uv_grid_opengl.jpg' );
+				uvTexture.wrapS = THREE.RepeatWrapping;
+				uvTexture.wrapT = THREE.RepeatWrapping;
+				uvTexture.name = 'uv_grid';
+
+				const textureDisplace = textureLoader.load( './textures/transition/transition1.png' );
+				textureDisplace.wrapS = THREE.RepeatWrapping;
+				textureDisplace.wrapT = THREE.RepeatWrapping;
+
+				const ktxLoader = await new KTX2Loader()
+					.setTranscoderPath( 'jsm/libs/basis/' )
+					.detectSupportAsync( renderer );
+
+				const ktxTexture = await ktxLoader.loadAsync( './textures/ktx2/2d_uastc.ktx2' );
+
+				// box mesh
+
+				const geometryBox = new THREE.BoxGeometry();
+				const materialBox = new THREE.MeshBasicNodeMaterial();
+
+				// birection speed
+
+				const timerScaleNode = time.mul( vec2( - 0.5, 0.1 ) );
+				const animateUV = uv().add( timerScaleNode );
+
+				const textureNode = texture( uvTexture, animateUV );
+
+				materialBox.colorNode = mix( textureNode, checker( animateUV ), 0.5 );
+
+				// test uv 2
+				//geometryBox.setAttribute( 'uv1', geometryBox.getAttribute( 'uv' ) );
+				//materialBox.colorNode = texture( uvTexture, uv( 1 ) );
+
+				box = new THREE.Mesh( geometryBox, materialBox );
+				box.position.set( 0, 1, 0 );
+				scene.add( box );
+
+				// displace example
+
+				const geometrySphere = new THREE.SphereGeometry( .5, 64, 64 );
+				const materialSphere = new THREE.MeshBasicNodeMaterial();
+
+				const displaceY = texture( textureDisplace ).x.mul( 0.25 );
+
+				const displace = normalLocal.mul( displaceY );
+
+				materialSphere.colorNode = displaceY;
+				materialSphere.positionNode = positionLocal.add( displace );
+
+				const sphere = new THREE.Mesh( geometrySphere, materialSphere );
+				sphere.position.set( - 2, - 1, 0 );
+				scene.add( sphere );
+
+				// data texture
+
+				const geometryPlane = new THREE.PlaneGeometry();
+				const materialPlane = new THREE.MeshBasicNodeMaterial();
+				materialPlane.colorNode = texture( createDataTexture() ).add( color( 0x0000FF ) );
+				materialPlane.transparent = true;
+
+				const plane = new THREE.Mesh( geometryPlane, materialPlane );
+				plane.position.set( 0, - 1, 0 );
+				scene.add( plane );
+
+				// compressed texture
+
+				const materialCompressed = new THREE.MeshBasicNodeMaterial();
+				materialCompressed.colorNode = texture( ktxTexture );
+				materialCompressed.emissiveNode = oscSine().mix( color( 0x663300 ), color( 0x0000FF ) );
+				materialCompressed.alphaTestNode = oscSine();
+				materialCompressed.transparent = true;
+
+				const geo = flipY( new THREE.PlaneGeometry() );
+				const planeCompressed = new THREE.Mesh( geo, materialCompressed );
+				planeCompressed.position.set( - 2, 1, 0 );
+				scene.add( planeCompressed );
+
+				// points
+
+				const points = [];
+
+				for ( let i = 0; i < 1000; i ++ ) {
+
+					const point = new THREE.Vector3().random().subScalar( 0.5 );
+					points.push( point );
 
 				}
 
-				this.itemRow.appendChild( cell );
+				const geometryPoints = new THREE.BufferGeometry().setFromPoints( points );
+				const materialPoints = new THREE.PointsNodeMaterial();
 
-			} );
+				materialPoints.colorNode = positionLocal.mul( 3 );
 
-		}
+				const pointCloud = new THREE.Points( geometryPoints, materialPoints );
+				pointCloud.position.set( 2, - 1, 0 );
+				scene.add( pointCloud );
 
-		this.domElement.appendChild( this.itemRow );
+				// lines
 
-	}
+				const geometryLine = new THREE.BufferGeometry().setFromPoints( [
+					new THREE.Vector3( - 0.5, - 0.5, 0 ),
+					new THREE.Vector3( 0.5, - 0.5, 0 ),
+					new THREE.Vector3( 0.5, 0.5, 0 ),
+					new THREE.Vector3( - 0.5, 0.5, 0 ),
+					new THREE.Vector3( - 0.5, - 0.5, 0 )
+				] );
 
-	add( item ) {
+				geometryLine.setAttribute( 'color', geometryLine.getAttribute( 'position' ) );
 
-		this.children.push( item );
-		this.itemRow.classList.add( 'collapsible' );
-		if ( ! this.childrenContainer ) {
+				const materialLine = new THREE.LineBasicNodeMaterial();
+				materialLine.colorNode = attribute( 'color' );
 
-			this.childrenContainer = document.createElement( 'div' );
-			this.childrenContainer.className = 'list-children-container';
-			this.domElement.appendChild( this.childrenContainer );
-			this.itemRow.addEventListener( 'click', ( e ) => {
+				const line = new THREE.Line( geometryLine, materialLine );
+				line.position.set( 2, 1, 0 );
+				scene.add( line );
 
-				if ( e.target.closest( 'button, a, input, label' ) ) return;
-				this.toggle();
-
-			} );
-
-		}
-
-		this.childrenContainer.appendChild( item.domElement );
-		this.updateToggler();
-		return this;
-
-	}
-
-	updateToggler() {
-
-		const firstCell = this.itemRow.querySelector( '.list-item-cell:first-child' );
-		let toggler = this.itemRow.querySelector( '.item-toggler' );
-		if ( this.children.length > 0 ) {
-
-			if ( ! toggler ) {
-
-				toggler = document.createElement( 'span' );
-				toggler.className = 'item-toggler';
-				firstCell.prepend( toggler );
+				window.addEventListener( 'resize', onWindowResize );
 
 			}
 
-			this.itemRow.classList.add( 'open' );
+			function onWindowResize() {
 
-		} else if ( toggler ) {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
 
-			toggler.remove();
-
-		}
-
-	}
-
-	toggle() {
-
-		if ( ! this.childrenContainer ) return;
-		this.isOpen = ! this.isOpen;
-		this.itemRow.classList.toggle( 'open', this.isOpen );
-		this.childrenContainer.classList.toggle( 'closed', ! this.isOpen );
-
-	}
-
-}
-
-class List {
-
-	constructor( ...headers ) {
-
-		this.headers = headers;
-		this.items = [];
-		this.domElement = document.createElement( 'div' );
-		this.domElement.className = 'list-container';
-		this.domElement.style.padding = '10px';
-		this.id = `list-${Math.random().toString( 36 ).substr( 2, 9 )}`;
-		this.domElement.dataset.listId = this.id;
-
-		this.gridStyleElement = document.createElement( 'style' );
-		this.domElement.appendChild( this.gridStyleElement );
-
-		const headerRow = document.createElement( 'div' );
-		headerRow.className = 'list-header';
-		this.headers.forEach( headerText => {
-
-			const headerCell = document.createElement( 'div' );
-			headerCell.className = 'list-header-cell';
-			headerCell.textContent = headerText;
-			headerRow.appendChild( headerCell );
-
-		} );
-		this.domElement.appendChild( headerRow );
-
-	}
-
-	setGridStyle( gridTemplate ) {
-
-		this.gridStyleElement.textContent = `
-[data-list-id="${this.id}"] > .list-header,
-[data-list-id="${this.id}"] .list-item-row {
-	grid-template-columns: ${gridTemplate};
-}
-`;
-
-	}
-
-	add( item ) {
-
-		this.items.push( item );
-		this.domElement.appendChild( item.domElement );
-
-	}
-
-}
-
-class Graph {
-
-	constructor( maxPoints = 150 ) {
-
-		this.maxPoints = maxPoints;
-		this.lines = {};
-
-		this.domElement = document.createElementNS( "http://www.w3.org/2000/svg", "svg" );
-		this.domElement.setAttribute( 'class', 'graph-svg' );
-
-	}
-
-	addLine( id, color ) {
-
-		const path = document.createElementNS( "http://www.w3.org/2000/svg", "path" );
-		path.setAttribute( 'class', 'graph-path' );
-		path.style.stroke = `var(${color})`;
-		path.style.fill = `var(${color})`;
-		this.domElement.appendChild( path );
-
-		this.lines[ id ] = { path, color, points: [] };
-
-	}
-
-	addPoint( lineId, value ) {
-
-		const line = this.lines[ lineId ];
-		if ( ! line ) return;
-
-		line.points.push( value );
-		if ( line.points.length > this.maxPoints ) {
-
-			line.points.shift();
-
-		}
-
-	}
-
-	update() {
-
-		const svgWidth = this.domElement.clientWidth;
-		const svgHeight = this.domElement.clientHeight;
-		if ( svgWidth === 0 ) return;
-
-		const pointStep = svgWidth / ( this.maxPoints - 1 );
-
-		for ( const id in this.lines ) {
-
-			const line = this.lines[ id ];
-
-			let pathString = `M 0,${svgHeight}`;
-			for ( let i = 0; i < line.points.length; i ++ ) {
-
-				const x = i * pointStep;
-				const y = svgHeight - ( line.points[ i ] / 100 ) * svgHeight;
-				pathString += ` L ${x},${y}`;
+				renderer.setSize( window.innerWidth, window.innerHeight );
 
 			}
 
-			pathString += ` L ${( line.points.length - 1 ) * pointStep},${svgHeight} Z`;
+			function animate() {
 
-			const offset = svgWidth - ( ( line.points.length - 1 ) * pointStep );
-			line.path.setAttribute( 'transform', `translate(${offset}, 0)` );
-			line.path.setAttribute( 'd', pathString );
+				if ( box ) {
 
-		}
-
-	}
-
-}
-
-class Tab {
-
-	constructor( id, title ) {
-
-		this.id = id;
-		this.button = document.createElement( 'button' );
-		this.button.className = 'tab-btn';
-		this.button.textContent = title;
-
-		this.content = document.createElement( 'div' );
-		this.content.id = `${id}-content`;
-		this.content.className = 'profiler-content';
-
-	}
-
-	setActive( isActive ) {
-
-		this.button.classList.toggle( 'active', isActive );
-		this.content.classList.toggle( 'active', isActive );
-
-	}
-
-}
-
-class Console extends Tab {
-
-	constructor() {
-
-		super( 'console', 'Console' );
-		this.filters = { info: true, warn: true, error: true };
-
-		this.buildHeader();
-
-		this.logContainer = document.createElement( 'div' );
-		this.logContainer.id = 'console-log';
-		this.content.appendChild( this.logContainer );
-
-	}
-
-	buildHeader() {
-
-		const header = document.createElement( 'div' );
-		header.className = 'console-header';
-
-		Object.keys( this.filters ).forEach( type => {
-
-			const label = document.createElement( 'label' );
-			label.className = 'custom-checkbox';
-			label.style.color = `var(--${type === 'info' ? 'text-primary' : 'color-' + ( type === 'warn' ? 'yellow' : 'red' )})`;
-
-			const checkbox = document.createElement( 'input' );
-			checkbox.type = 'checkbox';
-			checkbox.checked = this.filters[ type ];
-			checkbox.dataset.type = type;
-
-			const checkmark = document.createElement( 'span' );
-			checkmark.className = 'checkmark';
-
-			label.appendChild( checkbox );
-			label.appendChild( checkmark );
-			label.append( type.charAt( 0 ).toUpperCase() + type.slice( 1 ) );
-			header.appendChild( label );
-
-		} );
-
-		header.addEventListener( 'change', ( e ) => {
-
-			const type = e.target.dataset.type;
-			if ( type ) {
-
-				this.filters[ type ] = e.target.checked;
-				this.applyFilters();
-
-			}
-
-		} );
-
-		this.content.appendChild( header );
-
-	}
-
-	applyFilters() {
-
-		const messages = this.logContainer.querySelectorAll( '.log-message' );
-		messages.forEach( msg => {
-
-			const type = msg.dataset.type;
-			msg.classList.toggle( 'hidden', ! this.filters[ type ] );
-
-		} );
-
-	}
-
-	addMessage( type, text ) {
-
-		const msg = document.createElement( 'div' );
-		msg.className = `log-message ${type}`;
-		msg.dataset.type = type;
-		msg.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
-		msg.classList.toggle( 'hidden', ! this.filters[ type ] );
-
-		this.logContainer.appendChild( msg );
-		this.logContainer.scrollTop = this.logContainer.scrollHeight;
-		if ( this.logContainer.children.length > 200 ) {
-
-			this.logContainer.removeChild( this.logContainer.firstChild );
-
-		}
-
-	}
-
-}
-
-class Value {
-
-	constructor() {
-
-		this.domElement = document.createElement( 'div' );
-		this.domElement.className = 'param-control';
-
-	}
-
-}
-
-class ValueNumber extends Value {
-
-	constructor( { value = 0, step = 0.1, min = - Infinity, max = Infinity } ) {
-
-		super();
-		this.input = document.createElement( 'input' );
-		this.input.type = 'number';
-		this.input.value = value;
-		this.input.step = step;
-		this.input.min = min;
-		this.input.max = max;
-		this.domElement.appendChild( this.input );
-		this.addDragHandler();
-
-	}
-
-	addDragHandler() {
-
-		let isDragging = false;
-		let startY, startValue;
-
-		this.input.addEventListener( 'mousedown', ( e ) => {
-
-			isDragging = true;
-			startY = e.clientY;
-			startValue = parseFloat( this.input.value );
-			document.body.style.cursor = 'ns-resize';
-
-		} );
-
-		document.addEventListener( 'mousemove', ( e ) => {
-
-			if ( isDragging ) {
-
-				const deltaY = startY - e.clientY;
-				const step = parseFloat( this.input.step ) || 1;
-				const newValue = startValue + deltaY * step;
-				const precision = ( String( step ).split( '.' )[ 1 ] || [] ).length;
-				this.input.value = newValue.toFixed( precision );
-				// Dispara um evento de input para que outros elementos possam ouvir
-				this.input.dispatchEvent( new Event( 'input' ) );
-
-			}
-
-		} );
-
-		document.addEventListener( 'mouseup', () => {
-
-			if ( isDragging ) {
-
-				isDragging = false;
-				document.body.style.cursor = 'default';
-
-			}
-
-		} );
-
-	}
-
-}
-
-class ValueSelect extends Value {
-
-	constructor( { options = [], selected = '' } ) {
-
-		super();
-		const select = document.createElement( 'select' );
-		options.forEach( opt => {
-
-			const optionEl = document.createElement( 'option' );
-			optionEl.value = opt;
-			optionEl.textContent = opt;
-			if ( opt === selected ) optionEl.selected = true;
-			select.appendChild( optionEl );
-
-		} );
-		this.domElement.appendChild( select );
-
-	}
-
-}
-
-class ValueCheckbox extends Value {
-
-	constructor( { checked = false } ) {
-
-		super();
-		const label = document.createElement( 'label' );
-		label.className = 'custom-checkbox';
-
-		const checkbox = document.createElement( 'input' );
-		checkbox.type = 'checkbox';
-		checkbox.checked = checked;
-
-		const checkmark = document.createElement( 'span' );
-		checkmark.className = 'checkmark';
-
-		label.appendChild( checkbox );
-		label.appendChild( checkmark );
-		this.domElement.appendChild( label );
-
-	}
-
-}
-
-class ValueColor extends Value {
-
-	constructor( { value = '#ffffff' } ) {
-
-		super();
-		const colorInput = document.createElement( 'input' );
-		colorInput.type = 'color';
-		colorInput.value = value;
-		this.domElement.appendChild( colorInput );
-
-	}
-
-}
-
-class ValueButton extends Value {
-
-	constructor( { text = 'Button', onClick = () => {} } ) {
-
-		super();
-		const button = document.createElement( 'button' );
-		button.textContent = text;
-		button.onclick = onClick;
-		this.domElement.appendChild( button );
-
-	}
-
-}
-
-class ValueVector extends Value {
-
-	constructor( { values = [ 0, 0 ], step = 0.1 } ) {
-
-		super();
-		this.domElement.classList.add( 'param-control-vector' );
-		this.inputs = values.map( v => new ValueNumber( { value: v, step } ).input );
-		this.inputs.forEach( input => this.domElement.appendChild( input ) );
-
-	}
-
-}
-
-class ValueSlider extends Value {
-
-	constructor( { value = 0, min = 0, max = 1, step = 0.01 } ) {
-
-		super();
-		this.slider = document.createElement( 'input' );
-		this.slider.type = 'range';
-		this.slider.value = value;
-		this.slider.min = min;
-		this.slider.max = max;
-		this.slider.step = step;
-
-		const numberValue = new ValueNumber( { value, min, max, step } );
-		this.numberInput = numberValue.input;
-		this.numberInput.style.width = '70px';
-		this.numberInput.style.flexShrink = '0';
-
-		this.domElement.append( this.slider, this.numberInput );
-
-		this.slider.addEventListener( 'input', () => {
-
-			this.numberInput.value = this.slider.value;
-
-		} );
-		this.numberInput.addEventListener( 'input', () => {
-
-			const val = parseFloat( this.numberInput.value );
-			if ( ! isNaN( val ) ) {
-
-				this.slider.value = val;
-
-			}
-
-		} );
-
-	}
-
-}
-
-class PerformanceTab extends Tab {
-
-	constructor( profiler ) {
-
-		super( 'performance', 'Performance' );
-		this.profiler = profiler;
-		this.buildContent();
-
-	}
-
-	buildContent() {
-
-		const perfList = new List( 'Item', 'CPU', 'GPU', 'Tempo' );
-		perfList.setGridStyle( 'minmax(200px, 2fr) 80px 80px 80px' );
-
-		const createValueSpan = ( id ) => {
-
-			const span = document.createElement( 'span' );
-			span.className = 'value';
-			span.id = id;
-			return span;
-
-		};
-
-		const createThumbnailItem = ( text, ...spans ) => {
-
-			const container = document.createElement( 'span' );
-			container.className = 'thumbnail-container';
-
-			const svg = document.createElementNS( 'http://www.w3.org/2000/svg', 'svg' );
-			svg.setAttribute( 'class', 'thumbnail-svg' );
-			svg.setAttribute( 'viewBox', '0 0 32 18' );
-			svg.innerHTML = '<rect width="32" height="18" rx="2" fill="#333" stroke="#555" stroke-width="1"></rect>';
-
-			container.appendChild( svg );
-			container.append( text );
-			return new Item( container, ...spans );
-
-		};
-
-		const statsItem = new Item( 'Frame Stats', '-', '-', createValueSpan( 'summary-frametime' ) );
-		statsItem.domElement.classList.add( 'header-wrapper', 'section-start' );
-
-		const graphContainer = document.createElement( 'div' );
-		graphContainer.className = 'graph-container';
-		const combinedGraph = new Graph();
-		combinedGraph.addLine( 'cpu-graph', '--accent-color' );
-		combinedGraph.addLine( 'gpu-graph', '--color-yellow' );
-		this.profiler.addGraph( combinedGraph );
-		graphContainer.append( combinedGraph.domElement );
-
-		statsItem.add( new Item( 'FPS', '-', '-', createValueSpan( 'summary-fps' ) ) );
-		const frameTimePeakItem = new Item( 'Frame Time (Pico)', '-', '-', createValueSpan( 'summary-frametime-peak' ) );
-		frameTimePeakItem.add( new Item( { content: graphContainer, span: true } ) );
-		statsItem.add( frameTimePeakItem );
-
-		perfList.add( statsItem );
-
-		const cpuItem = new Item( 'CPU Total', createValueSpan( 'summary-cpu' ), '-', '-' );
-		cpuItem.domElement.classList.add( 'header-wrapper', 'section-start' );
-		cpuItem.add( new Item( 'Game Logic', '-', '-', createValueSpan( 'cpu-gamelogic' ) ) );
-		cpuItem.add( new Item( 'Render Thread', '-', '-', createValueSpan( 'cpu-render' ) ) );
-
-		const physicsItem = new Item( 'Physics', '-', '-', createValueSpan( 'cpu-physics' ) );
-		//physicsItem.domElement.classList.add( 'header-wrapper' );
-		physicsItem.add( createThumbnailItem( 'RigidBody', '-', '-', createValueSpan( 'cpu-rigidbody' ) ) );
-		physicsItem.add( createThumbnailItem( 'SoftBody', '-', '-', createValueSpan( 'cpu-softbody' ) ) );
-		cpuItem.add( physicsItem );
-
-		const physicsItem2 = new Item( 'Physics', '-', '-', createValueSpan( 'cpu-physics' ) );
-		//physicsItem.domElement.classList.add( 'header-wrapper' );
-		physicsItem2.add( createThumbnailItem( 'RigidBody', '-', '-', createValueSpan( 'cpu-rigidbody' ) ) );
-		cpuItem.add( physicsItem2 );
-
-		perfList.add( cpuItem );
-
-		const gpuItem = new Item( 'GPU Total', '-', createValueSpan( 'summary-gpu' ), '-' );
-		gpuItem.domElement.classList.add( 'header-wrapper', 'section-start' );
-		gpuItem.add( new Item( 'Draw Calls', '-', createValueSpan( 'gpu-drawcalls' ), '-' ) );
-		gpuItem.add( new Item( 'Triângulos', '-', createValueSpan( 'gpu-tris' ), '-' ) );
-		perfList.add( gpuItem );
-
-		this.content.appendChild( perfList.domElement );
-
-	}
-
-	update( data ) {
-
-		this.profiler.updateElementText( 'summary-fps', data.fps.toFixed( 1 ) );
-		this.profiler.colorize( document.getElementById( 'summary-fps' ), data.fps, 50, 30, true );
-
-		this.profiler.updateElementText( 'summary-frametime', `${data.frameTime.toFixed( 1 )}ms` );
-		this.profiler.colorize( document.getElementById( 'summary-frametime' ), data.frameTime, 17, 34 );
-
-		this.profiler.updateElementText( 'summary-frametime-peak', `${data.peakFrameTime.toFixed( 1 )}ms` );
-
-		this.profiler.updateElementText( 'summary-cpu', `${data.cpuUsage.toFixed( 0 )}%` );
-		this.profiler.updateElementText( 'cpu-gamelogic', `${( data.frameTime * ( data.cpuUsage / 100 ) * 0.5 ).toFixed( 1 )} ms` );
-		this.profiler.updateElementText( 'cpu-render', `${( data.frameTime * ( data.cpuUsage / 100 ) * 0.3 ).toFixed( 1 )} ms` );
-
-		const physicsTime = ( data.frameTime * ( data.cpuUsage / 100 ) * 0.2 );
-		this.profiler.updateElementText( 'cpu-physics', `${physicsTime.toFixed( 1 )} ms` );
-		this.profiler.updateElementText( 'cpu-rigidbody', `${( physicsTime * 0.7 ).toFixed( 1 )} ms` );
-		this.profiler.updateElementText( 'cpu-softbody', `${( physicsTime * 0.3 ).toFixed( 1 )} ms` );
-
-		this.profiler.updateElementText( 'summary-gpu', `${data.gpuUsage.toFixed( 0 )}%` );
-		this.profiler.updateElementText( 'gpu-drawcalls', `${Math.round( 1200 + Math.sin( data.time / 300 ) * 300 )}` );
-		this.profiler.updateElementText( 'gpu-tris', `${( 1.8 + Math.sin( data.time / 1000 ) * 0.5 ).toFixed( 1 )}M` );
-
-	}
-
-}
-
-class ParametersTab extends Tab {
-
-	constructor( profiler ) {
-
-		super( 'parameters', 'Parâmetros' );
-		this.profiler = profiler;
-		const paramList = new List( 'Property', 'Value' );
-		paramList.setGridStyle( '1fr 1fr' );
-
-		const rendering = new Item( 'Rendering' );
-		rendering.domElement.classList.add( 'header-wrapper', 'section-start' );
-		rendering.add( new Item( 'Shadow Distance', new ValueNumber( { value: 100, step: 1 } ).domElement ) );
-		rendering.add( new Item( 'Bloom Intensity', new ValueSlider( { value: 0.5 } ).domElement ) );
-		rendering.add( new Item( 'Anti-Aliasing', new ValueSelect( { options: [ 'Off', 'FXAA', 'TAA' ], selected: 'TAA' } ).domElement ) );
-
-		const vignetteItem = new Item( 'Vignette', new ValueCheckbox( { checked: true } ).domElement );
-		vignetteItem.itemRow.classList.add( 'actionable' );
-		vignetteItem.itemRow.addEventListener( 'click', ( e ) => {
-
-			if ( e.target.closest( 'label' ) ) return;
-			const checkbox = vignetteItem.domElement.querySelector( 'input[type="checkbox"]' );
-			if ( checkbox ) {
-
-				checkbox.checked = ! checkbox.checked;
-
-			}
-
-		} );
-		rendering.add( vignetteItem );
-
-		rendering.add( new Item( 'Sky Color', new ValueColor( { value: '#87CEEB' } ).domElement ) );
-		paramList.add( rendering );
-
-		const debug = new Item( 'Debug' );
-		debug.domElement.classList.add( 'header-wrapper', 'section-start' );
-		debug.add( new Item( 'Player Position', new ValueVector( { values: [ 10.5, 2.0, - 5.2 ], step: 0.1 } ).domElement ) );
-		debug.add( new Item( 'Iluminação', new ValueButton( { text: 'Recalcular', onClick: () => this.profiler.tabs.console.addMessage( 'info', 'Recalculando iluminação...' ) } ).domElement ) );
-		paramList.add( debug );
-
-		this.content.appendChild( paramList.domElement );
-
-	}
-
-}
-
-
-class Profiler {
-
-	constructor( targetElement ) {
-
-		this.target = targetElement;
-		this.tabs = {};
-		this.activeTabId = null;
-		this.graphs = [];
-		this.peakFrameTime = 0;
-		this.isResizing = false;
-		this.lastHeight = 350;
-
-	}
-
-	init() {
-
-		Style.init();
-		this.buildShell();
-		this.target.append( this.toggleButton, this.panel );
-
-		this.setupTabs();
-		this.setupResizing();
-
-		this.setActiveTab( Object.keys( this.tabs )[ 0 ] );
-		requestAnimationFrame( this.updateLoop.bind( this ) );
-
-	}
-
-	buildShell() {
-
-		this.toggleButton = document.createElement( 'button' );
-		this.toggleButton.id = 'profiler-toggle';
-		this.toggleButton.innerHTML = `<span id="toggle-text"><span id="fps-counter">...</span> / 120 <span class="fps-label">FPS</span></span><span class="toggle-separator"></span><span id="toggle-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg></span>`;
-		this.toggleButton.onclick = () => this.togglePanel();
-
-		this.panel = document.createElement( 'div' );
-		this.panel.id = 'profiler-panel';
-
-		const header = document.createElement( 'div' );
-		header.className = 'profiler-header';
-		this.tabsContainer = document.createElement( 'div' );
-		this.tabsContainer.className = 'profiler-tabs';
-
-		const controls = document.createElement( 'div' );
-		controls.style.display = 'flex';
-
-		this.maximizeBtn = document.createElement( 'button' );
-		this.maximizeBtn.id = 'maximize-btn';
-		this.maximizeBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`;
-		this.maximizeBtn.onclick = () => this.toggleMaximize();
-
-		const hideBtn = document.createElement( 'button' );
-		hideBtn.id = 'hide-panel-btn';
-		hideBtn.textContent = '-';
-		hideBtn.onclick = () => this.togglePanel();
-
-		controls.append( this.maximizeBtn, hideBtn );
-		header.append( this.tabsContainer, controls );
-
-		this.contentWrapper = document.createElement( 'div' );
-		this.contentWrapper.className = 'profiler-content-wrapper';
-
-		const resizer = document.createElement( 'div' );
-		resizer.className = 'panel-resizer';
-
-		this.panel.append( resizer, header, this.contentWrapper );
-
-	}
-
-	setupResizing() {
-
-		const resizer = this.panel.querySelector( '.panel-resizer' );
-
-		const onStart = ( e ) => {
-
-			this.isResizing = true;
-			this.panel.classList.add( 'resizing' );
-			const startY = e.clientY || e.touches[ 0 ].clientY;
-			const startHeight = this.panel.offsetHeight;
-
-			const onMove = ( moveEvent ) => {
-
-				if ( ! this.isResizing ) return;
-				moveEvent.preventDefault();
-				const currentY = moveEvent.clientY || moveEvent.touches[ 0 ].clientY;
-				const newHeight = startHeight - ( currentY - startY );
-				if ( newHeight > 100 && newHeight < window.innerHeight - 50 ) {
-
-					this.panel.style.height = `${newHeight}px`;
+					box.rotation.x += 0.01;
+					box.rotation.y += 0.02;
 
 				}
 
-			};
+				renderer.render( scene, camera );
 
-			const onEnd = () => {
+			}
 
-				this.isResizing = false;
-				this.panel.classList.remove( 'resizing' );
-				document.removeEventListener( 'mousemove', onMove );
-				document.removeEventListener( 'mouseup', onEnd );
-				document.removeEventListener( 'touchmove', onMove );
-				document.removeEventListener( 'touchend', onEnd );
-				if ( ! this.panel.classList.contains( 'maximized' ) ) {
+			function createDataTexture() {
 
-					this.lastHeight = this.panel.offsetHeight;
+				const color = new THREE.Color( 0xff0000 );
+
+				const width = 512;
+				const height = 512;
+
+				const size = width * height;
+				const data = new Uint8Array( 4 * size );
+
+				const r = Math.floor( color.r * 255 );
+				const g = Math.floor( color.g * 255 );
+				const b = Math.floor( color.b * 255 );
+
+				for ( let i = 0; i < size; i ++ ) {
+
+					const stride = i * 4;
+
+					data[ stride ] = r;
+					data[ stride + 1 ] = g;
+					data[ stride + 2 ] = b;
+					data[ stride + 3 ] = 255;
 
 				}
 
-			};
+				const texture = new THREE.DataTexture( data, width, height, THREE.RGBAFormat );
+				texture.needsUpdate = true;
+				return texture;
 
-			document.addEventListener( 'mousemove', onMove );
-			document.addEventListener( 'mouseup', onEnd );
-			document.addEventListener( 'touchmove', onMove, { passive: false } );
-			document.addEventListener( 'touchend', onEnd );
+			}
 
-		};
+			/*
+			 * Correct UVs to be compatible with `flipY=false` textures.
+			 */
+			function flipY( geometry ) {
 
-		resizer.addEventListener( 'mousedown', onStart );
-		resizer.addEventListener( 'touchstart', onStart );
+				const uv = geometry.attributes.uv;
 
-	}
+				for ( let i = 0; i < uv.count; i ++ ) {
 
-	toggleMaximize() {
+					uv.setY( i, 1 - uv.getY( i ) );
 
-		if ( this.panel.classList.contains( 'maximized' ) ) {
+				}
 
-			this.panel.classList.remove( 'maximized' );
-			this.panel.style.height = `${this.lastHeight}px`;
-			this.maximizeBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>`;
+				return geometry;
 
-		} else {
+			}
 
-			this.lastHeight = this.panel.offsetHeight;
-			this.panel.classList.add( 'maximized' );
-			this.panel.style.height = '100vh';
-			this.maximizeBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2" ry="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path></svg>`;
-
-		}
-
-	}
-
-	addTab( tab ) {
-
-		this.tabs[ tab.id ] = tab;
-		tab.button.onclick = () => this.setActiveTab( tab.id );
-		this.tabsContainer.appendChild( tab.button );
-		this.contentWrapper.appendChild( tab.content );
-
-	}
-
-	setActiveTab( id ) {
-
-		if ( this.activeTabId ) this.tabs[ this.activeTabId ].setActive( false );
-		this.activeTabId = id;
-		this.tabs[ id ].setActive( true );
-
-	}
-
-	togglePanel() {
-
-		this.panel.classList.toggle( 'visible' );
-		this.toggleButton.classList.toggle( 'hidden' );
-
-	}
-
-	addGraph( graph ) {
-
-		this.graphs.push( graph );
-
-	}
-
-	updateElementText( id, text ) {
-
-		const el = document.getElementById( id );
-		if ( el && el.textContent !== text ) {
-
-			el.textContent = text;
-
-		}
-
-	}
-
-	colorize( element, value, good, warn, inverse = false ) {
-
-		if ( ! element ) return;
-		element.classList.remove( 'good', 'warn', 'bad' );
-		if ( inverse ) {
-
-			if ( value < warn ) element.classList.add( 'bad' );
-			else if ( value < good ) element.classList.add( 'warn' );
-			else element.classList.add( 'good' );
-
-		} else {
-
-			if ( value < good ) element.classList.add( 'good' );
-			else if ( value < warn ) element.classList.add( 'warn' );
-			else element.classList.add( 'bad' );
-
-		}
-
-	}
-
-	updateLoop( time ) {
-
-		// Simulação de dados
-		const fps = 45 + Math.sin( time / 800 ) * 10;
-		const frameTime = 1000 / fps;
-		if ( frameTime > this.peakFrameTime ) this.peakFrameTime = frameTime;
-		if ( Math.random() < 0.005 ) this.peakFrameTime = frameTime;
-
-		const cpuUsage = 40 + Math.sin( time / 700 ) * 25;
-		const gpuUsage = 60 + Math.sin( time / 450 ) * 30;
-
-		// Atualizar UI
-		this.updateElementText( 'fps-counter', fps.toFixed( 1 ) );
-
-		const data = { time, fps, frameTime, peakFrameTime: this.peakFrameTime, cpuUsage, gpuUsage };
-
-		const activeTab = this.tabs[ this.activeTabId ];
-		if ( activeTab && typeof activeTab.update === 'function' ) {
-
-			activeTab.update( data );
-
-		}
-
-		this.graphs.forEach( graph => {
-
-			graph.addPoint( 'cpu-graph', cpuUsage );
-			graph.addPoint( 'gpu-graph', gpuUsage );
-			graph.update();
-
-		} );
-
-		if ( Math.random() < 0.02 && this.tabs.console ) {
-
-			const types = [ 'info', 'warn', 'error' ];
-			const messages = [ 'Shader compilado', 'Textura não encontrada', 'Null Pointer Exception' ];
-			this.tabs.console.addMessage( types[ Math.floor( Math.random() * 3 ) ], messages[ Math.floor( Math.random() * 3 ) ] );
-
-		}
-
-		requestAnimationFrame( this.updateLoop.bind( this ) );
-
-	}
-
-	setupTabs() {
-
-		this.addTab( new PerformanceTab( this ) );
-		this.addTab( new Console() );
-		this.addTab( new ParametersTab( this ) );
-
-	}
-
-}
-
-// --- Ponto de Entrada ---
-const profiler = new Profiler( document.body );
-profiler.init();
-
-
-    </script>
-</body>
+		</script>
+	</body>
 </html>

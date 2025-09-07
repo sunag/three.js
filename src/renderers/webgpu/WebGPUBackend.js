@@ -570,6 +570,10 @@ class WebGPUBackend extends Backend {
 
 		//
 
+		renderContextData.frameCalls = this.renderer.info.render.frameCalls;
+
+		//
+
 		const device = this.device;
 		const occlusionQueryCount = renderContext.occlusionQueryCount;
 
@@ -1286,6 +1290,10 @@ class WebGPUBackend extends Backend {
 	beginCompute( computeGroup ) {
 
 		const groupGPU = this.get( computeGroup );
+
+		//
+
+		groupGPU.frameCalls = this.renderer.info.compute.frameCalls;
 
 		//
 

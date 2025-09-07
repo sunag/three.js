@@ -4,9 +4,13 @@
 		<title>three.js - WebGPU - Backdrop Water</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<link type="text/css" rel="stylesheet" href="project.css">
+		<link type="text/css" rel="stylesheet" href="main.css">
 	</head>
 	<body>
+
+		<div id="info">
+			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> WebGPU - Backdrop Water
+		</div>
 
 		<script type="importmap">
 			{
@@ -30,8 +34,6 @@
 			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 			import { GUI } from 'three/addons/libs/lil-gui.module.min.js';
-
-			import { Profiler } from 'three/addons/inspector/Inspector.js';
 
 			import Stats from 'three/addons/libs/stats.module.js';
 
@@ -195,9 +197,6 @@
 				renderer.setAnimationLoop( animate );
 				document.body.appendChild( renderer.domElement );
 
-				const profiler = new Profiler( document.body );
-				profiler.init();
-
 				stats = new Stats();
 				document.body.appendChild( stats.dom );
 
@@ -212,11 +211,11 @@
 
 				// gui
 
-				//const gui = new GUI();
+				const gui = new GUI();
 
 				floorPosition = new THREE.Vector3( 0, .2, 0 );
 
-				//gui.add( floorPosition, 'y', - 1, 1, .001 ).name( 'position' );
+				gui.add( floorPosition, 'y', - 1, 1, .001 ).name( 'position' );
 
 				// post processing
 

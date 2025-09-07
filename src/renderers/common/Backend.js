@@ -440,32 +440,6 @@ class Backend {
 	// utils
 
 	/**
-	 * Updates a unique identifier for the given render context that can be used
-	 * to allocate resources like occlusion queries or timestamp queries.
-	 *
-	 * @param {RenderContext|ComputeNode} abstractRenderContext - The render context.
-	 */
-	updateTimeStampUID( abstractRenderContext ) {
-
-		const contextData = this.get( abstractRenderContext );
-
-		let prefix;
-
-		if ( abstractRenderContext.isComputeNode === true ) {
-
-			prefix = 'c:' + this.renderer.info.compute.frameCalls;
-
-		} else {
-
-			prefix = 'r:' + this.renderer.info.render.frameCalls;
-
-		}
-
-		contextData.timestampUID = prefix + ':' + abstractRenderContext.id;
-
-	}
-
-	/**
 	 * Returns a unique identifier for the given render context that can be used
 	 * to allocate resources like occlusion queries or timestamp queries.
 	 *
@@ -474,7 +448,12 @@ class Backend {
 	 */
 	getTimestampUID( abstractRenderContext ) {
 
-		return this.get( abstractRenderContext ).timestampUID;
+		const contextData = this.get( abstractRenderContext );
+
+		let uid = abstractRenderContext.isComputeNode === true ? 'c' : 'r';
+		uid += ':' + contextData.frameCalls + ':' + abstractRenderContext.id;
+
+		return uid;
 
 	}
 

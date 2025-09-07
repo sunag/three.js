@@ -12,14 +12,7 @@ class Animation {
 	 * @param {Nodes} nodes - Renderer component for managing nodes related logic.
 	 * @param {Info} info - Renderer component for managing metrics and monitoring data.
 	 */
-	constructor( renderer, nodes, info ) {
-
-		/**
-		 * A reference to the main renderer.
-		 *
-		 * @type {Renderer}
-		 */
-		this.renderer = renderer;
+	constructor( nodes, info ) {
 
 		/**
 		 * Renderer component for managing nodes related logic.

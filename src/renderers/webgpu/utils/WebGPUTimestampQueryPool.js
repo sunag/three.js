@@ -180,14 +180,11 @@ class WebGPUTimestampQueryPool extends TimestampQueryPool {
 			const times = new BigUint64Array( this.resultBuffer.getMappedRange( 0, bytesUsed ) );
 			let totalDuration = 0;
 
-			for ( const [ uid, baseOffset ] of currentOffsets ) {
+			for ( const [ , baseOffset ] of currentOffsets ) {
 
 				const startTime = times[ baseOffset ];
 				const endTime = times[ baseOffset + 1 ];
 				const duration = Number( endTime - startTime ) / 1e6;
-
-				this.timestamps.set( uid, duration );
-
 				totalDuration += duration;
 
 			}

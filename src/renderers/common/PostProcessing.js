@@ -82,7 +82,6 @@ class PostProcessing {
 		 * @type {QuadMesh}
 		 */
 		this._quadMesh = new QuadMesh( material );
-		this._quadMesh.name = 'PostProcessing';
 
 		/**
 		 * The context of the post processing stack.
