@@ -3,22 +3,38 @@
 		<title>three.js - WebGPU - Compute Particles Snow</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-		<link type="text/css" rel="stylesheet" href="main.css">
+		<link type="text/css" rel="stylesheet" href="project.css">
+		<!-- <link type="text/css" rel="stylesheet" href="main.css"> -->
 	</head>
 	<body>
 
-		<div id="info">
+		<!-- <div id="info">
 			<a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> WebGPU - Compute Snow - 100K Particles
+		</div> -->
+		<div id="project-title" aria-label="Project title">
+			<a href="https://threejs.org/" target="_blank" class="logo-link" aria-label="Three.js Website"></a>
+			<a href="https://threejs.org/" target="_blank">three.js</a>
+			<span>compute snow</span>
+			<small>100k particles simulation</small>
 		</div>
+
+
+		<style>
+			body {
+				background-color: #000;
+				margin: 0px;
+				overflow: hidden;
+			}
+
+		</style>
 
 		<script type="importmap">
 			{
 				"imports": {
-					"three": "../build/three.webgpu.js",
-					"three/webgpu": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.tsl.js",
-					"three/addons/": "./jsm/",
-					"stats-gl": "https://cdn.jsdelivr.net/npm/stats-gl@3.6.0/dist/main.js"
+					"three": "../src/three.webgpu.js",
+					"three/webgpu": "../src/three.webgpu.js",
+					"three/tsl": "../src/three.tsl.js",
+					"three/addons/": "./jsm/"
 				}
 			}
 		</script>
@@ -28,17 +44,16 @@
 			import * as THREE from 'three/webgpu';
 			import { Fn, texture, vec3, pass, color, uint, screenUV, instancedArray, positionWorld, positionLocal, time, vec2, hash, instanceIndex, If } from 'three/tsl';
 			import { gaussianBlur } from 'three/addons/tsl/display/GaussianBlurNode.js';
+			import { Inspector } from 'three/addons/inspector/Inspector.js';
 
 			import { TeapotGeometry } from 'three/addons/geometries/TeapotGeometry.js';
 
 			import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-			import Stats from 'stats-gl';
-
 			const maxParticleCount = 100000;
 
 			let camera, scene, renderer;
-			let controls, stats;
+			let controls;
 			let computeParticles;
 			let postProcessing;
 
@@ -118,7 +133,7 @@
 					position.y = randY.mul( 500 ).add( 3 );
 					position.z = randZ.mul( 100 ).add( - 50 );
 
-					scale.xyz = hash( instanceIndex.add( Math.random() ) ).mul( .8 ).add( .2 );
+					scale.xyz = hash( instanceIndex.add( Math.random() ) ).mul( .8 ).add( .2 ).label( 'test' );
 
 					staticPositionBuffer.element( instanceIndex ).assign( vec3( 1000, 10000, 1000 ) );
 
@@ -165,6 +180,7 @@
 				} );
 
 				computeParticles = computeUpdate().compute( maxParticleCount );
+				computeParticles.name = 'compute particles';
 
 				// rain
 
@@ -204,12 +220,14 @@
 				const floorGeometry = new THREE.PlaneGeometry( 100, 100 );
 				floorGeometry.rotateX( - Math.PI / 2 );
 
-				const plane = new THREE.Mesh( floorGeometry, new THREE.MeshStandardMaterial( {
+				const plane = new THREE.Mesh( floorGeometry, new THREE.MeshStandardNodeMaterial( {
 					color: 0x0c1e1e,
 					roughness: .5,
 					metalness: 0,
 					transparent: true
 				} ) );
+
+				plane.material.colorNode = Fn( () => {} );
 
 				plane.material.opacityNode = positionLocal.xz.mul( .05 ).distance( 0 ).saturate().oneMinus();
 
@@ -253,6 +271,7 @@
 					color: 0xfcfb9e
 				} ) );
 
+				teapotTree.name = 'teapot pass';
 				teapotTree.position.y = 18;
 
 				scene.add( tree() );
@@ -264,22 +283,15 @@
 
 				//
 
-				renderer = new THREE.WebGPURenderer( { antialias: true } );
+				renderer = new THREE.WebGPURenderer( { antialias: true, trackTimestamp: true } );
 				renderer.toneMapping = THREE.ACESFilmicToneMapping;
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setAnimationLoop( animate );
 				document.body.appendChild( renderer.domElement );
 
-				stats = new Stats( {
-					precision: 3,
-					horizontal: false,
-					trackGPU: true,
-					trackCPT: true
-				} );
-				stats.init( renderer );
-				document.body.appendChild( stats.dom );
-
+				renderer.inspector = new Inspector();
+				document.body.appendChild( renderer.inspector.domElement );
 
 				//
 
@@ -337,30 +349,37 @@
 
 			}
 
+			let count = 0;
+
 			async function animate() {
 
 				controls.update();
 
 				// position
 
+				scene.name = 'collider position';
 				scene.overrideMaterial = collisionPosMaterial;
 				renderer.setRenderTarget( collisionPosRT );
 				renderer.render( scene, collisionCamera );
 
 				// compute
 
-				renderer.compute( computeParticles );
-				renderer.resolveTimestampsAsync( THREE.TimestampQuery.COMPUTE );
+				count++;
+
+				if ( count % 2000 < 1000 ) {
+				//if ( count < 100 ) {
+					
+					await renderer.computeAsync( computeParticles );
+
+				}
 
 				// result
 
+				scene.name = 'scene';
 				scene.overrideMaterial = null;
 				renderer.setRenderTarget( null );
 
-				await postProcessing.renderAsync();
-
-				renderer.resolveTimestampsAsync();
-				stats.update();
+				postProcessing.render();
 
 			}
 

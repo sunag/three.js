@@ -17,6 +17,7 @@ import RenderBundles from './RenderBundles.js';
 import NodeLibrary from './nodes/NodeLibrary.js';
 import Lighting from './Lighting.js';
 import XRManager from './XRManager.js';
+import InspectorBase from './InspectorBase.js';
 
 import NodeMaterial from '../../materials/nodes/NodeMaterial.js';
 
@@ -268,6 +269,9 @@ class Renderer {
 		this.lighting = new Lighting();
 
 		// internals
+
+		this._inspector = new InspectorBase();
+		this._inspector.setRenderer( this );
 
 		/**
 		 * This callback function can be used to provide a fallback backend, if the primary backend can't be targeted.
@@ -789,7 +793,7 @@ class Renderer {
 			}
 
 			this._nodes = new Nodes( this, backend );
-			this._animation = new Animation( this._nodes, this.info );
+			this._animation = new Animation( this, this._nodes, this.info );
 			this._attributes = new Attributes( backend );
 			this._background = new Background( this, this._nodes );
 			this._geometries = new Geometries( this._attributes, this.info );
@@ -993,6 +997,27 @@ class Renderer {
 	async waitForGPU() {
 
 		await this.backend.waitForGPU();
+
+	}
+
+	// -------
+
+	set inspector( value ) {
+
+		if ( this._inspector !== null ) {
+
+			this._inspector.setRenderer( null );
+
+		}
+
+		this._inspector = value;
+		this._inspector.setRenderer( this );
+
+	}
+
+	get inspector() {
+
+		return this._inspector;
 
 	}
 
@@ -1283,6 +1308,8 @@ class Renderer {
 
 		if ( this._isDeviceLost === true ) return;
 
+		//
+
 		const frameBufferTarget = useFrameBufferTarget ? this._getFrameBufferTarget() : null;
 
 		// preserve render tree
@@ -1332,6 +1359,12 @@ class Renderer {
 		this.info.render.frameCalls ++;
 
 		nodeFrame.renderId = this.info.calls;
+
+		//
+
+		this.backend.updateTimeStampUID( renderContext );
+
+		this.inspector.beginRender( this.backend.getTimestampUID( renderContext ), scene, camera, renderTarget );
 
 		//
 
@@ -1532,6 +1565,10 @@ class Renderer {
 
 		//
 
+		this.inspector.finishRender( this.backend.getTimestampUID( renderContext ) );
+
+		//
+
 		return renderContext;
 
 	}
@@ -1625,6 +1662,17 @@ class Renderer {
 		if ( this._initialized === false ) await this.init();
 
 		this._animation.setAnimationLoop( callback );
+
+	}
+
+	/**
+	 * Returns the current animation loop callback.
+	 *
+	 * @return {?Function} The current animation loop callback.
+	 */
+	getAnimationLoop() {
+
+		return this._animation.getAnimationLoop();
 
 	}
 
@@ -2363,6 +2411,12 @@ class Renderer {
 
 		//
 
+		this.backend.updateTimeStampUID( computeNodes );
+
+		this.inspector.beginCompute( this.backend.getTimestampUID( computeNodes ), computeNodes );
+
+		//
+
 		const backend = this.backend;
 		const pipelines = this._pipelines;
 		const bindings = this._bindings;
@@ -2424,6 +2478,10 @@ class Renderer {
 
 		nodeFrame.renderId = previousRenderId;
 
+		//
+
+		this.inspector.finishCompute( this.backend.getTimestampUID( computeNodes ) );
+
 	}
 
 	/**
@@ -2437,6 +2495,8 @@ class Renderer {
 	async computeAsync( computeNodes, dispatchSizeOrCount = null ) {
 
 		if ( this._initialized === false ) await this.init();
+
+		this._inspector.computeAsync( computeNodes, dispatchSizeOrCount );
 
 		this.compute( computeNodes, dispatchSizeOrCount );
 

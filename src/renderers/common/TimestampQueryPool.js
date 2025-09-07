@@ -67,6 +67,14 @@ class TimestampQueryPool {
 		 */
 		this.pendingResolve = false;
 
+		this.timestamps = new Map();
+		
+	}
+
+	getCurrentTimestamp( uid ) {
+
+		return this.timestamps.get( uid );
+
 	}
 
 	/**
