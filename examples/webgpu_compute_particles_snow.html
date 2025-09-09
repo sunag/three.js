@@ -123,7 +123,7 @@
 					const randY = hash( instanceIndex.add( randUint() ) );
 					const randZ = hash( instanceIndex.add( randUint() ) );
 
-					position.x = randX.mul( 100 ).add( - 50 );
+					position.x = randX.mul( 100 ).add( - 50 ).label( 'test' );
 					position.y = randY.mul( 500 ).add( 3 );
 					position.z = randZ.mul( 100 ).add( - 50 );
 
@@ -214,12 +214,14 @@
 				const floorGeometry = new THREE.PlaneGeometry( 100, 100 );
 				floorGeometry.rotateX( - Math.PI / 2 );
 
-				const plane = new THREE.Mesh( floorGeometry, new THREE.MeshStandardMaterial( {
+				const plane = new THREE.Mesh( floorGeometry, new THREE.MeshStandardNodeMaterial( {
 					color: 0x0c1e1e,
 					roughness: .5,
 					metalness: 0,
 					transparent: true
 				} ) );
+
+				plane.material.colorNode = Fn( () => {} );
 
 				plane.material.opacityNode = positionLocal.xz.mul( .05 ).distance( 0 ).saturate().oneMinus();
 
@@ -354,7 +356,7 @@
 
 				// compute
 
-				renderer.compute( computeParticles );
+				await renderer.computeAsync( computeParticles );
 
 				// result
 
