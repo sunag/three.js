@@ -1293,6 +1293,8 @@ class Node extends EventDispatcher {
 
 		// private
 
+		this._beforeNodes = null;
+
 		/**
 		 * The cache key of this node.
 		 *
@@ -1788,6 +1790,16 @@ class Node extends EventDispatcher {
 
 	}
 
+	before( node ) {
+
+		if ( this._beforeNodes === null ) this._beforeNodes = [];
+
+		this._beforeNodes.push( node );
+
+		return this;
+
+	}
+
 	/**
 	 * This method performs the build of a node. The behavior and return value depend on the current build stage:
 	 * - **setup**: Prepares the node and its children for the build process. This process can also create new nodes. Returns the node itself or a variant.
@@ -1805,6 +1817,24 @@ class Node extends EventDispatcher {
 		if ( this !== refNode ) {
 
 			return refNode.build( builder, output );
+
+		}
+
+		//
+
+		if ( this._beforeNodes !== null ) {
+
+			const currentBeforeNodes = this._beforeNodes;
+
+			this._beforeNodes = null;
+
+			for ( const beforeNode of currentBeforeNodes ) {
+
+				beforeNode.build( builder, output );
+
+			}
+
+			this._beforeNodes = currentBeforeNodes;
 
 		}
 
@@ -10450,6 +10480,121 @@ class DebugNode extends TempNode {
 const debug = ( node, callback = null ) => nodeObject( new DebugNode( nodeObject( node ), callback ) ).toStack();
 
 addMethodChaining( 'debug', debug );
+
+/**
+ * InspectorNode is a wrapper node that allows inspection of node values during rendering.
+ * It can be used to debug or analyze node outputs in the rendering pipeline.
+ *
+ * @augments Node
+ */
+class InspectorNode extends Node {
+
+	/**
+	 * Returns the type of the node.
+	 *
+	 * @returns {string}
+	 */
+	static get type() {
+
+		return 'InspectorNode';
+
+	}
+
+	/**
+	 * Creates an InspectorNode.
+	 *
+	 * @param {Node} node - The node to inspect.
+	 * @param {string} [name=''] - Optional name for the inspector node.
+	 * @param {Function|null} [callback=null] - Optional callback to modify the node during setup.
+	 */
+	constructor( node, name = '', callback = null ) {
+
+		super();
+
+		this.node = node;
+		this.name = name;
+		this.callback = callback;
+
+		this.updateType = NodeUpdateType.FRAME;
+
+		this.isInspectorNode = true;
+
+	}
+
+	/**
+	 * Returns the name of the inspector node.
+	 *
+	 * @returns {string}
+	 */
+	getName() {
+
+		return this.name || this.node.name;
+
+	}
+
+	/**
+	 * Updates the inspector node, allowing inspection of the wrapped node.
+	 *
+	 * @param {NodeFrame} frame - A reference to the current node frame.
+	 */
+	update( frame ) {
+
+		frame.renderer.inspector.inspect( this );
+
+	}
+
+	/**
+	 * Returns the type of the wrapped node.
+	 *
+	 * @param {NodeBuilder} builder - The node builder.
+	 * @returns {string}
+	 */
+	getNodeType( builder ) {
+
+		return this.node.getNodeType( builder );
+
+	}
+
+	/**
+	 * Sets up the inspector node.
+	 *
+	 * @param {NodeBuilder} builder - The node builder.
+	 * @returns {Node} The setup node.
+	 */
+	setup( builder ) {
+
+		let node = this.node;
+
+		if ( builder.context.inspector === true && this.callback !== null ) {
+
+			node = this.callback( node );
+
+		}
+
+		return node;
+
+	}
+
+}
+
+/**
+ * Creates an inspector node to wrap around a given node for inspection purposes.
+ *
+ * @tsl
+ * @param {Node} node - The node to inspect.
+ * @param {string} [name=''] - Optional name for the inspector node.
+ * @param {Function|null} [callback=null] - Optional callback to modify the node during setup.
+ * @returns {Node} The inspector node.
+ */
+function inspector( node, name = '', callback = null ) {
+
+	node = nodeObject( node );
+
+	return node.before( new InspectorNode( node, name, callback ) );
+
+}
+
+addMethodChaining( 'toInspector', inspector );
 
 function addNodeElement( name/*, nodeElement*/ ) {
 
@@ -19888,7 +20033,16 @@ class NodeMaterial extends Material {
 
 			alphaTestNode = this.alphaTestNode !== null ? float( this.alphaTestNode ) : materialAlphaTest;
 
-			diffuseColor.a.lessThanEqual( alphaTestNode ).discard();
+			if ( this.alphaToCoverage === true ) {
+
+				diffuseColor.a = smoothstep( alphaTestNode, alphaTestNode.add( fwidth( diffuseColor.a ) ), diffuseColor.a );
+				diffuseColor.a.lessThanEqual( 0 ).discard();
+
+			} else {
+
+				diffuseColor.a.lessThanEqual( alphaTestNode ).discard();
+
+			}
 
 		}
 
@@ -19907,10 +20061,6 @@ class NodeMaterial extends Material {
 		if ( isOpaque ) {
 
 			diffuseColor.a.assign( 1.0 );
-
-		} else if ( alphaTestNode === null ) {
-
-			diffuseColor.a.lessThanEqual( 0 ).discard();
 
 		}
 
@@ -35210,9 +35360,9 @@ const normal = Fn( ( { texture, uv } ) => {
 
 		const step = 0.01;
 
-		const x = texture.sample( uv.add( vec3( - step, 0.0, 0.0 ) ) ).r.sub( texture.sample( uv.add( vec3( step, 0.0, 0.0 ) ) ).r );
-		const y = texture.sample( uv.add( vec3( 0.0, - step, 0.0 ) ) ).r.sub( texture.sample( uv.add( vec3( 0.0, step, 0.0 ) ) ).r );
-		const z = texture.sample( uv.add( vec3( 0.0, 0.0, - step ) ) ).r.sub( texture.sample( uv.add( vec3( 0.0, 0.0, step ) ) ).r );
+		const x = texture.sample( uv.add( vec3( -0.01, 0.0, 0.0 ) ) ).r.sub( texture.sample( uv.add( vec3( step, 0.0, 0.0 ) ) ).r );
+		const y = texture.sample( uv.add( vec3( 0.0, -0.01, 0.0 ) ) ).r.sub( texture.sample( uv.add( vec3( 0.0, step, 0.0 ) ) ).r );
+		const z = texture.sample( uv.add( vec3( 0.0, 0.0, -0.01 ) ) ).r.sub( texture.sample( uv.add( vec3( 0.0, 0.0, step ) ) ).r );
 
 		ret.assign( vec3( x, y, z ) );
 
@@ -41618,7 +41768,19 @@ class ShadowNode extends ShadowBaseNode {
 		this.shadowMap = shadowMap;
 		this.shadow.map = shadowMap;
 
-		return shadowOutput;
+		// Shadow Output + Inspector
+
+		const inspectName = `${ this.light.type } Shadow [ ${ this.light.name || 'ID: ' + this.light.id } ]`;
+
+		return shadowOutput.toInspector( `${ inspectName } / Color`, () => {
+
+			return texture( this.shadowMap.texture );
+
+		} ).toInspector( `${ inspectName } / Depth`, () => {
+
+			return textureLoad( this.shadowMap.depthTexture, uv$1().mul( textureSize( texture( this.shadowMap.depthTexture ) ) ) ).x.oneMinus();
+
+		} );
 
 	}
 
@@ -44657,6 +44819,7 @@ var TSL = /*#__PURE__*/Object.freeze({
 	hue: hue,
 	increment: increment,
 	incrementBefore: incrementBefore,
+	inspector: inspector,
 	instance: instance,
 	instanceIndex: instanceIndex,
 	instancedArray: instancedArray,
@@ -54039,6 +54202,13 @@ class InspectorBase {
 	finish() { }
 
 	/**
+	 * Inspects a node.
+	 *
+	 * @param {Node} node - The node to inspect.
+	 */
+	inspect( /*node*/ ) { }
+
+	/**
 	 * When a compute operation is performed.
 	 *
 	 * @param {ComputeNode} computeNode - The compute node being executed.
@@ -54104,28 +54274,13 @@ class InspectorBase {
 class CanvasTarget extends EventDispatcher {
 
 	/**
-	 * CanvasTarget options.
-	 *
-	 * @typedef {Object} CanvasTarget~Options
-	 * @property {boolean} [antialias=false] - Whether MSAA as the default anti-aliasing should be enabled or not.
-	 * @property {number} [samples=0] - When `antialias` is `true`, `4` samples are used by default. This parameter can set to any other integer value than 0
-	 * to overwrite the default.
-	 */
-
-	/**
 	 * Constructs a new CanvasTarget.
 	 *
 	 * @param {HTMLCanvasElement|OffscreenCanvas} domElement - The canvas element to render to.
-	 * @param {Object} [parameters={}] - The parameters.
 	 */
-	constructor( domElement, parameters = {} ) {
+	constructor( domElement ) {
 
 		super();
-
-		const {
-			antialias = false,
-			samples = 0
-		} = parameters;
 
 		/**
 		 * A reference to the canvas element the renderer is drawing to.
@@ -54186,15 +54341,6 @@ class CanvasTarget extends EventDispatcher {
 		this._scissorTest = false;
 
 		/**
-		 * The number of MSAA samples.
-		 *
-		 * @private
-		 * @type {number}
-		 * @default 0
-		 */
-		this._samples = samples || ( antialias === true ) ? 4 : 0;
-
-		/**
 		 * The color texture of the default framebuffer.
 		 *
 		 * @type {FramebufferTexture}
@@ -54207,18 +54353,6 @@ class CanvasTarget extends EventDispatcher {
 		 * @type {DepthTexture}
 		 */
 		this.depthTexture = new DepthTexture();
-
-	}
-
-	/**
-	 * The number of samples used for multi-sample anti-aliasing (MSAA).
-	 *
-	 * @type {number}
-	 * @default 0
-	 */
-	get samples() {
-
-		return this._samples;
 
 	}
 
@@ -54683,6 +54817,15 @@ class Renderer {
 		this.lighting = new Lighting();
 
 		// internals
+
+		/**
+		 * The number of MSAA samples.
+		 *
+		 * @private
+		 * @type {number}
+		 * @default 0
+		 */
+		this._samples = samples || ( antialias === true ) ? 4 : 0;
 
 		/**
 		 * OnCanvasTargetResize callback function.
@@ -56617,7 +56760,7 @@ class Renderer {
 	 */
 	get currentSamples() {
 
-		let samples = this.samples;
+		let samples = this._samples;
 
 		if ( this._renderTarget !== null ) {
 
@@ -72503,6 +72646,26 @@ class WebGPUUtils {
 	}
 
 	/**
+	 * Returns the GPU formats of all color attachments of the current render context.
+	 *
+	 * @param {RenderContext} renderContext - The render context.
+	 * @return {Array<string>} The GPU texture formats of all color attachments.
+	 */
+	getCurrentColorFormats( renderContext ) {
+
+		if ( renderContext.textures !== null ) {
+
+			return renderContext.textures.map( t => this.getTextureFormatGPU( t ) );
+
+		} else {
+
+			return [ this.getPreferredCanvasFormat() ]; // default context format
+
+		}
+
+	}
+
+	/**
 	 * Returns the output color space of the current render context.
 	 *
 	 * @param {RenderContext} renderContext - The render context.
@@ -73770,12 +73933,12 @@ class WebGPUPipelineUtils {
 		const { utils, device } = backend;
 
 		const depthStencilFormat = utils.getCurrentDepthStencilFormat( renderContext );
-		const colorFormat = utils.getCurrentColorFormat( renderContext );
+		const colorFormats = utils.getCurrentColorFormats( renderContext );
 		const sampleCount = this._getSampleCount( renderContext );
 
 		const descriptor = {
-			label: label,
-			colorFormats: [ colorFormat ],
+			label,
+			colorFormats,
 			depthStencilFormat,
 			sampleCount
 		};
