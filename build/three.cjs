@@ -1713,6 +1713,18 @@ function getTypedArray( type, buffer ) {
 
 }
 
+/**
+ * Returns `true` if the given object is a typed array.
+ *
+ * @param {any} array - The object to check.
+ * @return {boolean} Whether the given object is a typed array.
+ */
+function isTypedArray( array ) {
+
+	return ArrayBuffer.isView( array ) && ! ( array instanceof DataView );
+
+}
+
 function createElementNS( name ) {
 
 	return document.createElementNS( 'http://www.w3.org/1999/xhtml', name );
@@ -40945,18 +40957,6 @@ function convertArray( array, type ) {
 	}
 
 	return Array.prototype.slice.call( array ); // create Array
-
-}
-
-/**
- * Returns `true` if the given object is a typed array.
- *
- * @param {any} object - The object to check.
- * @return {boolean} Whether the given object is a typed array.
- */
-function isTypedArray( object ) {
-
-	return ArrayBuffer.isView( object ) && ! ( object instanceof DataView );
 
 }
 
