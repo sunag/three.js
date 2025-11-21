@@ -417,6 +417,7 @@ export const output = TSL.output;
 export const outputStruct = TSL.outputStruct;
 export const overlay = TSL.overlay;
 export const overloadingFn = TSL.overloadingFn;
+export const overrideNode = TSL.overrideNode;
 export const parabola = TSL.parabola;
 export const parallaxDirection = TSL.parallaxDirection;
 export const parallaxUV = TSL.parallaxUV;

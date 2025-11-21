@@ -554,7 +554,43 @@ class Node extends EventDispatcher {
 		const hash = this.getHash( builder );
 		const nodeFromHash = builder.getNodeFromHash( hash );
 
-		return nodeFromHash || this;
+		let sharedNode = null;
+
+		if ( nodeFromHash && nodeFromHash !== this ) {
+
+			sharedNode = nodeFromHash;
+
+		} else if ( builder.context.overrideNodes ) {
+
+			const callback = builder.context.overrideNodes.get( this );
+
+			if ( callback ) {
+
+				const nodeData = builder.getDataFromNode( this );
+
+				if ( nodeData.isOverwritten !== true ) {
+
+					nodeData.isOverwritten = true;
+
+					// cancel the override for use the same node inside the callback
+
+					sharedNode = callback().overrideNode( this, null );
+
+					nodeData.sharedNode = sharedNode;
+
+				} else {
+
+					// avoid recursive override calls
+
+					sharedNode = nodeData.sharedNode;
+
+				}
+
+			}
+
+		}
+
+		return sharedNode || this;
 
 	}
 
