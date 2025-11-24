@@ -267,7 +267,7 @@ class NodeMaterialObserver {
 
 		}
 
-		if ( builder.context.modelViewMatrix || builder.context.modelNormalViewMatrix || builder.context.ao )
+		if ( builder.context.modelViewMatrix || builder.context.modelNormalViewMatrix || builder.context.ao || builder.context.sss )
 			return true;
 
 		return false;
@@ -34513,6 +34513,192 @@ const pcurve = ( x, a, b ) => pow( div( pow( x, a ), add( pow( x, a ), pow( sub(
  */
 const sinc = ( x, k ) => sin( PI.mul( k.mul( x ).sub( 1.0 ) ) ).div( PI.mul( k.mul( x ).sub( 1.0 ) ) );
 
+/**
+ * This node represents an operation that packs floating-point values of a vector into an unsigned 32-bit integer
+ *
+ * @augments TempNode
+ */
+class PackFloatNode extends TempNode {
+
+	static get type() {
+
+		return 'PackFloatNode';
+
+	}
+
+	/**
+	 *
+	 * @param {'snorm' | 'unorm' | 'float16'} encoding - The numeric encoding that describes how the float values are mapped to the integer range.
+	 * @param {Node} vectorNode - The vector node to be packed
+	 */
+	constructor( encoding, vectorNode ) {
+
+		super();
+
+		/**
+		 * The vector to be packed.
+		 *
+		 * @type {Node}
+		 */
+		this.vectorNode = vectorNode;
+
+		/**
+		 * The numeric encoding.
+		 *
+		 * @type {string}
+		 */
+		this.encoding = encoding;
+
+		/**
+		 * This flag can be used for type testing.
+		 *
+		 * @type {boolean}
+		 * @readonly
+		 * @default true
+		 */
+		this.isPackFloatNode = true;
+
+	}
+
+	getNodeType() {
+
+		return 'uint';
+
+	}
+
+	generate( builder ) {
+
+		const inputType = this.vectorNode.getNodeType( builder );
+		return `${ builder.getFloatPackingMethod( this.encoding ) }(${ this.vectorNode.build( builder, inputType )})`;
+
+	}
+
+}
+
+/**
+ * Converts each component of the normalized float to 16-bit integer values. The results are packed into a single unsigned integer.
+ * round(clamp(c, -1, +1) * 32767.0)
+ *
+ * @tsl
+ * @function
+ * @param {Node<vec2>} value - The 2-component vector to be packed
+ * @returns {Node}
+ */
+const packSnorm2x16 = /*@__PURE__*/ nodeProxyIntent( PackFloatNode, 'snorm' ).setParameterLength( 1 );
+
+/**
+ * Converts each component of the normalized float to 16-bit integer values. The results are packed into a single unsigned integer.
+ * round(clamp(c, 0, +1) * 65535.0)
+ *
+ * @tsl
+ * @function
+ * @param {Node<vec2>} value - The 2-component vector to be packed
+ * @returns {Node}
+ */
+const packUnorm2x16 = /*@__PURE__*/ nodeProxyIntent( PackFloatNode, 'unorm' ).setParameterLength( 1 );
+
+/**
+ * Converts each component of the vec2 to 16-bit floating-point values. The results are packed into a single unsigned integer.
+ *
+ * @tsl
+ * @function
+ * @param {Node<vec2>} value - The 2-component vector to be packed
+ * @returns {Node}
+ */
+const packHalf2x16 = /*@__PURE__*/ nodeProxyIntent( PackFloatNode, 'float16' ).setParameterLength( 1 );
+
+/**
+ * This node represents an operation that unpacks values from a 32-bit unsigned integer, reinterpreting the results as a floating-point vector
+ *
+ * @augments TempNode
+ */
+class UnpackFloatNode extends TempNode {
+
+	static get type() {
+
+		return 'UnpackFloatNode';
+
+	}
+
+	/**
+	 *
+	 * @param {'snorm' | 'unorm' | 'float16'} encoding - The numeric encoding that describes how the integer values are mapped to the float range
+	 * @param {Node} uintNode - The uint node to be unpacked
+	 */
+	constructor( encoding, uintNode ) {
+
+		super();
+
+		/**
+		 * The unsigned integer to be unpacked.
+		 *
+		 * @type {Node}
+		 */
+		this.uintNode = uintNode;
+
+		/**
+		 * The numeric encoding.
+		 *
+		 * @type {string}
+		 */
+		this.encoding = encoding;
+
+		/**
+		 * This flag can be used for type testing.
+		 *
+		 * @type {boolean}
+		 * @readonly
+		 * @default true
+		 */
+		this.isUnpackFloatNode = true;
+
+	}
+
+	getNodeType() {
+
+		return 'vec2';
+
+	}
+
+	generate( builder ) {
+
+		const inputType = this.uintNode.getNodeType( builder );
+		return `${ builder.getFloatUnpackingMethod( this.encoding ) }(${ this.uintNode.build( builder, inputType )})`;
+
+	}
+
+}
+
+/**
+ * Unpacks a 32-bit unsigned integer into two 16-bit values, interpreted as normalized signed integers. Returns a vec2 with both values.
+ *
+ * @tsl
+ * @function
+ * @param {Node<uint>} value - The unsigned integer to be unpacked
+ * @returns {Node}
+ */
+const unpackSnorm2x16 = /*@__PURE__*/ nodeProxyIntent( UnpackFloatNode, 'snorm' ).setParameterLength( 1 );
+
+/**
+ * Unpacks a 32-bit unsigned integer into two 16-bit values, interpreted as normalized unsigned integers. Returns a vec2 with both values.
+ *
+ * @tsl
+ * @function
+ * @param {Node<uint>} value - The unsigned integer to be unpacked
+ * @returns {Node}
+ */
+const unpackUnorm2x16 = /*@__PURE__*/ nodeProxyIntent( UnpackFloatNode, 'unorm' ).setParameterLength( 1 );
+
+/**
+ * Unpacks a 32-bit unsigned integer into two 16-bit values, interpreted as 16-bit floating-point numbers. Returns a vec2 with both values.
+ *
+ * @tsl
+ * @function
+ * @param {Node<uint>} value - The unsigned integer to be unpacked
+ * @returns {Node}
+ */
+const unpackHalf2x16 = /*@__PURE__*/ nodeProxyIntent( UnpackFloatNode, 'float16' ).setParameterLength( 1 );
+
 // https://github.com/cabbibo/glsl-tri-noise-3d
 
 
@@ -44418,6 +44604,12 @@ class AnalyticLightNode extends LightingNode {
 
 		//
 
+		if ( builder.context.sss ) {
+
+			shadowColorNode = shadowColorNode.mul( builder.context.sss );
+
+		}
+
 		this.colorNode = shadowColorNode;
 
 	}
@@ -46947,6 +47139,9 @@ var TSL = /*#__PURE__*/Object.freeze({
 	outputStruct: outputStruct,
 	overlay: overlay,
 	overloadingFn: overloadingFn,
+	packHalf2x16: packHalf2x16,
+	packSnorm2x16: packSnorm2x16,
+	packUnorm2x16: packUnorm2x16,
 	parabola: parabola,
 	parallaxDirection: parallaxDirection,
 	parallaxUV: parallaxUV,
@@ -47120,7 +47315,10 @@ var TSL = /*#__PURE__*/Object.freeze({
 	uniformFlow: uniformFlow,
 	uniformGroup: uniformGroup,
 	uniformTexture: uniformTexture,
+	unpackHalf2x16: unpackHalf2x16,
 	unpackNormal: unpackNormal,
+	unpackSnorm2x16: unpackSnorm2x16,
+	unpackUnorm2x16: unpackUnorm2x16,
 	unpremultiplyAlpha: unpremultiplyAlpha,
 	userData: userData,
 	uv: uv$1,
@@ -61077,7 +61275,13 @@ const glslMethods = {
 	bitcast_uint_float: 'uintBitsToFloat',
 	bitcast_float_uint: 'floatBitsToUint',
 	bitcast_uint_int: 'tsl_bitcast_uint_to_int',
-	bitcast_int_uint: 'tsl_bitcast_int_to_uint'
+	bitcast_int_uint: 'tsl_bitcast_int_to_uint',
+	floatpack_snorm_2x16: 'packSnorm2x16',
+	floatpack_unorm_2x16: 'packUnorm2x16',
+	floatpack_float16_2x16: 'packHalf2x16',
+	floatunpack_snorm_2x16: 'unpackSnorm2x16',
+	floatunpack_unorm_2x16: 'unpackUnorm2x16',
+	floatunpack_float16_2x16: 'unpackHalf2x16'
 };
 
 const precisionLib = {
@@ -61236,6 +61440,30 @@ class GLSLNodeBuilder extends NodeBuilder {
 	getBitcastMethod( type, inputType ) {
 
 		return this.getMethod( `bitcast_${ inputType }_${ type }` );
+
+	}
+
+	/**
+	 * Returns the float packing method name for a given numeric encoding.
+	 *
+	 * @param {string} encoding - The numeric encoding that describes how the float values are mapped to the integer range.
+	 * @returns {string} The resolved GLSL float packing method name.
+	 */
+	getFloatPackingMethod( encoding ) {
+
+		return this.getMethod( `floatpack_${ encoding }_2x16` );
+
+	}
+
+	/**
+	 * Returns the float unpacking method name for a given numeric encoding.
+	 *
+	 * @param {string} encoding - The numeric encoding that describes how the integer values are mapped to the float range.
+	 * @returns {string} The resolved GLSL float unpacking method name.
+	 */
+	getFloatUnpackingMethod( encoding ) {
+
+		return this.getMethod( `floatunpack_${ encoding }_2x16` );
 
 	}
 
@@ -72731,7 +72959,13 @@ const wgslMethods = {
 	equals_bvec3: 'tsl_equals_bvec3',
 	equals_bvec4: 'tsl_equals_bvec4',
 	inversesqrt: 'inverseSqrt',
-	bitcast: 'bitcast<f32>'
+	bitcast: 'bitcast<f32>',
+	floatpack_snorm_2x16: 'pack2x16snorm',
+	floatpack_unorm_2x16: 'pack2x16unorm',
+	floatpack_float16_2x16: 'pack2x16float',
+	floatunpack_snorm_2x16: 'unpack2x16snorm',
+	floatunpack_unorm_2x16: 'unpack2x16unorm',
+	floatunpack_float16_2x16: 'unpack2x16float'
 };
 
 //
@@ -74590,6 +74824,30 @@ ${ flowData.code }
 		const dataType = this.getType( type );
 
 		return `bitcast<${ dataType }>`;
+
+	}
+
+	/**
+	 * Returns the float packing method name for a given numeric encoding.
+	 *
+	 * @param {string} encoding - The numeric encoding that describes how the float values are mapped to the integer range.
+	 * @returns {string} The resolve WGSL float packing method name.
+	 */
+	getFloatPackingMethod( encoding ) {
+
+		return this.getMethod( `floatpack_${ encoding }_2x16` );
+
+	}
+
+	/**
+	 * Returns the float unpacking method name for a given numeric encoding.
+	 *
+	 * @param {string} encoding - The numeric encoding that describes how the integer values are mapped to the float range.
+	 * @returns {string} The resolve WGSL float unpacking method name.
+	 */
+	getFloatUnpackingMethod( encoding ) {
+
+		return this.getMethod( `floatunpack_${ encoding }_2x16` );
 
 	}
 
