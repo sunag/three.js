@@ -856,7 +856,7 @@ class Node extends EventDispatcher {
 
 					} else {
 
-						warn( 'Node: Recursion detected.', this );
+						//warn( 'Node: Recursion detected.', this );
 
 						result = '/* Recursion detected. */';
 
