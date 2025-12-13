@@ -112,7 +112,10 @@ export const getNormalFromDepth = /*@__PURE__*/ Fn( ( [ uv, depthTexture, projec
  */
 export const interleavedGradientNoise = Fn( ( [ position ] ) => {
 
-	return fract( float( 52.9829189 ).mul( fract( dot( position, vec2( 0.06711056, 0.00583715 ) ) ) ) );
+	// Improved precision for mobile GPUs (especially Adreno)
+	// Add small offset to avoid precision issues at exact integer boundaries
+	const p = position.add( 0.1 ).toVar();
+	return fract( float( 52.9829189 ).mul( fract( p.x.mul( 0.06711056 ).add( p.y.mul( 0.00583715 ) ) ) ) );
 
 } ).setLayout( {
 	name: 'interleavedGradientNoise',

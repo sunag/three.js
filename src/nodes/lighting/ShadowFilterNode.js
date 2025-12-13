@@ -32,7 +32,10 @@ export const BasicShadowFilter = /*@__PURE__*/ Fn( ( { depthTexture, shadowCoord
 
 	}
 
-	return basic.compare( shadowCoord.z.saturate() ); // clamp to [0,1] for consistent depth comparison across GPUs
+	// Manual depth comparison for better precision on mobile GPUs (especially Adreno)
+	const depth = basic.r;
+	const shadowDepth = shadowCoord.z.saturate();
+	return step( shadowDepth, depth ); // returns 1.0 if in light, 0.0 if in shadow
 
 } );
 
@@ -62,7 +65,8 @@ export const PCFShadowFilter = /*@__PURE__*/ Fn( ( { depthTexture, shadowCoord, 
 
 		}
 
-		return depth.compare( compare );
+		// Manual depth comparison for better precision on mobile GPUs (especially Adreno)
+		return step( compare, depth.r ); // returns 1.0 if in light, 0.0 if in shadow
 
 	};
 
@@ -73,7 +77,8 @@ export const PCFShadowFilter = /*@__PURE__*/ Fn( ( { depthTexture, shadowCoord, 
 	const radiusScaled = radius.mul( texelSize.x );
 
 	// Use IGN to rotate sampling pattern per pixel (phi = IGN * 2π)
-	const phi = interleavedGradientNoise( screenCoordinate.xy ).mul( 6.28318530718 );
+	// floor() improves precision on mobile GPUs (especially Adreno)
+	const phi = interleavedGradientNoise( screenCoordinate.xy.floor() ).mul( 6.28318530718 );
 
 	// Clamp depth to [0,1] for consistent comparison across GPUs (fixes Adreno precision issues)
 	const depthClamped = shadowCoord.z.saturate().toVar();
@@ -111,7 +116,8 @@ export const PCFSoftShadowFilter = /*@__PURE__*/ Fn( ( { depthTexture, shadowCoo
 
 		}
 
-		return depth.compare( compare );
+		// Manual depth comparison for better precision on mobile GPUs (especially Adreno)
+		return step( compare, depth.r ); // returns 1.0 if in light, 0.0 if in shadow
 
 	};
 

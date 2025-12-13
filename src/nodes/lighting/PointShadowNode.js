@@ -44,7 +44,9 @@ const _cubeUpsWebGL = [
 
 export const BasicPointShadowFilter = /*@__PURE__*/ Fn( ( { depthTexture, bd3D, dp } ) => {
 
-	return cubeTexture( depthTexture, bd3D ).compare( dp );
+	// Manual depth comparison for better precision on mobile GPUs (especially Adreno)
+	const sampledDepth = cubeTexture( depthTexture, bd3D ).r;
+	return step( dp, sampledDepth ); // returns 1.0 if in light, 0.0 if in shadow
 
 } );
 
@@ -75,7 +77,8 @@ export const PointShadowFilter = /*@__PURE__*/ Fn( ( { depthTexture, bd3D, dp, s
 	const bitangent = cross( bd3D, tangent );
 
 	// Use IGN to rotate sampling pattern per pixel (phi = IGN * 2π)
-	const phi = interleavedGradientNoise( screenCoordinate.xy ).mul( 6.28318530718 );
+	// floor() improves precision on mobile GPUs (especially Adreno)
+	const phi = interleavedGradientNoise( screenCoordinate.xy.floor() ).mul( 6.28318530718 );
 
 	// 5 samples using Vogel disk distribution in tangent space
 	const sample0 = vogelDiskSample( 0, 5, phi );
@@ -84,12 +87,19 @@ export const PointShadowFilter = /*@__PURE__*/ Fn( ( { depthTexture, bd3D, dp, s
 	const sample3 = vogelDiskSample( 3, 5, phi );
 	const sample4 = vogelDiskSample( 4, 5, phi );
 
-	return cubeTexture( depthTexture, bd3D.add( tangent.mul( sample0.x ).add( bitangent.mul( sample0.y ) ).mul( texelSize ) ) ).compare( dp )
-		.add( cubeTexture( depthTexture, bd3D.add( tangent.mul( sample1.x ).add( bitangent.mul( sample1.y ) ).mul( texelSize ) ) ).compare( dp ) )
-		.add( cubeTexture( depthTexture, bd3D.add( tangent.mul( sample2.x ).add( bitangent.mul( sample2.y ) ).mul( texelSize ) ) ).compare( dp ) )
-		.add( cubeTexture( depthTexture, bd3D.add( tangent.mul( sample3.x ).add( bitangent.mul( sample3.y ) ).mul( texelSize ) ) ).compare( dp ) )
-		.add( cubeTexture( depthTexture, bd3D.add( tangent.mul( sample4.x ).add( bitangent.mul( sample4.y ) ).mul( texelSize ) ) ).compare( dp ) )
-		.mul( 1.0 / 5.0 );
+	// Manual depth comparison for better precision on mobile GPUs (especially Adreno)
+	const sampleAndCompare = ( offset ) => {
+		const sampledDepth = cubeTexture( depthTexture, bd3D.add( offset ) ).r;
+		return step( dp, sampledDepth );
+	};
+
+	return add(
+		sampleAndCompare( tangent.mul( sample0.x ).add( bitangent.mul( sample0.y ) ).mul( texelSize ) ),
+		sampleAndCompare( tangent.mul( sample1.x ).add( bitangent.mul( sample1.y ) ).mul( texelSize ) ),
+		sampleAndCompare( tangent.mul( sample2.x ).add( bitangent.mul( sample2.y ) ).mul( texelSize ) ),
+		sampleAndCompare( tangent.mul( sample3.x ).add( bitangent.mul( sample3.y ) ).mul( texelSize ) ),
+		sampleAndCompare( tangent.mul( sample4.x ).add( bitangent.mul( sample4.y ) ).mul( texelSize ) )
+	).mul( 1.0 / 5.0 );
 
 } );
 
@@ -205,7 +215,8 @@ class PointShadowNode extends ShadowNode {
 
 		const depthTexture = new CubeDepthTexture( shadow.mapSize.width );
 		depthTexture.name = 'PointShadowDepthTexture';
-		depthTexture.compareFunction = LessCompare;
+		// Don't use compareFunction - manual comparison is more reliable on mobile GPUs (especially Adreno)
+		// depthTexture.compareFunction = LessCompare;
 
 		const shadowMap = builder.createCubeRenderTarget( shadow.mapSize.width );
 		shadowMap.texture.name = 'PointShadowMap';
