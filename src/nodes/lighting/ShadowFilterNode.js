@@ -32,7 +32,7 @@ export const BasicShadowFilter = /*@__PURE__*/ Fn( ( { depthTexture, shadowCoord
 
 	}
 
-	return basic.compare( shadowCoord.z );
+	return basic.compare( shadowCoord.z.saturate() ); // clamp to [0,1] for consistent depth comparison across GPUs
 
 } );
 
@@ -75,13 +75,16 @@ export const PCFShadowFilter = /*@__PURE__*/ Fn( ( { depthTexture, shadowCoord, 
 	// Use IGN to rotate sampling pattern per pixel (phi = IGN * 2π)
 	const phi = interleavedGradientNoise( screenCoordinate.xy ).mul( 6.28318530718 );
 
+	// Clamp depth to [0,1] for consistent comparison across GPUs (fixes Adreno precision issues)
+	const depthClamped = shadowCoord.z.saturate().toVar();
+
 	// 5 samples using Vogel disk distribution
 	return add(
-		depthCompare( shadowCoord.xy.add( vogelDiskSample( 0, 5, phi ).mul( radiusScaled ) ), shadowCoord.z ),
-		depthCompare( shadowCoord.xy.add( vogelDiskSample( 1, 5, phi ).mul( radiusScaled ) ), shadowCoord.z ),
-		depthCompare( shadowCoord.xy.add( vogelDiskSample( 2, 5, phi ).mul( radiusScaled ) ), shadowCoord.z ),
-		depthCompare( shadowCoord.xy.add( vogelDiskSample( 3, 5, phi ).mul( radiusScaled ) ), shadowCoord.z ),
-		depthCompare( shadowCoord.xy.add( vogelDiskSample( 4, 5, phi ).mul( radiusScaled ) ), shadowCoord.z )
+		depthCompare( shadowCoord.xy.add( vogelDiskSample( 0, 5, phi ).mul( radiusScaled ) ), depthClamped ),
+		depthCompare( shadowCoord.xy.add( vogelDiskSample( 1, 5, phi ).mul( radiusScaled ) ), depthClamped ),
+		depthCompare( shadowCoord.xy.add( vogelDiskSample( 2, 5, phi ).mul( radiusScaled ) ), depthClamped ),
+		depthCompare( shadowCoord.xy.add( vogelDiskSample( 3, 5, phi ).mul( radiusScaled ) ), depthClamped ),
+		depthCompare( shadowCoord.xy.add( vogelDiskSample( 4, 5, phi ).mul( radiusScaled ) ), depthClamped )
 	).mul( 1 / 5 );
 
 } );
@@ -123,40 +126,43 @@ export const PCFSoftShadowFilter = /*@__PURE__*/ Fn( ( { depthTexture, shadowCoo
 	const f = fract( uv.mul( mapSize ).add( 0.5 ) );
 	uv.subAssign( f.mul( texelSize ) );
 
+	// Clamp depth to [0,1] for consistent comparison across GPUs (fixes Adreno precision issues)
+	const depthClamped = shadowCoord.z.saturate().toVar();
+
 	return add(
-		depthCompare( uv, shadowCoord.z ),
-		depthCompare( uv.add( vec2( dx, 0 ) ), shadowCoord.z ),
-		depthCompare( uv.add( vec2( 0, dy ) ), shadowCoord.z ),
-		depthCompare( uv.add( texelSize ), shadowCoord.z ),
+		depthCompare( uv, depthClamped ),
+		depthCompare( uv.add( vec2( dx, 0 ) ), depthClamped ),
+		depthCompare( uv.add( vec2( 0, dy ) ), depthClamped ),
+		depthCompare( uv.add( texelSize ), depthClamped ),
 		mix(
-			depthCompare( uv.add( vec2( dx.negate(), 0 ) ), shadowCoord.z ),
-			depthCompare( uv.add( vec2( dx.mul( 2 ), 0 ) ), shadowCoord.z ),
+			depthCompare( uv.add( vec2( dx.negate(), 0 ) ), depthClamped ),
+			depthCompare( uv.add( vec2( dx.mul( 2 ), 0 ) ), depthClamped ),
 			f.x
 		),
 		mix(
-			depthCompare( uv.add( vec2( dx.negate(), dy ) ), shadowCoord.z ),
-			depthCompare( uv.add( vec2( dx.mul( 2 ), dy ) ), shadowCoord.z ),
+			depthCompare( uv.add( vec2( dx.negate(), dy ) ), depthClamped ),
+			depthCompare( uv.add( vec2( dx.mul( 2 ), dy ) ), depthClamped ),
 			f.x
 		),
 		mix(
-			depthCompare( uv.add( vec2( 0, dy.negate() ) ), shadowCoord.z ),
-			depthCompare( uv.add( vec2( 0, dy.mul( 2 ) ) ), shadowCoord.z ),
+			depthCompare( uv.add( vec2( 0, dy.negate() ) ), depthClamped ),
+			depthCompare( uv.add( vec2( 0, dy.mul( 2 ) ) ), depthClamped ),
 			f.y
 		),
 		mix(
-			depthCompare( uv.add( vec2( dx, dy.negate() ) ), shadowCoord.z ),
-			depthCompare( uv.add( vec2( dx, dy.mul( 2 ) ) ), shadowCoord.z ),
+			depthCompare( uv.add( vec2( dx, dy.negate() ) ), depthClamped ),
+			depthCompare( uv.add( vec2( dx, dy.mul( 2 ) ) ), depthClamped ),
 			f.y
 		),
 		mix(
 			mix(
-				depthCompare( uv.add( vec2( dx.negate(), dy.negate() ) ), shadowCoord.z ),
-				depthCompare( uv.add( vec2( dx.mul( 2 ), dy.negate() ) ), shadowCoord.z ),
+				depthCompare( uv.add( vec2( dx.negate(), dy.negate() ) ), depthClamped ),
+				depthCompare( uv.add( vec2( dx.mul( 2 ), dy.negate() ) ), depthClamped ),
 				f.x
 			),
 			mix(
-				depthCompare( uv.add( vec2( dx.negate(), dy.mul( 2 ) ) ), shadowCoord.z ),
-				depthCompare( uv.add( vec2( dx.mul( 2 ), dy.mul( 2 ) ) ), shadowCoord.z ),
+				depthCompare( uv.add( vec2( dx.negate(), dy.mul( 2 ) ) ), depthClamped ),
+				depthCompare( uv.add( vec2( dx.mul( 2 ), dy.mul( 2 ) ) ), depthClamped ),
 				f.x
 			),
 			f.y
@@ -189,7 +195,10 @@ export const VSMShadowFilter = /*@__PURE__*/ Fn( ( { depthTexture, shadowCoord, 
 	const mean = distribution.x;
 	const variance = max( 0.0000001, distribution.y.mul( distribution.y ) );
 
-	const hardShadow = step( shadowCoord.z, mean );
+	// Clamp depth to [0,1] for consistent comparison across GPUs (fixes Adreno precision issues)
+	const depthClamped = shadowCoord.z.saturate();
+
+	const hardShadow = step( depthClamped, mean );
 
 	// Early return if fully lit
 	If( hardShadow.equal( 1.0 ), () => {
@@ -199,7 +208,7 @@ export const VSMShadowFilter = /*@__PURE__*/ Fn( ( { depthTexture, shadowCoord, 
 	} );
 
 	// Distance from mean
-	const d = shadowCoord.z.sub( mean );
+	const d = depthClamped.sub( mean );
 
 	// Chebyshev's inequality for upper bound on probability
 	let p_max = variance.div( variance.add( d.mul( d ) ) );
