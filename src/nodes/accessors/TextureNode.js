@@ -1,4 +1,5 @@
-import UniformNode, { uniform } from '../core/UniformNode.js';
+import UniformBaseNode from '../core/UniformBaseNode.js';
+import { uniform } from '../core/UniformNode.js';
 import { uv } from './UV.js';
 import { textureSize } from './TextureSizeNode.js';
 import { colorSpaceToWorking } from '../display/ColorSpaceNode.js';
@@ -18,9 +19,9 @@ const EmptyTexture = /*@__PURE__*/ new Texture();
 /**
  * This type of uniform node represents a 2D texture.
  *
- * @augments UniformNode
+ * @augments UniformBaseNode
  */
-class TextureNode extends UniformNode {
+class TextureNode extends UniformBaseNode {
 
 	static get type() {
 
