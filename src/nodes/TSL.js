@@ -60,6 +60,7 @@ export * from './accessors/UniformArrayNode.js';
 export * from './accessors/Bitangent.js';
 export * from './accessors/BufferAttributeNode.js';
 export * from './accessors/BufferNode.js';
+export * from './accessors/UniformsBufferNode.js';
 export * from './accessors/BuiltinNode.js';
 export * from './accessors/Camera.js';
 export * from './accessors/VertexColorNode.js';

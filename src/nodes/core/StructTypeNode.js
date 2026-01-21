@@ -1,6 +1,6 @@
 
 import Node from './Node.js';
-import { getAlignmentFromType, getMemoryLengthFromType } from './NodeUtils.js';
+import { getStructLayoutDescriptor } from './NodeUtils.js';
 
 /**
  * Generates a layout for struct members.
@@ -86,31 +86,9 @@ class StructTypeNode extends Node {
 	 */
 	getLength() {
 
-		const BYTES_PER_ELEMENT = Float32Array.BYTES_PER_ELEMENT;
-		let maxAlignment = 1; // maximum alignment value in this struct
-		let offset = 0; // global buffer offset in 4 byte elements
+		const { byteLength } = getStructLayoutDescriptor( this.membersLayout );
 
-		for ( const member of this.membersLayout ) {
-
-			const type = member.type;
-
-			const itemSize = getMemoryLengthFromType( type );
-			const alignment = getAlignmentFromType( type ) / BYTES_PER_ELEMENT;
-			maxAlignment = Math.max( maxAlignment, alignment );
-
-			const chunkOffset = offset % maxAlignment; // offset in the current chunk of maxAlignment elements
-			const overhang = chunkOffset % alignment; // distance from the last aligned offset
-			if ( overhang !== 0 ) {
-
-				offset += alignment - overhang; // move to next aligned offset
-
-			}
-
-			offset += itemSize;
-
-		}
-
-		return ( Math.ceil( offset / maxAlignment ) * maxAlignment ); // ensure length is a multiple of maxAlignment
+		return byteLength;
 
 	}
 

@@ -100,6 +100,26 @@ class NodeUniformBuffer extends UniformBuffer {
 
 	}
 
+	update() {
+
+		this.nodeUniform.update();
+		//console.log( this.nodeUniform.id );
+
+		return true;
+
+	}
+
+	clone() {
+
+		const cloned = super.clone();
+
+		// clone the float32array buffer
+		//cloned.nodeUniform.value = this.nodeUniform.value.slice();
+
+		return cloned;
+
+	}
+
 }
 
 export default NodeUniformBuffer;

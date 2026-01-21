@@ -170,7 +170,7 @@ export function getMemoryLengthFromType( type ) {
 
 	if ( /float|int|uint/.test( type ) ) return 1;
 	if ( /vec2/.test( type ) ) return 2;
-	if ( /vec3/.test( type ) ) return 3;
+	if ( /vec3|color/.test( type ) ) return 3;
 	if ( /vec4/.test( type ) ) return 4;
 	if ( /mat2/.test( type ) ) return 4;
 	if ( /mat3/.test( type ) ) return 12;
@@ -192,7 +192,7 @@ export function getAlignmentFromType( type ) {
 
 	if ( /float|int|uint/.test( type ) ) return 4;
 	if ( /vec2/.test( type ) ) return 8;
-	if ( /vec3/.test( type ) ) return 16;
+	if ( /vec3|color/.test( type ) ) return 16;
 	if ( /vec4/.test( type ) ) return 16;
 	if ( /mat2/.test( type ) ) return 8;
 	if ( /mat3/.test( type ) ) return 16;
@@ -402,5 +402,57 @@ export function arrayBufferToBase64( arrayBuffer ) {
 export function base64ToArrayBuffer( base64 ) {
 
 	return Uint8Array.from( atob( base64 ), c => c.charCodeAt( 0 ) ).buffer;
+
+}
+
+/**
+ * Calculates the layout and total length for a struct or uniform buffer.
+ * This function computes the offset for each member considering alignment requirements
+ * and returns both the member layouts with offsets and the total buffer length.
+ *
+ * @param {Array<{name: string, type: string}>} membersLayout - Array of member definitions with name and type.
+ * @returns {{offsets: Array<{name: string, type: string, offset: number}>, byteLength: number}} The computed layout with offsets and total byte length.
+ */
+export function getStructLayoutDescriptor( membersLayout ) {
+
+	const BYTES_PER_ELEMENT = Float32Array.BYTES_PER_ELEMENT;
+
+	let maxAlignment = 1; // maximum alignment value in this struct
+	let offset = 0; // global buffer offset in 4 byte elements
+
+	const members = [];
+
+	for ( const member of membersLayout ) {
+
+		const type = member.type;
+
+		const itemSize = getMemoryLengthFromType( type );
+		const alignment = getAlignmentFromType( type ) / BYTES_PER_ELEMENT;
+		maxAlignment = Math.max( maxAlignment, alignment );
+
+		const chunkOffset = offset % maxAlignment; // offset in the current chunk of maxAlignment elements
+		const overhang = chunkOffset % alignment; // distance from the last aligned offset
+		if ( overhang !== 0 ) {
+
+			offset += alignment - overhang; // move to next aligned offset
+
+		}
+
+		members.push( {
+			name: member.name,
+			type: member.type,
+			offset: offset
+		} );
+
+		offset += itemSize;
+
+	}
+
+	const byteLength = Math.ceil( offset / maxAlignment ) * maxAlignment; // ensure length is a multiple of maxAlignment
+
+	return {
+		members,
+		byteLength
+	};
 
 }

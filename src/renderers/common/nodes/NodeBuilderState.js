@@ -130,7 +130,7 @@ class NodeBuilderState {
 				bindings.push( bindingsGroup );
 
 				for ( const instanceBinding of instanceGroup.bindings ) {
-
+//console.log( 'cloning binding', instanceBinding );
 					bindingsGroup.bindings.push( instanceBinding.clone() );
 
 				}

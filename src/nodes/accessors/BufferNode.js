@@ -58,6 +58,14 @@ class BufferNode extends UniformBaseNode {
 		this.bufferCount = bufferCount;
 
 		/**
+		 * The struct type node representing the buffer layout.
+		 *
+		 * @type {StructTypeNode|null}
+		 * @default null
+		 */
+		this.structTypeNode = null;
+
+		/**
 		 * An array of update ranges.
 		 *
 		 * @type {Array<{start: number, count: number}>}

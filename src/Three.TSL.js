@@ -579,6 +579,7 @@ export const trunc = TSL.trunc;
 export const uint = TSL.uint;
 export const uintBitsToFloat = TSL.uintBitsToFloat;
 export const uniform = TSL.uniform;
+export const uniformsBuffer = TSL.uniformsBuffer;
 export const uniformArray = TSL.uniformArray;
 export const uniformCubeTexture = TSL.uniformCubeTexture;
 export const uniformGroup = TSL.uniformGroup;

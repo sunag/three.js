@@ -1021,6 +1021,7 @@ class WGSLNodeBuilder extends NodeBuilder {
 				}
 
 				buffer.setVisibility( buffer.getVisibility() | gpuShaderStageLib[ shaderStage ] );
+				//buffer.setVisibility( 1 | 2 | 4 );
 
 				bindings.push( buffer );
 
@@ -1726,16 +1727,15 @@ ${ flowData.code }
 
 	isCustomStruct( nodeUniform ) {
 
-		const attribute = nodeUniform.value;
 		const bufferNode = nodeUniform.node;
 
-		const isAttributeStructType = ( attribute.isBufferAttribute || attribute.isInstancedBufferAttribute ) && bufferNode.structTypeNode !== null;
+		const isStructType = bufferNode.structTypeNode !== null;
 
 		const isStructArray =
 			( bufferNode.value && bufferNode.value.array ) &&
 			( typeof bufferNode.value.itemSize === 'number' && bufferNode.value.array.length > bufferNode.value.itemSize );
 
-		return isAttributeStructType && ! isStructArray;
+		return isStructType && ! isStructArray;
 
 	}
 
@@ -2027,6 +2027,7 @@ ${ flowData.code }
 
 			this.vertexShader = this._getWGSLVertexCode( shadersData.vertex );
 			this.fragmentShader = this._getWGSLFragmentCode( shadersData.fragment );
+			//if ( this.material.isSpriteNodeMaterial ) console.log( this.fragmentShader );
 
 		} else {
 

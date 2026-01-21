@@ -35,14 +35,30 @@ class UniformNode extends UniformBaseNode {
 
 	}
 
-	/**
-	 * Returns the {@link UniformNode#groupNode}.
-	 *
-	 * @return {UniformGroupNode} The uniform group.
-	 */
-	getGroup() {
+	setup( builder ) {
 
-		return this.groupNode;
+		const uniformsBufferNode = this.groupNode.getUniformBufferNode( builder );
+		uniformsBufferNode.addUniform( this );
+
+		return super.setup( builder );
+
+	}
+
+	getProperty( builder ) {
+
+		const uniformsBufferNode = this.groupNode.getUniformBufferNode( builder );
+		const uniformProperty = uniformsBufferNode.getUniformProperty( builder, this );
+
+		return uniformProperty;
+		
+	}
+
+	generate( builder, output ) {
+
+		const uniformsBufferNode = this.groupNode.getUniformBufferNode( builder );
+		uniformsBufferNode.build( builder );
+
+		return super.generate( builder, output );
 
 	}
 

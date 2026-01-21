@@ -152,13 +152,12 @@ class Object3DNode extends Node {
 	}
 
 	/**
-	 * Generates the code snippet of the uniform node. The node type of the uniform
-	 * node also depends on the selected scope.
+	 * Sets up the node.
+	 * The node type of the uniform node also depends on the selected scope.
 	 *
 	 * @param {NodeBuilder} builder - The current node builder.
-	 * @return {string} The generated code snippet.
 	 */
-	generate( builder ) {
+	setup( builder ) {
 
 		const scope = this.scope;
 
@@ -175,6 +174,18 @@ class Object3DNode extends Node {
 			this.uniformNode.nodeType = 'float';
 
 		}
+
+		return super.setup( builder );
+
+	}
+
+	/**
+	 * Generates the code snippet of the uniform node.
+	 *
+	 * @param {NodeBuilder} builder - The current node builder.
+	 * @return {string} The generated code snippet.
+	 */
+	generate( builder ) {
 
 		return this.uniformNode.build( builder );
 

@@ -1,4 +1,6 @@
 import UniformGroupBaseNode from './UniformGroupBaseNode.js';
+//import BufferNode from '../accessors/BufferNode.js';
+import UniformsBufferNode from '../accessors/UniformsBufferNode.js';
 
 /**
  * This node can be used to group single instances of {@link UniformNode}
@@ -38,6 +40,28 @@ class UniformGroupNode extends UniformGroupBaseNode {
 		 * @type {string}
 		 */
 		this.name = name;
+
+	}
+
+	getUniformBufferNode( builder ) {
+
+		const nodeData = builder.getDataFromNode( this, 'any' );
+
+		if ( nodeData.uniformsBuffer === undefined ) {
+
+			nodeData.uniformsBuffer = new UniformsBufferNode( this.name );
+
+		}
+
+		return nodeData.uniformsBuffer;
+
+	}
+
+	setup( builder ) {
+
+		const uniformsBufferNode = this.getUniformBufferNode( builder );
+
+		return uniformsBufferNode;
 
 	}
 

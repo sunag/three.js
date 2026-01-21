@@ -127,6 +127,12 @@ class UniformBaseNode extends InputNode {
 
 	}
 
+	/**
+	 * Overwrites the default implementation to handle boolean uniforms.
+	 *
+	 * @param {NodeBuilder} builder - The current node builder.
+	 * @return {string} The input type.
+	 */
 	getInputType( builder ) {
 
 		let type = super.getInputType( builder );
@@ -141,9 +147,7 @@ class UniformBaseNode extends InputNode {
 
 	}
 
-	generate( builder, output ) {
-
-		const type = this.getNodeType( builder );
+	getSharedNode( builder ) {
 
 		const hash = this.getUniformHash( builder );
 
@@ -157,16 +161,52 @@ class UniformBaseNode extends InputNode {
 
 		}
 
-		const sharedNodeType = sharedNode.getInputType( builder );
+		return sharedNode;
 
-		const nodeUniform = builder.getUniformFromNode( sharedNode, sharedNodeType, builder.shaderStage, this.name || builder.context.nodeName );
-		const uniformName = builder.getPropertyName( nodeUniform );
+	}
 
-		if ( builder.context.nodeName !== undefined ) delete builder.context.nodeName;
+	getName( builder = null ) {
+
+		if ( builder === null ) return this.name;
 
 		//
 
-		let snippet = uniformName;
+		const nodeData = builder.getDataFromNode( this, 'any' );
+
+		if ( nodeData.nodeName === undefined ) {
+
+			const uniformName = this.name || builder.context.nodeName;
+
+			if ( builder.context.nodeName !== undefined ) delete builder.context.nodeName;
+
+			nodeData.nodeName = uniformName || '';
+
+		}
+
+		return nodeData.nodeName;
+
+	}
+
+	getProperty( builder ) {
+
+		const sharedNode = this.getSharedNode( builder );
+		const sharedNodeType = sharedNode.getInputType( builder );
+
+		const nodeUniform = builder.getUniformFromNode( sharedNode, sharedNodeType, builder.shaderStage, this.getName( builder ) );
+		const uniformProperty = builder.getPropertyName( nodeUniform );
+
+		return uniformProperty;
+
+	}
+
+	generate( builder, output ) {
+
+		const type = this.getNodeType( builder );
+		const uniformProperty = this.getProperty( builder );
+
+		//
+
+		let snippet = uniformProperty;
 
 		if ( type === 'bool' ) {
 
@@ -177,6 +217,9 @@ class UniformBaseNode extends InputNode {
 			let propertyName = nodeData.propertyName;
 
 			if ( propertyName === undefined ) {
+
+				const sharedNode = this.getSharedNode( builder );
+				const sharedNodeType = sharedNode.getInputType( builder );
 
 				const nodeVar = builder.getVarFromNode( this, null, 'bool' );
 				propertyName = builder.getPropertyName( nodeVar );
