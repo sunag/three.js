@@ -1,4 +1,4 @@
-import Node from './Node.js';
+import UniformGroupBaseNode from './UniformGroupBaseNode.js';
 
 /**
  * This node can be used to group single instances of {@link UniformNode}
@@ -11,9 +11,9 @@ import Node from './Node.js';
  * - `renderGroup`: Shared uniform buffer, updated once per render call.
  * - `frameGroup`: Shared uniform buffer, updated once per frame.
  *
- * @augments Node
+ * @augments UniformGroupBaseNode
  */
-class UniformGroupNode extends Node {
+class UniformGroupNode extends UniformGroupBaseNode {
 
 	static get type() {
 
@@ -30,7 +30,7 @@ class UniformGroupNode extends Node {
 	 */
 	constructor( name, shared = false, order = 1 ) {
 
-		super( 'string' );
+		super( shared, order );
 
 		/**
 		 * The name of the uniform group node.
@@ -39,32 +39,6 @@ class UniformGroupNode extends Node {
 		 */
 		this.name = name;
 
-		/**
-		 * Whether this uniform group node is shared or not.
-		 *
-		 * @type {boolean}
-		 * @default false
-		 */
-		this.shared = shared;
-
-		/**
-		 * Influences the internal sorting.
-		 * TODO: Add details when this property should be changed.
-		 *
-		 * @type {number}
-		 * @default 1
-		 */
-		this.order = order;
-
-		/**
-		 * This flag can be used for type testing.
-		 *
-		 * @type {boolean}
-		 * @readonly
-		 * @default true
-		 */
-		this.isUniformGroup = true;
-
 	}
 
 	serialize( data ) {
@@ -72,8 +46,6 @@ class UniformGroupNode extends Node {
 		super.serialize( data );
 
 		data.name = this.name;
-		data.version = this.version;
-		data.shared = this.shared;
 
 	}
 
@@ -82,8 +54,6 @@ class UniformGroupNode extends Node {
 		super.deserialize( data );
 
 		this.name = data.name;
-		this.version = data.version;
-		this.shared = data.shared;
 
 	}
 

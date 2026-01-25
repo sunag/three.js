@@ -1,4 +1,4 @@
-import UniformNode from '../core/UniformNode.js';
+import UniformBaseNode from '../core/UniformBaseNode.js';
 
 /**
  * A special type of uniform node which represents array-like data
@@ -12,9 +12,9 @@ import UniformNode from '../core/UniformNode.js';
  * In general, it is recommended to use the more managed {@link UniformArrayNode}
  * since it handles more input types and automatically cares about buffer paddings.
  *
- * @augments UniformNode
+ * @augments UniformBaseNode
  */
-class BufferNode extends UniformNode {
+class BufferNode extends UniformBaseNode {
 
 	static get type() {
 
