@@ -2,7 +2,7 @@ import Node from './Node.js';
 
 /**
  * Base class for uniform group nodes that can be used to group single instances
- * of {@link UniformNode} and manage them as a uniform buffer.
+ * of {@link UniformBaseNode} and manage them as a uniform buffer.
  *
  * @augments Node
  */

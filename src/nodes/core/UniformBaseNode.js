@@ -3,7 +3,7 @@ import { defaultUniformGroup } from './UniformGroupBaseNode.js';
 import { warn } from '../../utils.js';
 
 /**
- * Base class for representing a uniform.
+ * Base class for representing a uniform base node.
  *
  * @augments InputNode
  */
