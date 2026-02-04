@@ -148,7 +148,7 @@ class WebGPUBackend extends Backend {
 		 * @type {Object}
 		 */
 		this._compatibility = {
-			[ Compatibility.TEXTURE_COMPARE ]: compatibilityTextureCompare
+			[ Compatibility.TEXTURE_COMPARE ]: compatibilityTextureCompare || true
 		};
 
 	}

@@ -116,6 +116,14 @@ class NodeMaterialObserver {
 		 */
 		this.refreshUniforms = refreshUniforms;
 
+		/**
+		 * Holds the current render ID from the node frame.
+		 *
+		 * @type {number}
+		 * @default 0
+		 */
+		this.renderId = 0;
+
 	}
 
 	/**
@@ -169,11 +177,11 @@ class NodeMaterialObserver {
 			const { geometry, material, object } = renderObject;
 
 			data = {
-				renderId: 0,
 				material: this.getMaterialData( material ),
 				geometry: {
 					id: geometry.id,
 					attributes: this.getAttributesData( geometry.attributes ),
+					indexId: geometry.index ? geometry.index.id : null,
 					indexVersion: geometry.index ? geometry.index.version : null,
 					drawRange: { start: geometry.drawRange.start, count: geometry.drawRange.count }
 				},
@@ -233,7 +241,8 @@ class NodeMaterialObserver {
 			const attribute = attributes[ name ];
 
 			attributesData[ name ] = {
-				version: attribute.version
+				id: attribute.id,
+				version: attribute.version,
 			};
 
 		}
@@ -424,8 +433,9 @@ class NodeMaterialObserver {
 
 			}
 
-			if ( storedAttributeData.version !== attribute.version ) {
+			if ( storedAttributeData.id !== attribute.id || storedAttributeData.version !== attribute.version ) {
 
+				storedAttributeData.id = attribute.id;
 				storedAttributeData.version = attribute.version;
 				return false;
 
@@ -436,11 +446,14 @@ class NodeMaterialObserver {
 		// check index
 
 		const index = geometry.index;
+		const storedIndexId = storedGeometryData.id;
 		const storedIndexVersion = storedGeometryData.indexVersion;
+		const currentIndexId = index ? index.id : null;
 		const currentIndexVersion = index ? index.version : null;
 
-		if ( storedIndexVersion !== currentIndexVersion ) {
+		if ( storedIndexId !== currentIndexId || storedIndexVersion !== currentIndexVersion ) {
 
+			storedGeometryData.id = currentIndexId;
 			storedGeometryData.indexVersion = currentIndexVersion;
 			return false;
 
@@ -587,18 +600,17 @@ class NodeMaterialObserver {
 			return true;
 
 		const { renderId } = nodeFrame;
-		const renderObjectData = this.getRenderObjectData( renderObject );
 
-		if ( renderObjectData.renderId !== renderId ) {
+		if ( this.renderId !== renderId ) {
 
-			renderObjectData.renderId = renderId;
+			this.renderId = renderId;
 
 			return true;
 
 		}
 
 		const isStatic = renderObject.object.static === true;
-		const isBundle = renderObject.bundle !== null && renderObject.bundle.static === true && renderObjectData.version === renderObject.bundle.version;
+		const isBundle = renderObject.bundle !== null && renderObject.bundle.static === true && this.getRenderObjectData( renderObject ).version === renderObject.bundle.version;
 
 		if ( isStatic || isBundle )
 			return false;
@@ -26575,7 +26587,7 @@ function isEquirectangularMapReady( image ) {
  */
 const pmremTexture = /*@__PURE__*/ nodeProxy( PMREMNode ).setParameterLength( 1, 3 );
 
-const _envNodeCache = new WeakMap();
+const _rendererCache = new WeakMap();
 
 /**
  * Represents a physical model for Image-based lighting (IBL). The environment
@@ -26621,13 +26633,15 @@ class EnvironmentNode extends LightingNode {
 
 			const value = ( envNode.isTextureNode ) ? envNode.value : material[ envNode.property ];
 
-			let cacheEnvNode = _envNodeCache.get( value );
+			const cache = this._getPMREMNodeCache( builder.renderer );
+
+			let cacheEnvNode = cache.get( value );
 
 			if ( cacheEnvNode === undefined ) {
 
 				cacheEnvNode = pmremTexture( value );
 
-				_envNodeCache.set( value, cacheEnvNode );
+				cache.set( value, cacheEnvNode );
 
 			}
 
@@ -26664,6 +26678,29 @@ class EnvironmentNode extends LightingNode {
 			clearcoatRadiance.addAssign( isolateClearcoatRadiance );
 
 		}
+
+	}
+
+	/**
+	 * Returns the PMREM node cache of the current renderer.
+	 *
+	 * @private
+	 * @param {Renderer} renderer - The current renderer.
+	 * @return {WeakMap} The node cache.
+	 */
+	_getPMREMNodeCache( renderer ) {
+
+		let pmremCache = _rendererCache.get( renderer );
+
+		if ( pmremCache === undefined ) {
+
+			pmremCache = new WeakMap();
+
+			_rendererCache.set( renderer, pmremCache );
+
+		}
+
+		return pmremCache;
 
 	}
 
@@ -77888,7 +77925,7 @@ class WebGPUBackend extends Backend {
 		 * @type {Object}
 		 */
 		this._compatibility = {
-			[ Compatibility.TEXTURE_COMPARE ]: compatibilityTextureCompare
+			[ Compatibility.TEXTURE_COMPARE ]: compatibilityTextureCompare || true
 		};
 
 	}
