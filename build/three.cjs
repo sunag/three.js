@@ -43798,7 +43798,7 @@ class FileLoader extends Loader {
 
 		/**
 		 * The expected mime type. Valid values can be found
-		 * [here](hhttps://developer.mozilla.org/en-US/docs/Web/API/DOMParser/parseFromString#mimetype)
+		 * [here](https://developer.mozilla.org/en-US/docs/Web/API/DOMParser/parseFromString#mimetype)
 		 *
 		 * @type {string}
 		 */
