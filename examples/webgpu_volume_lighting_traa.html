@@ -125,7 +125,7 @@
 
 			function init() {
 
-				renderer = new THREE.WebGPURenderer();
+				renderer = new THREE.WebGPURenderer( { forceWebGL: true } );
 				// renderer.setPixelRatio( window.devicePixelRatio ); // Disable DPR for performance
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setAnimationLoop( animate );
