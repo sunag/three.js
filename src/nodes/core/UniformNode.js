@@ -171,6 +171,12 @@ class UniformNode extends InputNode {
 
 		}
 
+		if ( sharedNode !== this ) {
+
+			console.log( 'Shared uniform:', sharedNode.name || sharedNode.uuid, 'for', this.name || this.uuid );
+
+		}
+
 		const sharedNodeType = sharedNode.getInputType( builder );
 
 		const nodeUniform = builder.getUniformFromNode( sharedNode, sharedNodeType, builder.shaderStage, this.name || builder.context.nodeName );

@@ -1053,7 +1053,7 @@ class WGSLNodeBuilder extends NodeBuilder {
 
 		const uniformNode = super.getUniformFromNode( node, type, shaderStage, name );
 		const nodeData = this.getDataFromNode( node, shaderStage, this.globalCache );
-
+		console.log( 'getUniform', node.uuid );
 		if ( nodeData.uniformGPU === undefined ) {
 
 			let uniformGPU;
@@ -1097,7 +1097,7 @@ class WGSLNodeBuilder extends NodeBuilder {
 
 				// Cube textures always need samplers (they use textureSampleLevel, not textureLoad)
 				const needsSampler = node.value.isCubeTexture === true || ( this.isUnfilterable( node.value ) === false && texture.store === false );
-
+				console.log( '>>', node.uuid );
 				if ( needsSampler ) {
 
 					const sampler = new NodeSampler( `${ uniformNode.name }_sampler`, uniformNode.node, group );

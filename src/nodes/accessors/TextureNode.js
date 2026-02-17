@@ -522,7 +522,11 @@ class TextureNode extends UniformNode {
 		const properties = builder.getNodeProperties( this );
 		const textureProperty = super.generate( builder, 'property' );
 
+		console.log( 'generate', this.uuid );
+
 		if ( /^sampler/.test( output ) ) {
+
+			console.log( 'sampler >>', this.uuid );
 
 			return textureProperty + '_sampler';
 
