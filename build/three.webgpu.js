@@ -42754,13 +42754,11 @@ class LightsNode extends Node {
 
 				if ( previousLightNodes !== null ) {
 
-					lightNode = getLightNodeById( light.id, previousLightNodes ); // reuse existing light node
+					lightNode = getLightNodeById( light.id, previousLightNodes );
 
 				}
 
 				if ( lightNode === null ) {
-
-					// find the corresponding node type for a given light
 
 					const lightNodeClass = nodeLibrary.getLightNodeClass( light.constructor );
 
@@ -42771,22 +42769,17 @@ class LightsNode extends Node {
 
 					}
 
-					let lightNode = null;
+					if ( _lightsNodeRef.has( light ) === false ) {
 
-					if ( ! _lightsNodeRef.has( light ) ) {
-
-						lightNode = new lightNodeClass( light );
-						_lightsNodeRef.set( light, lightNode );
-
-					} else {
-
-						lightNode = _lightsNodeRef.get( light );
+						_lightsNodeRef.set( light, new lightNodeClass( light ) );
 
 					}
 
-					lightNodes.push( lightNode );
+					lightNode = _lightsNodeRef.get( light );
 
 				}
+
+				lightNodes.push( lightNode );
 
 			}
 
@@ -42866,8 +42859,6 @@ class LightsNode extends Node {
 
 		builder.lightsNode = this;
 
-		//
-
 		let outgoingLightNode = this.outgoingLightNode;
 
 		const context = builder.context;
@@ -42883,15 +42874,9 @@ class LightsNode extends Node {
 
 			const stack = builder.addStack();
 
-			//
-
 			properties.nodes = stack.nodes;
 
-			//
-
 			lightingModel.start( builder );
-
-			//
 
 			const { backdrop, backdropAlpha } = context;
 			const { directDiffuse, directSpecular, indirectDiffuse, indirectSpecular } = context.reflectedLight;
@@ -42917,11 +42902,7 @@ class LightsNode extends Node {
 
 			outgoingLightNode.assign( totalDiffuseNode.add( totalSpecularNode ) );
 
-			//
-
 			lightingModel.finish( builder );
-
-			//
 
 			outgoingLightNode = outgoingLightNode.bypass( builder.removeStack() );
 
@@ -42930,8 +42911,6 @@ class LightsNode extends Node {
 			properties.nodes = [];
 
 		}
-
-		//
 
 		builder.lightsNode = currentLightsNode;
 
@@ -55400,6 +55379,8 @@ class XRRenderTarget extends RenderTarget {
 const _cameraLPos = /*@__PURE__*/ new Vector3();
 const _cameraRPos = /*@__PURE__*/ new Vector3();
 
+const _contextNodeLib = /*@__PURE__*/ new WeakMap();
+
 /**
  * The XR manager is built on top of the WebXR Device API to
  * manage XR sessions with `WebGPURenderer`.
@@ -55560,8 +55541,6 @@ class XRManager extends EventDispatcher {
 		 * @readonly
 		 */
 		this._supportsGlBinding = typeof XRWebGLBinding !== 'undefined';
-
-		this._frameBufferTargets = null;
 
 		/**
 		 * Helper function to create native WebXR Layer.
@@ -56209,18 +56188,22 @@ class XRManager extends EventDispatcher {
 		const renderer = this._renderer;
 
 		const wasPresenting = this.isPresenting;
-		const rendererOutputTarget = renderer.getOutputRenderTarget();
-		const rendererFramebufferTarget = renderer._frameBufferTarget;
+
 		this.isPresenting = false;
 
 		const rendererSize = new Vector2();
 		renderer.getSize( rendererSize );
-		const rendererQuad = renderer._quad;
+
+		const currentRenderTarget = renderer.getRenderTarget();
 
 		for ( const layer of this._layers ) {
 
 			layer.renderTarget.isXRRenderTarget = this._session !== null;
 			layer.renderTarget._hasExternalTextures = layer.renderTarget.isXRRenderTarget;
+
+			const currentContextNode = renderer.contextNode;
+
+			let contextNode;
 
 			if ( layer.renderTarget.isXRRenderTarget && this._sessionUsesLayers ) {
 
@@ -56233,42 +56216,46 @@ class XRManager extends EventDispatcher {
 					undefined );
 
 				renderer._setXRLayerSize( layer.renderTarget.width, layer.renderTarget.height );
-				renderer.setOutputRenderTarget( layer.renderTarget );
-				renderer.setRenderTarget( null );
-				renderer._frameBufferTarget = null;
 
-				this._frameBufferTargets || ( this._frameBufferTargets = new WeakMap() );
-				const { frameBufferTarget, quad } = this._frameBufferTargets.get( layer.renderTarget ) || { frameBufferTarget: null, quad: null };
-				if ( ! frameBufferTarget ) {
+				contextNode = _contextNodeLib.get( currentContextNode );
 
-					renderer._quad = new QuadMesh( new NodeMaterial() );
-					this._frameBufferTargets.set( layer.renderTarget, { frameBufferTarget: renderer._getFrameBufferTarget(), quad: renderer._quad } );
+				if ( contextNode === undefined ) {
 
-				} else {
+					// Apply ToneMapping and OutputColorSpace directly in the material shader
 
-					renderer._frameBufferTarget = frameBufferTarget;
-					renderer._quad = quad;
+					contextNode = currentContextNode.context( {
+
+						getOutput: ( outputNode ) => {
+
+							return renderOutput( outputNode, renderer.toneMapping, renderer.outputColorSpace );
+
+						}
+
+					} );
+
+					_contextNodeLib.set( currentContextNode, contextNode );
 
 				}
 
-				layer.rendercall();
-
-				renderer._frameBufferTarget = null;
-
 			} else {
 
-				renderer.setRenderTarget( layer.renderTarget );
-				layer.rendercall();
+				contextNode = currentContextNode;
 
 			}
 
+			renderer.contextNode = contextNode;
+
+			renderer.setRenderTarget( layer.renderTarget );
+
+			layer.rendercall();
+
+			renderer.contextNode = currentContextNode;
+
 		}
 
-		renderer.setRenderTarget( null );
-		renderer.setOutputRenderTarget( rendererOutputTarget );
-		renderer._frameBufferTarget = rendererFramebufferTarget;
+		renderer.setRenderTarget( currentRenderTarget );
 		renderer._setXRLayerSize( rendererSize.x, rendererSize.y );
-		renderer._quad = rendererQuad;
+
 		this.isPresenting = wasPresenting;
 
 	}
@@ -58690,9 +58677,10 @@ class Renderer {
 		const { width, height } = this.getDrawingBufferSize( _drawingBufferSize );
 		const { depth, stencil } = this;
 
-		const canvasTarget = this._canvasTarget;
+		// TODO: Unify CanvasTarget and OutputRenderTarget
+		const target = this._outputRenderTarget || this._canvasTarget;
 
-		let frameBufferTarget = this._frameBufferTargets.get( canvasTarget );
+		let frameBufferTarget = this._frameBufferTargets.get( target );
 
 		if ( frameBufferTarget === undefined ) {
 
@@ -58712,17 +58700,17 @@ class Renderer {
 
 			const dispose = () => {
 
-				canvasTarget.removeEventListener( 'dispose', dispose );
+				target.removeEventListener( 'dispose', dispose );
 
 				frameBufferTarget.dispose();
 
-				this._frameBufferTargets.delete( canvasTarget );
+				this._frameBufferTargets.delete( target );
 
 			};
 
-			canvasTarget.addEventListener( 'dispose', dispose );
+			target.addEventListener( 'dispose', dispose );
 
-			this._frameBufferTargets.set( canvasTarget, frameBufferTarget );
+			this._frameBufferTargets.set( target, frameBufferTarget );
 
 		}
 
@@ -58730,6 +58718,7 @@ class Renderer {
 
 		frameBufferTarget.depthBuffer = depth;
 		frameBufferTarget.stencilBuffer = stencil;
+
 		if ( outputRenderTarget !== null ) {
 
 			frameBufferTarget.setSize( outputRenderTarget.width, outputRenderTarget.height, outputRenderTarget.depth );
@@ -58740,11 +58729,18 @@ class Renderer {
 
 		}
 
-		frameBufferTarget.viewport.copy( canvasTarget._viewport );
-		frameBufferTarget.scissor.copy( canvasTarget._scissor );
-		frameBufferTarget.viewport.multiplyScalar( canvasTarget._pixelRatio );
-		frameBufferTarget.scissor.multiplyScalar( canvasTarget._pixelRatio );
-		frameBufferTarget.scissorTest = canvasTarget._scissorTest;
+		// RenderTarget || CanvasTarget
+
+		const viewport = this._outputRenderTarget ? this._outputRenderTarget.viewport : target._viewport;
+		const scissor = this._outputRenderTarget ? this._outputRenderTarget.scissor : target._scissor;
+		const pixelRatio = this._outputRenderTarget ? 1 : target._pixelRatio;
+		const scissorTest = this._outputRenderTarget ? this._outputRenderTarget.scissorTest : target._scissorTest;
+
+		frameBufferTarget.viewport.copy( viewport );
+		frameBufferTarget.scissor.copy( scissor );
+		frameBufferTarget.viewport.multiplyScalar( pixelRatio );
+		frameBufferTarget.scissor.multiplyScalar( pixelRatio );
+		frameBufferTarget.scissorTest = scissorTest;
 		frameBufferTarget.multiview = outputRenderTarget !== null ? outputRenderTarget.multiview : false;
 		frameBufferTarget.resolveDepthBuffer = outputRenderTarget !== null ? outputRenderTarget.resolveDepthBuffer : true;
 		frameBufferTarget._autoAllocateDepthBuffer = outputRenderTarget !== null ? outputRenderTarget._autoAllocateDepthBuffer : false;

@@ -44782,15 +44782,15 @@ class DataTextureLoader extends Loader {
 
 				texData = scope.parse( buffer );
 
-			} catch ( error ) {
+			} catch ( e ) {
 
 				if ( onError !== undefined ) {
 
-					onError( error );
+					onError( e );
 
 				} else {
 
-					error( error );
+					error( e );
 					return;
 
 				}
