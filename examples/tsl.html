@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tour of TSL - Interactive Guide</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Scripts -->
+	<script type="importmap">
+		{
+			"imports": {
+				"three": "../build/three.webgpu.js",
+				"three/webgpu": "../build/three.webgpu.js",
+				"three/tsl": "../build/three.tsl.js",
+				"three/addons/": "./jsm/"
+			}
+		}
+	</script>
+	<script src="https://cdn.tailwindcss.com"></script>
+	<script>
+		/* global tailwind */
+		tailwind.config = {
+			theme: {
+				extend: {
+					colors: {
+						inspector: {
+							bg: '#1e1e24',
+							header: '#2a2a33',
+							border: '#4a4a5a',
+							text: '#e0e0e0',
+							muted: '#9a9aab',
+							accent: '#00aaff',
+							hover: 'rgba(255, 255, 255, 0.08)',
+							active: 'rgba(0, 170, 255, 0.2)'
+						}
+					}
+				}
+			}
+		};
+	</script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Monaco Editor -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs/loader.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-main: #1e1e24;
+            --bg-card: #2a2a33;
+            --accent: #00aaff;
+            --text-muted: #9a9aab;
+            --border-color: #4a4a5a;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+        .markdown-content h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: 1rem; color: #fff; }
+        .markdown-content h2 { font-size: 1.5rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #f8fafc; }
+        .markdown-content p { margin-bottom: 1rem; line-height: 1.6; color: #e0e0e0; }
+        .markdown-content code { background: rgba(0,0,0,0.3); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: 'Fira Code', monospace; font-size: 0.9em; border: 1px solid var(--border-color); }
+        .markdown-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.25); }
+
+        .page-transition {
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Link styles for virtual navigation */
+        .nav-link {
+            color: var(--accent);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body class="h-screen flex flex-col text-inspector-text">
+
+    <!-- Header -->
+    <header class="h-14 border-b border-inspector-border flex items-center justify-between px-6 bg-inspector-header/80 backdrop-blur-md z-10">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-inspector-accent/10 rounded-lg flex items-center justify-center">
+                <i data-lucide="zap" class="w-5 h-5 text-inspector-accent"></i>
+            </div>
+            <h1 class="font-bold text-lg tracking-tight">Tour of <span class="text-inspector-accent">TSL</span></h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <div id="progress-text" class="text-sm font-medium text-inspector-muted">Page 1 of 10</div>
+            <div class="w-48 h-1.5 bg-inspector-bg rounded-full overflow-hidden border border-inspector-border">
+                <div id="progress-bar" class="h-full bg-inspector-accent transition-all duration-300" style="width: 10%;"></div>
+            </div>
+            <button id="menu-toggle" class="p-2 hover:bg-inspector-hover rounded-md transition-colors text-inspector-muted hover:text-white">
+                <i data-lucide="menu" class="w-5 h-5"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- Sidebar Navigation (Hidden by default) -->
+        <aside id="sidebar" class="fixed inset-y-14 right-0 w-72 bg-inspector-header border-l border-inspector-border transform translate-x-full transition-transform duration-300 z-20 custom-scrollbar overflow-y-auto p-4 flex flex-col gap-2 shadow-2xl">
+            <h3 class="text-xs font-bold uppercase tracking-widest text-inspector-muted mb-4">Contents</h3>
+            <nav id="toc-list" class="space-y-1">
+                <!-- Links generated via JS -->
+            </nav>
+        </aside>
+
+        <!-- Left Column: Content -->
+        <section class="w-full md:w-1/2 flex flex-col border-r border-inspector-border bg-inspector-bg">
+            <div id="content-area" class="flex-1 p-8 md:p-12 overflow-y-auto custom-scrollbar markdown-content page-transition">
+                <!-- Markdown Rendered Here -->
+            </div>
+            
+            <!-- Footer Navigation -->
+            <div class="h-16 border-t border-inspector-border px-8 flex items-center justify-between bg-inspector-header/50">
+                <button id="prev-btn" class="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-inspector-hover transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-sm font-medium text-inspector-muted hover:text-white">
+                    <i data-lucide="chevron-left" class="w-4 h-4"></i> Previous
+                </button>
+                <button id="next-btn" class="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-inspector-hover transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-sm font-medium text-inspector-muted hover:text-white">
+                    Next <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- Right Column: Code Editor/Preview -->
+        <section class="hidden md:flex flex-1 flex-col bg-inspector-bg">
+            <div class="h-10 border-b border-inspector-border flex items-center justify-between px-4 bg-inspector-header">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="code" class="w-4 h-4 text-inspector-accent"></i>
+                    <span class="text-xs font-bold uppercase tracking-wider text-inspector-muted">TSL Example</span>
+                </div>
+                <div class="flex gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-inspector-border"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-inspector-border"></span>
+                    <span class="w-2.5 h-2.5 rounded-full bg-inspector-border"></span>
+                </div>
+            </div>
+            <div class="flex-1 relative overflow-hidden flex flex-col">
+                <div id="code-container" class="flex-1 overflow-auto custom-scrollbar p-0 bg-inspector-bg">
+                    <!-- Monaco Editor -->
+                </div>
+                <!-- Mini Preview Visual Mockup -->
+                <div class="h-1/3 border-t border-inspector-border p-4 bg-inspector-header/30">
+                    <div id="preview-container" class="w-full h-full rounded-xl border border-inspector-border/50 flex items-center justify-center bg-inspector-header overflow-hidden relative group">
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Project Content (Single Markdown String) -->
+    <script id="tour-content" type="text/markdown">
+<!-- PAGE: intro -->
+# Welcome to the Tour of TSL
+The **Three.js Shading Language (TSL)** is the future of shader development in the Three.js ecosystem. Based on the new node system (WebGPU), it allows you to write graphics logic in a modular and typed way directly in JavaScript.
+
+In this guide, you will learn:
+- How to declare fundamental variables and nodes.
+- Vector and color manipulation.
+- Creating dynamic light and deformation effects.
+
+[Click here to start the tour](virtual-link:syntax)
+
+```javascript
+import { color } from 'three/tsl';
+
+// Basical execution: change the teapot color
+material.colorNode = color( '#0066ff' );
+```
+
+---
+<!-- PAGE: syntax -->
+# Syntax and Data Types
+TSL inherits GLSL's philosophy but with JavaScript's ease of use. The main types you will use are:
+
+1. `float`: Decimal numbers.
+2. `vec2`, `vec3`, `vec4`: 2, 3, or 4-dimensional vectors.
+3. `mat3`, `mat4`: Transformation matrices.
+
+Unlike traditional GLSL, in TSL you use functions like `add()`, `mul()`, `sub()`, or overloaded operators if the environment allows it.
+
+### Why use TSL?
+- **Reusability**: Create shader functions that work in any project.
+- **Safety**: Errors caught at runtime in JS.
+
+```javascript
+import { float, vec3, color } from 'three/tsl';
+
+const intensity = float( 0.5 );
+const direction = vec3( 0, 1, 0 );
+
+// Applying color mixed with intensity
+const result = direction.mul( intensity );
+
+material.colorNode = color( '#ff0000' ).mul( result.y );
+```
+
+---
+<!-- PAGE: inputs -->
+# Inputs: Attributes and Uniforms
+Shaders need data to render. In TSL, we access this data through specific nodes.
+
+### Common Attributes
+- `positionLocal`: Vertex position in object space.
+- `uv()`: Texture coordinates.
+- `normalLocal`: Vertex normal vector.
+
+### Uniforms
+Uniforms are constant values during a frame, sent from the CPU.
+`const time = uniform( 0 );`
+
+[Learn more about animation](virtual-link:animation)
+
+```javascript
+import { positionLocal, uv, uniform, color } from 'three/tsl';
+
+const time = uniform( 0 ); // Would usually be updated in render loop
+const uvCoords = uv();
+
+// Modifying position
+const wave = positionLocal.y.add( uvCoords.x.sin() );
+
+material.colorNode = color( '#00ff66' );
+material.positionNode = positionLocal.add( vec3( 0, wave, 0 ) );
+```
+
+---
+<!-- PAGE: animation -->
+# Animation and Time
+Visual effects come to life with time. The `time` node is essential.
+
+In TSL, we can create sine wave functions very simply to animate properties:
+
+```javascript
+import { time, color, mix } from 'three/tsl';
+
+const red = color( 0xff0000 );
+const blue = color( 0x0000ff );
+
+// Oscillates between red and blue based on time
+const dynamicColor = mix( red, blue, time.sin().add( 1.0 ).div( 2.0 ) );
+
+material.colorNode = dynamicColor;
+material.positionNode = positionLocal; // Reset position
+```
+
+Notice how the code is readable and expressive.
+
+---
+<!-- PAGE: final -->
+# Conclusion and Next Steps
+You have completed the basic introduction to TSL! The Three.js node system is vast and allows creating everything from advanced post-processing to complex particle simulations.
+
+### Where to go now?
+- Explore the official Three.js repository.
+- Try the WebGPU Node Editor.
+- Try converting an old shader to TSL.
+
+Thank you for following this tour!
+
+```javascript
+import { color, float } from 'three/tsl';
+
+// Congratulations!
+material.colorNode = color( '#eab308' );
+material.opacityNode = float( 0.8 );
+material.transparent = true;
+```
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { color, float, vec3, uniform, positionLocal, time, uv, mix, normalLocal } from 'three/tsl';
+        import { TeapotGeometry } from 'three/addons/geometries/TeapotGeometry.js';
+        
+        /* global lucide, marked, monaco */
+        // App State
+        let currentPageIndex = 0;
+        let pages = [];
+        let isSidebarOpen = false;
+
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Elements
+        const contentArea = document.getElementById( 'content-area' );
+        const codeContainer = document.getElementById( 'code-container' );
+        const previewContainer = document.getElementById( 'preview-container' );
+        const prevBtn = document.getElementById( 'prev-btn' );
+        const nextBtn = document.getElementById( 'next-btn' );
+        const progressBar = document.getElementById( 'progress-bar' );
+        const progressText = document.getElementById( 'progress-text' );
+        const sidebar = document.getElementById( 'sidebar' );
+        const menuToggle = document.getElementById( 'menu-toggle' );
+        const tocList = document.getElementById( 'toc-list' );
+
+        // 3D Scene globals
+        let renderer, scene, camera, mesh, material, controls;
+        let editor;
+
+        // Parse Markdown Content into Virtual Pages
+        function parseContent() {
+
+        	const rawMarkdown = document.getElementById( 'tour-content' ).textContent;
+        	const sections = rawMarkdown.split( '---' );
+        
+        	pages = sections.map( section => {
+
+        		const pageMatch = section.match( /<!-- PAGE: (.*?) -->/ );
+        		const id = pageMatch ? pageMatch[ 1 ].trim() : 'untitled';
+        		const cleanContent = section.replace( /<!-- PAGE: (.*?) -->/, '' ).trim();
+        
+        		// Extract code for the code view
+        		const codeMatch = cleanContent.match( /```javascript([\s\S]*?)```/ );
+        		const code = codeMatch ? codeMatch[ 1 ].trim() : '// No example available.';
+        
+        		// Content for the left side (removing the code block from description if desired)
+        		const description = cleanContent.replace( /```javascript[\s\S]*?```/, '' ).trim();
+        
+        		// Extract Title
+        		const titleMatch = description.match( /^# (.*)/m );
+        		const title = titleMatch ? titleMatch[ 1 ] : 'Page';
+
+        		return { id, title, description, code };
+        
+        	} );
+
+        }
+
+        function renderPage( index ) {
+
+        	if ( index < 0 || index >= pages.length ) return;
+        
+        	currentPageIndex = index;
+        	const page = pages[ index ];
+
+        	// Render Markdown
+        	contentArea.innerHTML = marked.parse( page.description );
+        	contentArea.scrollTo( 0, 0 );
+
+        	// Handle virtual links in the rendered HTML
+        	const links = contentArea.querySelectorAll( 'a' );
+        	links.forEach( link => {
+
+        		const href = link.getAttribute( 'href' );
+        		if ( href && href.startsWith( 'virtual-link:' ) ) {
+
+        			link.className = 'nav-link';
+        			link.onclick = ( e ) => {
+
+        				e.preventDefault();
+        				const targetId = href.split( ':' )[ 1 ];
+        				const targetIndex = pages.findIndex( p => p.id === targetId );
+        				if ( targetIndex !== - 1 ) renderPage( targetIndex );
+        
+        			};
+        
+        		}
+        
+        	} );
+
+        	// Update Code Editor
+        	if ( editor ) {
+
+        		editor.setValue( page.code );
+        
+        	}
+
+        	// Update UI State
+        	updateUI();
+
+        }
+
+        function updateUI() {
+
+        	// Buttons
+        	prevBtn.disabled = currentPageIndex === 0;
+        	if ( currentPageIndex === pages.length - 1 ) {
+
+        		nextBtn.innerHTML = 'Finish <i data-lucide="check" class="w-4 h-4"></i>';
+        
+        	} else {
+
+        		nextBtn.innerHTML = 'Next <i data-lucide="chevron-right" class="w-4 h-4"></i>';
+        
+        	}
+
+        	lucide.createIcons();
+
+        	// Progress
+        	const progress = ( ( currentPageIndex + 1 ) / pages.length ) * 100;
+        	progressBar.style.width = `${progress}%`;
+        	progressText.innerText = `Page ${currentPageIndex + 1} of ${pages.length}`;
+
+        	// TOC Active State
+        	const tocItems = tocList.querySelectorAll( 'button' );
+        	tocItems.forEach( ( btn, idx ) => {
+
+        		if ( idx === currentPageIndex ) {
+
+        			btn.className = 'w-full text-left px-3 py-2 rounded-md text-sm transition-all flex items-center gap-2 bg-inspector-active text-inspector-accent border-l-2 border-inspector-accent';
+        
+        		} else {
+
+        			btn.className = 'w-full text-left px-3 py-2 rounded-md text-sm transition-all hover:bg-inspector-hover flex items-center gap-2 text-inspector-muted';
+        
+        		}
+        
+        	} );
+
+        }
+
+        function setupTOC() {
+
+        	tocList.innerHTML = '';
+        	pages.forEach( ( page, index ) => {
+
+        		const btn = document.createElement( 'button' );
+        		btn.className = 'w-full text-left px-3 py-2 rounded-md text-sm transition-all hover:bg-inspector-hover flex items-center gap-2 text-inspector-muted';
+        		btn.innerHTML = `<span class="opacity-50 text-[10px]">${index + 1}.</span> ${page.title}`;
+        		btn.onclick = () => {
+
+        			renderPage( index );
+        			toggleSidebar( false );
+        
+        		};
+
+        		tocList.appendChild( btn );
+        
+        	} );
+
+        }
+
+        function toggleSidebar( force ) {
+
+        	isSidebarOpen = force !== undefined ? force : ! isSidebarOpen;
+        	if ( isSidebarOpen ) {
+
+        		sidebar.classList.remove( 'translate-x-full' );
+        
+        	} else {
+
+        		sidebar.classList.add( 'translate-x-full' );
+        
+        	}
+
+        }
+
+        // Event Listeners
+        nextBtn.onclick = () => {
+
+        	if ( currentPageIndex < pages.length - 1 ) {
+
+        		renderPage( currentPageIndex + 1 );
+        
+        	} else {
+
+        		alert( 'You have completed the tour!' );
+        
+        	}
+
+        };
+
+        prevBtn.onclick = () => {
+
+        	if ( currentPageIndex > 0 ) {
+
+        		renderPage( currentPageIndex - 1 );
+        
+        	}
+
+        };
+
+        menuToggle.onclick = () => toggleSidebar();
+
+        // Initial Load
+        async function init() {
+
+        	parseContent();
+        	setupTOC();
+
+        	// Setup 3D Preview
+        	scene = new THREE.Scene();
+        	camera = new THREE.PerspectiveCamera( 50, previewContainer.clientWidth / previewContainer.clientHeight, 0.1, 100 );
+        	camera.position.set( 0, 5, 10 );
+        	camera.lookAt( 0, 0, 0 );
+
+        	const dirLight = new THREE.DirectionalLight( 0xffffff, 2.0 );
+        	dirLight.position.set( 5, 10, 5 );
+        	scene.add( dirLight );
+        
+        	const ambientLight = new THREE.AmbientLight( 0x404040, 1.5 );
+        	scene.add( ambientLight );
+
+        	material = new THREE.MeshPhysicalNodeMaterial( {
+        		color: 0x888888,
+        		roughness: 0.2,
+        		metalness: 0.5,
+        	} );
+
+        	const geometry = new TeapotGeometry( 2, 10 );
+        	mesh = new THREE.Mesh( geometry, material );
+        	scene.add( mesh );
+
+        	renderer = new THREE.WebGPURenderer( { antialias: true, alpha: true } );
+        	renderer.setPixelRatio( window.devicePixelRatio );
+        	renderer.setSize( previewContainer.clientWidth, previewContainer.clientHeight );
+        	renderer.setAnimationLoop( animate );
+        	previewContainer.appendChild( renderer.domElement );
+
+        	controls = new OrbitControls( camera, renderer.domElement );
+        	controls.enableDamping = true;
+        	controls.minDistance = 2;
+        	controls.maxDistance = 20;
+
+        	window.addEventListener( 'resize', () => {
+
+        		if ( ! renderer ) return;
+        		camera.aspect = previewContainer.clientWidth / previewContainer.clientHeight;
+        		camera.updateProjectionMatrix();
+        		renderer.setSize( previewContainer.clientWidth, previewContainer.clientHeight );
+        
+        	} );
+
+        	// Monaco Setup
+        	require.config( { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs' } } );
+        	require( [ 'vs/editor/editor.main' ], function () {
+
+        		editor = monaco.editor.create( codeContainer, {
+        			value: pages[ 0 ].code,
+        			language: 'javascript',
+        			theme: 'vs-dark',
+        			minimap: { enabled: false },
+        			automaticLayout: true,
+        			fontSize: 13,
+        			fontFamily: '\'Fira Code\', monospace'
+        		} );
+
+        		let timeout;
+        		editor.onDidChangeModelContent( () => {
+
+        			clearTimeout( timeout );
+        			timeout = setTimeout( () => {
+
+        				executeTSL( editor.getValue() );
+        
+        			}, 500 );
+        
+        		} );
+
+        		renderPage( 0 );
+        		executeTSL( pages[ 0 ].code );
+
+        		document.fonts.ready.then( () => {
+
+        			monaco.editor.remeasureFonts();
+        
+        		} );
+        
+        	} );
+
+        }
+
+        async function executeTSL( code ) {
+
+        	try {
+
+        		material.colorNode = null;
+        		material.positionNode = null;
+        		material.opacityNode = null;
+        		material.transparent = false;
+
+        		// Strip imports as we inject them via the arguments
+        		const strippedCode = code.replace( /import\s+.*?from\s+['"].*?['"];?/g, '' );
+
+        		const executor = new Function( 'material', 'color', 'float', 'vec3', 'uniform', 'positionLocal', 'time', 'uv', 'mix', 'normalLocal', strippedCode );
+
+        		executor( material, color, float, vec3, uniform, positionLocal, time, uv, mix, normalLocal );
+
+        		material.needsUpdate = true;
+
+        	} catch ( e ) {
+
+        		console.warn( 'TSL Execution Error:', e );
+
+        	}
+
+        }
+
+        function animate() {
+
+        	mesh.rotation.y += 0.01;
+        	controls.update();
+        	renderer.render( scene, camera );
+
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>

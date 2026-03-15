@@ -1,0 +1,59 @@
+[
+  {
+    "ruleId": "no-trailing-spaces",
+    "severity": 2,
+    "message": "Trailing spaces not allowed.",
+    "line": 507,
+    "column": 9,
+    "nodeType": "Program",
+    "messageId": "trailingSpace",
+    "endLine": 507,
+    "endColumn": 10,
+    "fix": {
+      "range": [
+        18710,
+        18711
+      ],
+      "text": ""
+    },
+    "source": "        \t"
+  },
+  {
+    "ruleId": "no-trailing-spaces",
+    "severity": 2,
+    "message": "Trailing spaces not allowed.",
+    "line": 580,
+    "column": 9,
+    "nodeType": "Program",
+    "messageId": "trailingSpace",
+    "endLine": 580,
+    "endColumn": 11,
+    "fix": {
+      "range": [
+        21046,
+        21048
+      ],
+      "text": ""
+    },
+    "source": "        \t\t"
+  },
+  {
+    "ruleId": "no-trailing-spaces",
+    "severity": 2,
+    "message": "Trailing spaces not allowed.",
+    "line": 582,
+    "column": 9,
+    "nodeType": "Program",
+    "messageId": "trailingSpace",
+    "endLine": 582,
+    "endColumn": 11,
+    "fix": {
+      "range": [
+        21222,
+        21224
+      ],
+      "text": ""
+    },
+    "source": "        \t\t"
+  }
+]
