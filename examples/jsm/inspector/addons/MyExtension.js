@@ -11,6 +11,10 @@ class MyExtension extends Extension {
 
 		this.content.appendChild( div );
 
+		// center the content
+		this.content.style.display = 'grid';
+		this.content.style.placeItems = 'center';
+
 	}
 
 }
