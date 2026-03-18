@@ -6,6 +6,11 @@ class MyExtension extends Extension {
 
 		super( 'My Extension' );
 
+		const div = document.createElement( 'div' );
+		div.textContent = 'Hello World';
+
+		this.content.appendChild( div );
+
 	}
 
 }
