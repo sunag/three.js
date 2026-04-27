@@ -528,10 +528,6 @@ class TextureNode extends UniformNode {
 
 			return textureProperty + '_sampler';
 
-		} else if ( builder.isReference( output ) ) {
-
-			return textureProperty;
-
 		} else {
 
 			const nodeData = builder.getDataFromNode( this );
