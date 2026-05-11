@@ -7,6 +7,7 @@ export const BasicShadowFilter = TSL.BasicShadowFilter;
 export const Break = TSL.Break;
 export const Const = TSL.Const;
 export const Continue = TSL.Continue;
+export const DeferredCallNode = TSL.DeferredCallNode;
 export const DFGLUT = TSL.DFGLUT;
 export const D_GGX = TSL.D_GGX;
 export const Discard = TSL.Discard;

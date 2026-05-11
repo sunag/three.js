@@ -28,9 +28,9 @@
 		<script type="importmap">
 			{
 				"imports": {
-					"three": "../build/three.webgpu.js",
-					"three/webgpu": "../build/three.webgpu.js",
-					"three/tsl": "../build/three.tsl.js",
+					"three": "../src/three.webgpu.js",
+					"three/webgpu": "../src/three.webgpu.js",
+					"three/tsl": "../src/three.tsl.js",
 					"three/addons/": "./jsm/"
 				}
 			}
@@ -274,7 +274,7 @@
 					);
 
 					const finalVert = maty.mul( matz ).mul( newPosition );
-					finalVert.addAssign( positionStorage.element( instanceIndex ) );
+					finalVert.addAssign( positionStorage.element2( instanceIndex ) );
 
 					return cameraProjectionMatrix.mul( cameraViewMatrix ).mul( finalVert );
 

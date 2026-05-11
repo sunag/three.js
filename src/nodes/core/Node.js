@@ -657,6 +657,12 @@ class Node extends EventDispatcher {
 
 	}
 
+	getProperty( builder, name ) {
+
+		return this[ name ];
+
+	}
+
 	/**
 	 * Represents the setup stage which is the first step of the build process, see {@link Node#build} method.
 	 * This method is often overwritten in derived modules to prepare the node which is used as a node's output/result.

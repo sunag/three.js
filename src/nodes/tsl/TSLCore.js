@@ -8,6 +8,7 @@ import FlipNode from '../utils/FlipNode.js';
 import ConstNode from '../core/ConstNode.js';
 import MemberNode from '../utils/MemberNode.js';
 import StackTrace from '../core/StackTrace.js';
+import DeferredCallNode from '../core/DeferredCallNode.js';
 import { getValueFromType, getValueType } from '../core/NodeUtils.js';
 import { warn, error } from '../../utils.js';
 
@@ -94,6 +95,12 @@ Node.prototype.toVarIntent = function () {
 Node.prototype.get = function ( value ) {
 
 	return new MemberNode( this, value );
+
+};
+
+Node.prototype.element2 = function ( ... params ) {
+
+	return new DeferredCallNode( this, 'element', ...params );
 
 };
 

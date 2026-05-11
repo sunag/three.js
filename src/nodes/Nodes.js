@@ -8,6 +8,7 @@ export { default as AttributeNode } from './core/AttributeNode.js';
 export { default as BypassNode } from './core/BypassNode.js';
 export { default as ConstNode } from './core/ConstNode.js';
 export { default as ContextNode } from './core/ContextNode.js';
+export { default as DeferredCallNode } from './core/DeferredCallNode.js';
 export { default as IndexNode } from './core/IndexNode.js';
 export { default as InputNode } from './core/InputNode.js';
 export { default as InspectorNode } from './core/InspectorNode.js';
