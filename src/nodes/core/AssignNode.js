@@ -112,6 +112,18 @@ class AssignNode extends TempNode {
 
 		const { targetNode, sourceNode } = builder.getNodeProperties( this );
 
+		const scope = targetNode.getScope();
+
+		if ( scope.isPropertyNode || scope.isVarNode ) {
+
+			if ( builder.hasReadUsage( scope ) === false ) {
+
+				return '';
+
+			}
+
+		}
+
 		const needsSplitAssign = this.needsSplitAssign( builder );
 
 		const target = targetNode.build( builder );

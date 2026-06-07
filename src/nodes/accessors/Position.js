@@ -1,7 +1,7 @@
 import { attribute } from '../core/AttributeNode.js';
 import { Fn, vec3, vec4 } from '../tsl/TSLCore.js';
 import { modelWorldMatrix } from './ModelNode.js';
-import { cameraProjectionMatrixInverse } from './Camera.js';
+import { cameraProjectionMatrixInverse, cameraWorldMatrix } from './Camera.js';
 import { warnOnce } from '../../utils.js';
 
 /**
@@ -57,6 +57,8 @@ export const positionPrevious = /*@__PURE__*/ positionGeometry.toVarying( 'posit
  */
 export const positionWorld = /*@__PURE__*/ ( Fn( ( builder ) => {
 
+	if ( builder.context.positionWorld ) return builder.context.positionWorld;
+
 	return modelWorldMatrix.mul( positionLocal ).xyz.toVarying( builder.getSubBuildProperty( 'v_positionWorld' ) );
 
 }, 'vec3' ).once( [ 'POSITION' ] ) )();
@@ -83,6 +85,8 @@ export const positionWorldDirection = /*@__PURE__*/ ( Fn( () => {
  */
 export const positionView = /*@__PURE__*/ ( Fn( ( builder ) => {
 
+	if ( builder.context.positionView ) return builder.context.positionView;
+
 	if ( builder.shaderStage === 'fragment' && builder.material.vertexNode ) {
 
 		// reconstruct view position from clip space
@@ -104,6 +108,8 @@ export const positionView = /*@__PURE__*/ ( Fn( ( builder ) => {
  * @type {VaryingNode<vec3>}
  */
 export const positionViewDirection = /*@__PURE__*/ ( Fn( ( builder ) => {
+
+	if ( builder.context.positionViewDirection ) return builder.context.positionViewDirection;
 
 	let output;
 

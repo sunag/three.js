@@ -148,6 +148,12 @@ class LightsNode extends Node {
 
 		const lights = this._lights;
 
+		if ( lights.length === 0 ) {
+
+			return this.id;
+
+		}
+
 		for ( let i = 0; i < lights.length; i ++ ) {
 
 			const light = lights[ i ];
@@ -190,15 +196,23 @@ class LightsNode extends Node {
 
 			nodeData.lightNodes = lightNodes;
 
-			const hash = [];
+			if ( lightNodes.length === 0 ) {
 
-			for ( const lightNode of lightNodes ) {
+				nodeData.lightNodesHash = 'lights-' + this.id;
 
-				hash.push( lightNode.getHash() );
+			} else {
+
+				const hash = [];
+
+				for ( const lightNode of lightNodes ) {
+
+					hash.push( lightNode.getHash() );
+
+				}
+
+				nodeData.lightNodesHash = 'lights-' + hash.join( ',' );
 
 			}
-
-			nodeData.lightNodesHash = 'lights-' + hash.join( ',' );
 
 		}
 
@@ -286,6 +300,8 @@ class LightsNode extends Node {
 			}
 
 		}
+
+		console.log( lightNodes );
 
 		return lightNodes;
 

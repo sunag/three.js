@@ -161,7 +161,7 @@ class NodeManager extends DataMap {
 		const nodeBuilder = this.backend.createNodeBuilder( renderObject.object, this.renderer );
 		nodeBuilder.scene = renderObject.scene;
 		nodeBuilder.material = material;
-		nodeBuilder.camera = renderObject.camera;
+		nodeBuilder.context.camera = renderObject.camera;
 		nodeBuilder.context.material = material;
 		nodeBuilder.lightsNode = renderObject.lightsNode;
 		nodeBuilder.environmentNode = this.getEnvironmentNode( renderObject.scene );
@@ -255,13 +255,13 @@ class NodeManager extends DataMap {
 				} else {
 
 					// Synchronous path - call buildNodeBuilder but don't await
-					let nodeBuilder = this._createNodeBuilder( renderObject, renderObject.material );
+					const nodeBuilder = this._createNodeBuilder( renderObject, renderObject.material );
 
-					try {
+					//try {
 
-						nodeBuilder.build();
+					nodeBuilder.build();
 
-					} catch ( e ) {
+					/*} catch ( e ) {
 
 						nodeBuilder = this._createNodeBuilder( renderObject, new NodeMaterial() );
 						nodeBuilder.build();
@@ -278,7 +278,7 @@ class NodeManager extends DataMap {
 
 						error( 'TSL: ' + e, stackTrace );
 
-					}
+					}*/
 
 					nodeBuilderState = this._createNodeBuilderState( nodeBuilder );
 
@@ -473,7 +473,7 @@ class NodeManager extends DataMap {
 	 */
 	_createNodeBuilderState( nodeBuilder ) {
 
-		return new NodeBuilderState(
+		const state = new NodeBuilderState(
 			nodeBuilder.vertexShader,
 			nodeBuilder.fragmentShader,
 			nodeBuilder.computeShader,
@@ -486,6 +486,9 @@ class NodeManager extends DataMap {
 			nodeBuilder.hardwareClipping,
 			nodeBuilder.transforms
 		);
+		state.camera = nodeBuilder.camera;
+
+		return state;
 
 	}
 
@@ -984,6 +987,8 @@ class NodeManager extends DataMap {
 
 		const nodeFrame = this.getNodeFrameForRender( renderObject );
 		const nodeBuilder = renderObject.getNodeBuilderState();
+
+		nodeFrame.camera = nodeBuilder.camera;
 
 		for ( const node of nodeBuilder.updateNodes ) {
 

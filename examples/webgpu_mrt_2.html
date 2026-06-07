@@ -38,7 +38,7 @@
 		<script type="module">
 
 			import * as THREE from 'three/webgpu';
-			import { output, normalView, vec4, vec3, pass, step, normalWorld, positionWorld, modelViewMatrix, positionLocal, materialAO, ambientOcclusion, context, diffuseColor, emissive, packNormalToRGB, screenUV, mix, mrt, Fn, unpackRGBToNormal, cameraProjectionMatrixInverse, cameraWorldMatrix, lights, lightingContext, diffuseContribution, specularColor, specularColorBlended, specularF90, metalness, roughness, texture, positionViewDirection, getViewPosition } from 'three/tsl';
+			import { output, normalView, vec4, vec3, pass, step, positionWorld, materialAO, ambientOcclusion, context, diffuseColor, emissive, packNormalToRGB, screenUV, mix, mrt, Fn, unpackRGBToNormal, cameraProjectionMatrixInverse, cameraWorldMatrix, lights, lightingContext, diffuseContribution, specularColor, specularColorBlended, specularF90, metalness, roughness, texture, positionViewDirection, getViewPosition, uniform, perspectiveDepthToViewZ } from 'three/tsl';
 
 			import { Inspector } from 'three/addons/inspector/Inspector.js';
 
@@ -89,126 +89,38 @@
 
 				// renderer
 
-				renderer = new THREE.WebGPURenderer( { antialias: false, requiredLimits: { maxColorAttachments: 5 } } );
+				renderer = new THREE.WebGPURenderer( { antialias: true, requiredLimits: { maxColorAttachments: 5 } } );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( window.innerWidth, window.innerHeight );
 				renderer.setAnimationLoop( render );
 				renderer.toneMapping = THREE.ACESFilmicToneMapping;
 				renderer.inspector = new Inspector();
-				renderer.lighting.enabled = false;
+				//renderer.lighting.enabled = false;
 				container.appendChild( renderer.domElement );
 
 				const pointLight = new THREE.PointLight( 0xffffff, 50, 10 );
 				pointLight.position.set( 1, 1, 1 );
 				scene.add( pointLight );
 
-				const pointLight2 = new THREE.PointLight( 0xffffff, 50, 10 );
-				pointLight2.position.set( - 1, 1, 1 );
-				scene.add( pointLight2 );
-
 				// post processing
 
 				const scenePass = pass( scene, camera, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter } );
 				scenePass.transparent = false;
 				scenePass.setMRT( mrt( {
-					output: output,
-					diffuse: vec4( diffuseColor.rgb, metalness ),
-					normal: vec4( packNormalToRGB( normalView ), roughness ),
-					emissive: vec4( emissive, ambientOcclusion ),
-					//position: positionWorld
+					output: output
 				} ) );
-
-				// optimize textures
-
-				/*const normalTexture = scenePass.getTexture( 'normal' );
-				const diffuseTexture = scenePass.getTexture( 'diffuse' );
-				const emissiveTexture = scenePass.getTexture( 'emissive' );
-
-				normalTexture.type = diffuseTexture.type = emissiveTexture.type = THREE.UnsignedByteType;*/
-
-				// nodes
 
 				// post processing - mrt
 
-				const depth = scenePass.getTextureNode( 'depth' ).sample( screenUV );
-				const positionViewVal = getViewPosition( screenUV, depth, cameraProjectionMatrixInverse );
-				const positionWorldVal = cameraWorldMatrix.mul( vec4( positionViewVal, 1.0 ) ).xyz;
-				const positionViewDirectionVal = positionViewVal.negate().normalize().toVar( 'positionViewDirection_D' );
-				const normalViewVal = unpackRGBToNormal( scenePass.getTextureNode( 'normal' ).rgb ).normalize().toVar();
-				const normalWorldVal = normalViewVal.transformDirection( cameraWorldMatrix ).toVar();
-
 				renderPipeline = new THREE.RenderPipeline( renderer );
-				renderPipeline._quadMesh.material.contextNode = context( {
-					camera: camera,
-					setupModelViewProjection: Fn( () => {
-
-						return vec4( positionLocal.xy, 0.0, 1.0 );
-
-					} ),
-					/*setupPositionView: Fn( ( builder ) => {
-
-						if ( builder.shaderShader === 'vertex' ) {
-
-							return vec4( positionLocal.xy, 0.0, 1.0 );
-
-						}
-
-						return positionViewVal;
-
-					} ),*/
-					positionView: positionViewVal,
-					positionWorld: positionWorldVal,
-					positionViewDirection: positionViewDirectionVal,
-					normalView: normalViewVal,
-					normalWorld: normalWorldVal
-				} );
-
 				renderPipeline.outputColorTransform = false;
 				renderPipeline.outputNode = Fn( () => {
 
 					const output = scenePass.getTextureNode( 'output' );
-					const diffuse = scenePass.getTextureNode( 'diffuse' );
-					const normal = scenePass.getTextureNode( 'normal' );
-					const emissive = scenePass.getTextureNode( 'emissive' );
 
-					const albedo = diffuse.rgb;
-					const metalnessVal = diffuse.a;
-
-					const roughnessVal = normal.a;
-
-					const emissiveColorVal = emissive.rgb;
-					const aoVal = emissive.a;
-
-					// Assign PBR variables
-					diffuseColor.assign( vec4( albedo, 1.0 ) );
-					metalness.assign( metalnessVal );
-					roughness.assign( roughnessVal );
-
-					specularColor.assign( vec3( 0.04 ) );
-					specularColorBlended.assign( mix( vec3( 0.04 ), albedo, metalnessVal ) );
-					specularF90.assign( 1.0 );
-					diffuseContribution.assign( albedo.mul( metalnessVal.oneMinus() ) );
-					ambientOcclusion.assign( aoVal );
-
-					const envNode = new THREE.EnvironmentNode( envTextureNode );
-					const aoNode = new THREE.AONode( aoVal );
-
-					// Evaluate shading context
-
-					const sceneLights2 = renderer.lighting.getNode( scene );
-					const sceneLights = renderer.lighting.createNode().setLights( [ ] );
-					//const sceneLights = renderer.lighting.createNode().setLights( [ pointLight ] );
-					const lightingModel = new THREE.PhysicalLightingModel();
-
-					const shading = lightingContext( sceneLights, lightingModel, [ aoNode, envNode ] );
-
-					const finalColor = shading.add( emissiveColorVal );
-
-					return finalColor.renderOutput();
+					return output.renderOutput();
 
 				} )();
-
-
 
 				// controls
 

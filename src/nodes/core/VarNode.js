@@ -163,14 +163,6 @@ class VarNode extends Node {
 
 	}
 
-	isAssign( builder ) {
-
-		const data = builder.getDataFromNode( this );
-
-		return data.assign;
-
-	}
-
 	build( ...params ) {
 
 		const builder = params[ 0 ];
@@ -218,7 +210,7 @@ class VarNode extends Node {
 
 		if ( this.isIntent( builder ) ) {
 
-			if ( this.isAssign( builder ) !== true ) {
+			if ( builder.isAssign( this ) !== true ) {
 
 				return this.node.build( ...params );
 

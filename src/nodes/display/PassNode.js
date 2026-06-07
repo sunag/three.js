@@ -4,6 +4,7 @@ import { NodeUpdateType } from '../core/constants.js';
 import { context } from '../tsl/TSLBase.js';
 import { uniform } from '../core/UniformNode.js';
 import { viewZToOrthographicDepth, perspectiveDepthToViewZ } from './ViewportDepthNode.js';
+import { screenUV } from './ScreenNode.js';
 
 import { HalfFloatType, FloatType } from '../../constants.js';
 import { Vector2 } from '../../math/Vector2.js';
@@ -35,7 +36,7 @@ class PassTextureNode extends TextureNode {
 	 */
 	constructor( passNode, texture ) {
 
-		super( texture );
+		super( texture/*, screenUV*/ );
 
 		/**
 		 * A reference to the pass node.

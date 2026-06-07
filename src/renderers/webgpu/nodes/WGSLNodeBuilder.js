@@ -2253,6 +2253,7 @@ ${ flowData.code }
 
 			this.vertexShader = this._getWGSLVertexCode( shadersData.vertex );
 			this.fragmentShader = this._getWGSLFragmentCode( shadersData.fragment );
+			//console.log( 'FRAGMENT_SHADER_DUMP_START', this.material.type, '\n', this.fragmentShader, '\nFRAGMENT_SHADER_DUMP_END' );
 
 		} else {
 

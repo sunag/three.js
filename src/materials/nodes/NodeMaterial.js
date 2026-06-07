@@ -467,9 +467,10 @@ class NodeMaterial extends Material {
 	 */
 	setup( builder ) {
 
-		builder.context.setupNormal = () => subBuild( this.setupNormal( builder ), 'NORMAL', 'vec3' );
-		builder.context.setupPositionView = () => this.setupPositionView( builder );
-		builder.context.setupModelViewProjection = () => this.setupModelViewProjection( builder );
+		console.log( this.name, builder.context.setupNormal, this.contextNode && this.contextNode.setupNormal );
+		if ( ! builder.context.setupNormal ) builder.context.setupNormal = () => subBuild( this.setupNormal( builder ), 'NORMAL', 'vec3' );
+		if ( ! builder.context.setupPositionView ) builder.context.setupPositionView = () => this.setupPositionView( builder );
+		if ( ! builder.context.setupModelViewProjection ) builder.context.setupModelViewProjection = () => this.setupModelViewProjection( builder );
 
 		const renderer = builder.renderer;
 		const renderTarget = renderer.getRenderTarget();

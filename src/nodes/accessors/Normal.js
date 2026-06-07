@@ -94,6 +94,8 @@ export const normalWorldGeometry = /*@__PURE__*/ ( Fn( ( builder ) => {
  */
 export const normalView = /*@__PURE__*/ ( Fn( ( builder ) => {
 
+	if ( builder.context.normalView ) return builder.context.normalView;
+
 	let node;
 
 	if ( builder.subBuildFn === 'NORMAL' || builder.subBuildFn === 'VERTEX' ) {
@@ -124,7 +126,13 @@ export const normalView = /*@__PURE__*/ ( Fn( ( builder ) => {
  * @tsl
  * @type {Node<vec3>}
  */
-export const normalWorld = /*@__PURE__*/ normalView.transformDirection( cameraViewMatrix ).toVar( 'normalWorld' );
+export const normalWorld = /*@__PURE__*/ ( Fn( ( builder ) => {
+
+	if ( builder.context.normalWorld ) return builder.context.normalWorld;
+
+	return normalView.transformDirection( cameraViewMatrix );
+
+}, 'vec3' ).once( [ 'NORMAL' ] ) )().toVar( 'normalWorld' );
 
 /**
  * TSL object that represents the clearcoat vertex normal of the current rendered object in view space.
