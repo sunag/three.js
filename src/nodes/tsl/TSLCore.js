@@ -656,8 +656,12 @@ class ShaderCallNodeInternal extends Node {
 
 				properties[ subBuildInitialized ] = true;
 
+				//console.log( '------------------>>>> INIT', this.shaderNode.id, this.shaderNode.subBuilds );
+
 				properties[ subBuildOutput ] = this.getOutputNode( builder );
 				properties[ subBuildOutput ].build( builder );
+
+				//console.log( '------------------<<<< INIT', this.shaderNode.id, this.shaderNode.subBuilds );
 
 				// If the shaderNode has subBuilds, add them to the chaining nodes
 				// so they can be built later in the build process.

@@ -1111,6 +1111,8 @@ class NodeBuilder {
 	 */
 	setCache( cache ) {
 
+		//console.log( '--------- SET CACHE -----------', cache.id );
+
 		this.cache = cache;
 
 	}
@@ -1929,7 +1931,7 @@ class NodeBuilder {
 
 		let data = nodeData[ shaderStage ];
 
-		if ( this.subBuildLayers.length === 0 ) return data;
+		if ( shaderStage === 'any' || this.subBuildLayers.length === 0 ) return data;
 
 		const subBuilds = nodeData.any ? nodeData.any.subBuilds : null;
 		const subBuild = this.getClosestSubBuild( subBuilds );

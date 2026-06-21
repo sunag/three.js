@@ -378,6 +378,8 @@ class StackNode extends Node {
 
 			}
 
+			//console.log( 'stack', this.id );
+
 			if ( buildStage === 'setup' ) {
 
 				node.build( builder );

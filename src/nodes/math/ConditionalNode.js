@@ -57,6 +57,8 @@ class ConditionalNode extends Node {
 		 */
 		this.elseNode = elseNode;
 
+		console.log( 'COND', this.id );
+
 	}
 
 	/**
@@ -99,6 +101,12 @@ class ConditionalNode extends Node {
 	}
 
 	setup( builder ) {
+
+		console.log( '-------------- CONDITIONAL --------------', builder.shaderStage, builder.buildStage, builder.subBuild, builder.id, 'node:', this.id, 'cache:', builder.cache.id );
+
+		const data = builder.getNodeProperties( this )
+		console.log( { ... data } );
+		data.__test = true;
 
 		const condNode = this.condNode;
 		const ifNode = this.ifNode.isolate();

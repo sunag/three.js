@@ -80,9 +80,7 @@ class PointsNodeMaterial extends SpriteNodeMaterial {
 
 	setupPositionView() {
 
-		const { positionNode } = this;
-
-		return modelViewMatrix.mul( vec3( positionNode || positionLocal ) ).xyz;
+		return modelViewMatrix.mul( vec3( positionLocal ) ).xyz;
 
 	}
 

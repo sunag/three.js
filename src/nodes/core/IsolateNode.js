@@ -51,6 +51,8 @@ class IsolateNode extends Node {
 		 */
 		this.isIsolateNode = true;
 
+		//console.log( 'CREATE ISOLATE', this.id );
+
 	}
 
 	generateNodeType( builder ) {
@@ -70,6 +72,8 @@ class IsolateNode extends Node {
 
 	build( builder, ...params ) {
 
+		//console.log( '>> ISOLATE', this.id );
+
 		const previousCache = builder.getCache();
 		const cache = builder.getCacheFromNode( this, this.parent );
 
@@ -78,6 +82,8 @@ class IsolateNode extends Node {
 		const data = this.node.build( builder, ...params );
 
 		builder.setCache( previousCache );
+
+		//console.log( '<< ISOLATE', this.id );
 
 		return data;
 
