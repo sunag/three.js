@@ -413,13 +413,13 @@ export class Profiler extends EventDispatcher {
 			// Maximize based on current position
 			if ( this.position === 'bottom' ) {
 
-				this.panel.style.height = '100vh';
+				this.panel.style.height = '100%';
 				this.panel.style.width = '100%';
 
 			} else if ( this.position === 'right' ) {
 
 				this.panel.style.height = '100%';
-				this.panel.style.width = '100vw';
+				this.panel.style.width = '100%';
 
 			}
 

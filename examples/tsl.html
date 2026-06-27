@@ -49,22 +49,32 @@
     <style>
         :root {
             --bg-main: #1e1e24;
+            --bg-sidebar: #15151a;
             --bg-card: #2a2a33;
             --accent: #00aaff;
             --text-muted: #9a9aab;
-            --border-color: #4a4a5a;
+            --border-color: #3f3f4e;
         }
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
             background-color: var(--bg-main);
-            color: #e0e0e0;
+            color: #d1d5db;
             overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
-        .markdown-content h1 { font-size: 1.875rem; font-weight: 700; margin-bottom: 1rem; color: #fff; }
-        .markdown-content h2 { font-size: 1.5rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #f8fafc; }
-        .markdown-content p { margin-bottom: 1rem; line-height: 1.6; color: #e0e0e0; }
-        .markdown-content code { background: rgba(0,0,0,0.3); padding: 0.2rem 0.4rem; border-radius: 4px; font-family: 'Fira Code', monospace; font-size: 0.9em; border: 1px solid var(--border-color); }
+        .markdown-content h1 { font-size: 2rem; font-weight: 700; margin-bottom: 1.5rem; color: #f9fafb; letter-spacing: -0.025em; }
+        .markdown-content h2 { font-size: 1.5rem; font-weight: 600; margin-top: 2rem; margin-bottom: 1rem; color: #f3f4f6; letter-spacing: -0.015em; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        .markdown-content p { margin-bottom: 1.25rem; line-height: 1.75; color: #d1d5db; font-size: 0.95rem; }
+        .markdown-content code { background: #15151a; padding: 0.2rem 0.4rem; border-radius: 6px; font-family: 'Fira Code', monospace; font-size: 0.85em; border: 1px solid var(--border-color); color: #e0e0e0; }
         .markdown-content ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 1rem; }
+        
+        /* Tables */
+        .markdown-content table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 0.9rem; text-align: left; background-color: transparent; }
+        .markdown-content th { background-color: var(--bg-card); color: #f9fafb; font-weight: 600; padding: 0.75rem 1rem; border: 1px solid var(--border-color); }
+        .markdown-content td { padding: 0.75rem 1rem; border: 1px solid var(--border-color); color: #d1d5db; vertical-align: top; }
+        .markdown-content tr:nth-child(even) { background-color: rgba(255, 255, 255, 0.02); }
+        .markdown-content tr:hover { background-color: rgba(255, 255, 255, 0.04); }
 
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
@@ -86,87 +96,231 @@
             cursor: pointer;
         }
 
+        /* Layout & Header */
+        .app-container { height: 100vh; display: flex; flex-direction: row; color: var(--text-muted); overflow: hidden; background-color: var(--bg-main); }
+        .main-wrap { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
+        .app-header { 
+            height: 3.5rem; border-bottom: 1px solid var(--border-color); 
+            display: flex; align-items: center; justify-content: space-between; 
+            padding: 0 1rem; background-color: var(--bg-main); 
+            z-index: 10; position: relative;
+            flex-shrink: 0;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+        .header-logo-container { display: flex; align-items: center; gap: 0.75rem; }
+        .header-logo-bg { width: 1.75rem; height: 1.75rem; border-radius: 0.375rem; display: flex; align-items: center; justify-content: center; }
+        .header-title-container { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+        .header-title-wrapper { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 0.5rem; pointer-events: auto; }
+        .header-title { font-weight: 600; font-size: 1.05rem; letter-spacing: -0.01em; line-height: 1; color: #ececec; }
+        .header-subtitle { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; letter-spacing: 0.02em; border-left: 1px solid var(--border-color); padding-left: 0.6rem; margin-top: 0.1rem; }
+        .header-title-accent { color: #fff; }
+        .header-actions { display: flex; align-items: center; gap: 1rem; position: relative; z-index: 10; }
+        .icon-btn { padding: 0.5rem; border-radius: 0.375rem; transition: background-color 0.2s, color 0.2s; color: var(--text-muted); background: transparent; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.875rem; font-weight: 500;}
+        .icon-btn:hover { background-color: rgba(255, 255, 255, 0.08); color: #fff; }
+        .icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        ::backdrop { background-color: rgba(0, 0, 0, 0.4); } 
+        /* Main Content Area */
+        .main-layout { flex: 1; display: flex; overflow: hidden; }
+        .sidebar {
+            position: fixed; top: 0; bottom: 0; left: 0; width: 18rem;
+            background-color: var(--bg-sidebar); border-right: 1px solid var(--border-color);
+            transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 20;
+            display: flex; flex-direction: column; 
+            box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+        }
+        .sidebar.open { transform: translateX(0); }
+        .sidebar-header {
+            height: 3.5rem; flex-shrink: 0; display: flex; align-items: center; justify-content: flex-start; padding: 0 1rem; gap: 0.75rem; border-bottom: 1px solid transparent;
+        }
+        .sidebar-content {
+            flex: 1; padding: 1.25rem 1rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem;
+        }
+        .toc-category-header { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-top: 1rem; margin-bottom: 0.5rem; padding: 0 0.5rem; }
+        .toc-btn { width: 100%; text-align: left; padding: 0.6rem 0.75rem; border-radius: 0.5rem; font-size: 0.85rem; font-weight: 500; transition: all 0.15s ease; display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); background: transparent; border: none; cursor: pointer; }
+        .toc-btn:hover { background-color: var(--bg-card); color: #ececec; }
+        .toc-btn.active { background-color: var(--bg-card); color: #fff; border-radius: 0.5rem; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        
+        /* Left Column (Markdown) */
+        .content-col { width: 100%; display: flex; flex-direction: column; border-right: 1px solid var(--border-color); background-color: var(--bg-main); flex: 0 0 auto; min-width: 0; }
+        .content-area-wrap { flex: 1; padding: 2rem 3rem; overflow-y: auto; }
+        .breadcrumb { font-size: 0.875rem; font-weight: 500; color: var(--text-muted); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        
+        .footer-nav { height: 4rem; border-top: 1px solid var(--border-color); display: flex; justify-content: center; background-color: var(--bg-main); flex-shrink: 0; }
+        .footer-nav-inner { width: 100%; max-width: calc(800px + 6rem); padding: 0 3rem; display: flex; align-items: center; justify-content: space-between; }
+        
+        /* Right Column (Editor) */
+        .editor-col { display: none; flex: 1; flex-direction: column; background-color: var(--bg-sidebar); min-width: 0; min-height: 0; }
+        .editor-workspace { flex: 1; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+        .code-container-wrap { flex: 1; overflow: auto; padding: 0; background-color: var(--bg-sidebar); }
+        .preview-section { flex-shrink: 0; height: 50%; border-top: 1px solid var(--border-color); background-color: var(--bg-main); box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1); z-index: 10; padding: 0; }
+        .preview-box { width: 100%; height: 100%; border-radius: 0; display: flex; align-items: center; justify-content: center; background-color: var(--bg-card); overflow: hidden; position: relative; }
+
+
+        .resizer { width: 4px; cursor: col-resize; background-color: var(--border-color); z-index: 10; flex-shrink: 0; transition: background-color 0.2s; }
+        .resizer:hover, .resizer.dragging { background-color: var(--accent); }
+        .resizer-v { height: 4px; cursor: row-resize; background-color: var(--border-color); z-index: 10; flex-shrink: 0; transition: background-color 0.2s; }
+        .resizer-v:hover, .resizer-v.dragging { background-color: var(--accent); }
+
+        @media (min-width: 768px) {
+            .content-col { width: 50%; flex: 0 0 auto; min-width: 0; }
+            .editor-col { display: flex; min-width: 0; min-height: 0; }
+            .sidebar {
+                position: relative; top: auto; bottom: auto; left: auto;
+                transform: none; margin-left: -18rem; box-shadow: none;
+            }
+            .sidebar.open {
+                margin-left: 0;
+            }
+        }
+
     </style>
 </head>
-<body class="h-screen flex flex-col text-inspector-text">
+<body class="app-container">
 
-    <!-- Header -->
-    <header class="h-14 border-b border-inspector-border flex items-center justify-between px-6 bg-inspector-header/80 backdrop-blur-md z-10">
-        <div class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-inspector-accent/10 rounded-lg flex items-center justify-center">
-                <i data-lucide="zap" class="w-5 h-5 text-inspector-accent"></i>
-            </div>
-            <h1 class="font-bold text-lg tracking-tight">Tour of <span class="text-inspector-accent">TSL</span></h1>
-        </div>
-        <div class="flex items-center gap-4">
-            <div id="progress-text" class="text-sm font-medium text-inspector-muted">Page 1 of 10</div>
-            <div class="w-48 h-1.5 bg-inspector-bg rounded-full overflow-hidden border border-inspector-border">
-                <div id="progress-bar" class="h-full bg-inspector-accent transition-all duration-300" style="width: 10%;"></div>
-            </div>
-            <button id="menu-toggle" class="p-2 hover:bg-inspector-hover rounded-md transition-colors text-inspector-muted hover:text-white">
-                <i data-lucide="menu" class="w-5 h-5"></i>
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+        <div class="sidebar-header">
+            <button id="menu-toggle-close" class="icon-btn">
+                <i data-lucide="panel-left" style="width: 1.25rem; height: 1.25rem;"></i>
             </button>
+            <div class="header-logo-container">
+                <div class="header-logo-bg">
+                    <svg fill="none" stroke-linecap="square" stroke-miterlimit="10" version="1.1" viewBox="0 0 226.77 226.77" xmlns="http://www.w3.org/2000/svg" style="width: 1.25rem; height: 1.25rem;">
+                     <g transform="translate(8.964 4.2527)" fill-rule="evenodd" stroke="#ffffff" stroke-linecap="butt" stroke-linejoin="round" stroke-width="4">
+                      <path d="m63.02 200.61-43.213-174.94 173.23 49.874z"/>
+                      <path d="m106.39 50.612 21.591 87.496-86.567-24.945z"/>
+                      <path d="m84.91 125.03-10.724-43.465 43.008 12.346z"/>
+                      <path d="m63.458 38.153 10.724 43.465-43.008-12.346z"/>
+                      <path d="m149.47 62.93 10.724 43.465-43.008-12.346z"/>
+                      <path d="m84.915 125.06 10.724 43.465-43.008-12.346z"/>
+                     </g>
+                    </svg>
+                </div>
+            </div>
         </div>
-    </header>
-
-    <!-- Main Layout -->
-    <main class="flex-1 flex overflow-hidden">
-        
-        <!-- Sidebar Navigation (Hidden by default) -->
-        <aside id="sidebar" class="fixed inset-y-14 right-0 w-72 bg-inspector-header border-l border-inspector-border transform translate-x-full transition-transform duration-300 z-20 custom-scrollbar overflow-y-auto p-4 flex flex-col gap-2 shadow-2xl">
-            <h3 class="text-xs font-bold uppercase tracking-widest text-inspector-muted mb-4">Contents</h3>
-            <nav id="toc-list" class="space-y-1">
+        <div class="sidebar-content custom-scrollbar">
+            <h3 class="toc-category-header" style="margin-top: 0;">Contents</h3>
+            <nav id="toc-list" style="display: flex; flex-direction: column; gap: 0.25rem;">
                 <!-- Links generated via JS -->
             </nav>
-        </aside>
+        </div>
+    </aside>
+
+    <div class="main-wrap">
+        <!-- Header -->
+        <header class="app-header">
+            <div style="width: 3rem; display: flex; align-items: center;">
+                <button id="menu-toggle-main" class="icon-btn">
+                    <i data-lucide="panel-left" style="width: 1.25rem; height: 1.25rem;"></i>
+                </button>
+            </div>
+            
+            <!-- Centered Title -->
+            <div class="header-title-container">
+                <div class="header-title-wrapper">
+                    <h1 class="header-title">Tour of <span class="header-title-accent">TSL</span></h1>
+                    <span class="header-subtitle">Three.js Shading Language</span>
+                </div>
+            </div>
+
+            <div style="width: 3rem;"></div>
+        </header>
+
+        <!-- Main Layout -->
+        <main class="main-layout">
 
         <!-- Left Column: Content -->
-        <section class="w-full md:w-1/2 flex flex-col border-r border-inspector-border bg-inspector-bg">
-            <div id="content-area" class="flex-1 p-8 md:p-12 overflow-y-auto custom-scrollbar markdown-content page-transition">
+        <section class="content-col">
+            <div id="content-area" class="content-area-wrap custom-scrollbar markdown-content page-transition">
                 <!-- Markdown Rendered Here -->
             </div>
             
             <!-- Footer Navigation -->
-            <div class="h-16 border-t border-inspector-border px-8 flex items-center justify-between bg-inspector-header/50">
-                <button id="prev-btn" class="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-inspector-hover transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-sm font-medium text-inspector-muted hover:text-white">
-                    <i data-lucide="chevron-left" class="w-4 h-4"></i> Previous
-                </button>
-                <button id="next-btn" class="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-inspector-hover transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-sm font-medium text-inspector-muted hover:text-white">
-                    Next <i data-lucide="chevron-right" class="w-4 h-4"></i>
-                </button>
+            <div class="footer-nav">
+                <div class="footer-nav-inner">
+                    <button id="prev-btn" class="icon-btn">
+                        <i data-lucide="chevron-left" style="width: 1rem; height: 1rem;"></i> Previous
+                    </button>
+                    <button id="next-btn" class="icon-btn">
+                        Next <i data-lucide="chevron-right" style="width: 1rem; height: 1rem;"></i>
+                    </button>
+                </div>
             </div>
         </section>
 
+        <!-- Horizontal Resizer -->
+        <div class="resizer" id="h-resizer"></div>
+
         <!-- Right Column: Code Editor/Preview -->
-        <section class="hidden md:flex flex-1 flex-col bg-inspector-bg">
-            <div class="h-10 border-b border-inspector-border flex items-center justify-between px-4 bg-inspector-header">
-                <div class="flex items-center gap-2">
-                    <i data-lucide="code" class="w-4 h-4 text-inspector-accent"></i>
-                    <span class="text-xs font-bold uppercase tracking-wider text-inspector-muted">TSL Example</span>
-                </div>
-                <div class="flex gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-inspector-border"></span>
-                    <span class="w-2.5 h-2.5 rounded-full bg-inspector-border"></span>
-                    <span class="w-2.5 h-2.5 rounded-full bg-inspector-border"></span>
-                </div>
-            </div>
-            <div class="flex-1 relative overflow-hidden flex flex-col">
-                <div id="code-container" class="flex-1 overflow-auto custom-scrollbar p-0 bg-inspector-bg">
+        <section class="editor-col">
+            <div class="editor-workspace">
+                <div id="code-container" class="code-container-wrap custom-scrollbar">
                     <!-- Monaco Editor -->
                 </div>
+                
+                <!-- Vertical Resizer -->
+                <div class="resizer-v" id="v-resizer"></div>
+                
                 <!-- Mini Preview Visual Mockup -->
-                <div class="h-1/3 border-t border-inspector-border p-4 bg-inspector-header/30">
-                    <div id="preview-container" class="w-full h-full rounded-xl border border-inspector-border/50 flex items-center justify-center bg-inspector-header overflow-hidden relative group">
+                <div class="preview-section">
+                    <div id="preview-container" class="preview-box group">
                     </div>
                 </div>
             </div>
         </section>
     </main>
+    </div>
 
     <!-- Project Content (Single Markdown String) -->
     <script id="tour-content" type="text/markdown">
-<!-- PAGE: intro -->
-# Welcome to the Tour of TSL
+# Introduction
+
+## Why TSL?
+
+Creating shaders has always been an advanced step for most developers; many game developers have never created GLSL code from scratch. The shader graph solution adopted today by the industry has allowed developers more focused on dynamics to create the necessary graphic effects to meet the demands of their projects.
+
+The aim of the project is to create an easy-to-use environment for shader creation. Even if for this we need to create complexity behind it, this happened initially with `Renderer` and now with the `TSL`.
+
+Other benefits that TSL brings besides simplifying shading creation are keeping the `renderer agnostic`, while all the complexity of a material can be imported into different modules and use `tree shaking` without breaking during the process.
+
+## Constants and explicit conversions
+
+Input functions can be used to create contants and do explicit conversions.
+> Conversions are also performed automatically if the output and input are of different types.
+
+| Name | Returns a constant or convertion of type: |
+| -- | -- |
+| `float( node\|number )` | `float` |
+| `int( node\|number )` | `int` |
+| `uint( node\|number )` | `uint` |
+| `bool( node\|value )` | `boolean` |
+| `color( node\|hex\|r,g,b )` | `color` |
+| `vec2( node\|Vector2\|x,y )` | `vec2` |
+| `vec3( node\|Vector3\|x,y,z )` | `vec3` |
+| `vec4( node\|Vector4\|x,y,z,w )` | `vec4` |
+| `mat2( node\|Matrix2\|a,b,c,d )` | `mat2` |
+| `mat3( node\|Matrix3\|a,b,c,d,e,f,g,h,i )` | `mat3` |
+| `mat4( node\|Matrix4\|a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p )` | `mat4` |
+| `ivec2( node\|x,y )` | `ivec2` |
+| `ivec3( node\|x,y,z )` | `ivec3` |
+| `ivec4( node\|x,y,z,w )` | `ivec4` |
+| `uvec2( node\|x,y )` | `uvec2` |
+| `uvec3( node\|x,y,z )` | `uvec3` |
+| `uvec4( node\|x,y,z,w )` | `uvec4` |
+| `bvec2( node\|x,y )` | `bvec2` |
+| `bvec3( node\|x,y,z )` | `bvec3` |
+| `bvec4( node\|x,y,z,w )` | `bvec4` |
+
+### Example
+
+A `detail map` makes things look more real in games. It adds tiny details like cracks or bumps to surfaces. In this example we will scale uv to improve details when seen up close and multiply with a base texture.
+
+#### Old
+
+This is how we would achieve that using `.onBeforeCompile()`:
+
+## Welcome to the Tour of TSL
 The **Three.js Shading Language (TSL)** is the future of shader development in the Three.js ecosystem. Based on the new node system (WebGPU), it allows you to write graphics logic in a modular and typed way directly in JavaScript.
 
 In this guide, you will learn:
@@ -174,9 +328,9 @@ In this guide, you will learn:
 - Vector and color manipulation.
 - Creating dynamic light and deformation effects.
 
-[Click here to start the tour](virtual-link:syntax)
+[Click here to start the tour](#syntax-and-data-types)
 
-```javascript
+```tsl
 import { color } from 'three/tsl';
 
 // Basical execution: change the teapot color
@@ -184,8 +338,8 @@ material.colorNode = color( '#0066ff' );
 ```
 
 ---
-<!-- PAGE: syntax -->
-# Syntax and Data Types
+
+## Syntax and Data Types
 TSL inherits GLSL's philosophy but with JavaScript's ease of use. The main types you will use are:
 
 1. `float`: Decimal numbers.
@@ -198,7 +352,7 @@ Unlike traditional GLSL, in TSL you use functions like `add()`, `mul()`, `sub()`
 - **Reusability**: Create shader functions that work in any project.
 - **Safety**: Errors caught at runtime in JS.
 
-```javascript
+```tsl
 import { float, vec3, color } from 'three/tsl';
 
 const intensity = float( 0.5 );
@@ -211,8 +365,9 @@ material.colorNode = color( '#ff0000' ).mul( result.y );
 ```
 
 ---
-<!-- PAGE: inputs -->
-# Inputs: Attributes and Uniforms
+# Advanced
+
+## Inputs: Attributes and Uniforms
 Shaders need data to render. In TSL, we access this data through specific nodes.
 
 ### Common Attributes
@@ -224,9 +379,9 @@ Shaders need data to render. In TSL, we access this data through specific nodes.
 Uniforms are constant values during a frame, sent from the CPU.
 `const time = uniform( 0 );`
 
-[Learn more about animation](virtual-link:animation)
+[Learn more about animation](#animation-and-time)
 
-```javascript
+```tsl
 import { positionLocal, uv, uniform, color } from 'three/tsl';
 
 const time = uniform( 0 ); // Would usually be updated in render loop
@@ -240,13 +395,13 @@ material.positionNode = positionLocal.add( vec3( 0, wave, 0 ) );
 ```
 
 ---
-<!-- PAGE: animation -->
-# Animation and Time
+
+## Animation and Time
 Visual effects come to life with time. The `time` node is essential.
 
 In TSL, we can create sine wave functions very simply to animate properties:
 
-```javascript
+```tsl
 import { time, color, mix } from 'three/tsl';
 
 const red = color( 0xff0000 );
@@ -262,8 +417,10 @@ material.positionNode = positionLocal; // Reset position
 Notice how the code is readable and expressive.
 
 ---
-<!-- PAGE: final -->
-# Conclusion and Next Steps
+
+# Wrap Up
+
+## Conclusion and Next Steps
 You have completed the basic introduction to TSL! The Three.js node system is vast and allows creating everything from advanced post-processing to complex particle simulations.
 
 ### Where to go now?
@@ -273,7 +430,7 @@ You have completed the basic introduction to TSL! The Three.js node system is va
 
 Thank you for following this tour!
 
-```javascript
+```tsl
 import { color, float } from 'three/tsl';
 
 // Congratulations!
@@ -281,11 +438,505 @@ material.colorNode = color( '#eab308' );
 material.opacityNode = float( 0.8 );
 material.transparent = true;
 ```
+
+### Post-Processing
+
+TSL utilities for post-processing effects. They can be used in materials or post-processing passes.
+
+| Name | Description |
+| -- | -- |
+| `afterImage( node, damp = 0.96 )` | Creates an after image effect. |
+| `anamorphic( node, threshold = 0.9, scale = 3, samples = 32 )` | Creates an anamorphic flare effect. |
+| `bloom( node, strength = 1, radius = 0, threshold = 0 )` | Creates a bloom effect. |
+| `boxBlur( textureNode, options = {} )` | Applies a box blur effect. |
+| `chromaticAberration( node, strength = 1.0, center = null, scale = 1.1 )` | Creates a chromatic aberration effect. |
+| `denoise( node, depthNode, normalNode, camera )` | Creates a denoise effect. |
+| `dof( node, viewZNode, focusDistance, focalLength, bokehScale )` | Creates a depth-of-field effect. |
+| `dotScreen( node, angle = 1.57, scale = 1 )` | Creates a dot-screen effect. |
+| `film( inputNode, intensityNode = null, uvNode = null )` | Creates a film grain effect. |
+| `fxaa( node )` | Creates a FXAA anti-aliasing effect. |
+| `gaussianBlur( node, directionNode, sigma, options = {} )` | Creates a gaussian blur effect. |
+| `grayscale( color )` | Converts color to grayscale. |
+| `hashBlur( textureNode, bluramount = float( 0.1 ), options = {} )` | Applies a hash blur effect. |
+| `lut3D( node, lut, size, intensity )` | Creates a LUT color grading effect. |
+| `motionBlur( inputNode, velocity, numSamples = int( 16 ) )` | Creates a motion blur effect. |
+| `outline( scene, camera, params )` | Creates an outline effect around selected objects. |
+| `rgbShift( node, amount = 0.005, angle = 0 )` | Creates an RGB shift effect. |
+| `sepia( color )` | Applies a sepia effect. |
+| `smaa( node )` | Creates a SMAA anti-aliasing effect. |
+| `sobel( node )` | Creates a sobel edge detection effect. |
+| `ssr( colorNode, depthNode, normalNode, metalnessNode, roughnessNode = null, camera = null )` | Creates screen space reflections. |
+| `ssgi( beautyNode, depthNode, normalNode, camera )` | Creates a SSGI effect. |
+| `ao( depthNode, normalNode, camera )` | Creates a Ground Truth Ambient Occlusion (GTAO) effect. |
+| `transition( nodeA, nodeB, mixTextureNode, mixRatio, threshold, useTexture )` | Creates a transition effect between two scenes. |
+| `traa( beautyNode, depthNode, velocityNode, camera )` | Creates a TRAA temporal anti-aliasing effect. |
+| `renderOutput( node, targetColorSpace, targetToneMapping )` | Apply the renderer output settings in the node. |
+
+Example:
+
+```js
+import { grayscale, pass } from 'three/tsl';
+import { gaussianBlur } from 'three/addons/tsl/display/GaussianBlurNode.js';
+
+// Post-processing
+const scenePass = pass( scene, camera );
+const output = scenePass.getTextureNode(); // default parameter is 'output'
+
+renderPipeline.outputNode = grayscale( gaussianBlur( output, 4 ) );
+```
+
+### Render Pass
+
+Functions for creating and managing render passes.
+
+| Name | Description |
+| -- | -- |
+| `pass( scene, camera, options = {} )` | Creates a pass node for rendering a scene. |
+| `mrt( outputNodes )` | Creates a Multiple Render Targets (MRT) node. |
+
+Example:
+
+```js
+import { pass, mrt, output, emissive } from 'three/tsl';
+
+const scenePass = pass( scene, camera );
+
+// Setup MRT
+scenePass.setMRT( mrt( {
+	output: output,
+	emissive: emissive
+} ) );
+
+const outputNode = scenePass.getTextureNode( 'output' );
+const emissiveNode = scenePass.getTextureNode( 'emissive' );
+```
+
+### Compute
+
+Compute shaders allow general-purpose GPU computations. TSL provides functions for creating and managing compute operations.
+
+| Name | Description |
+| -- | -- |
+| `compute( node, count = null, workgroupSize = [ 64 ] )` | Creates a compute node. |
+| `atomicAdd( node, value )` | Performs an atomic addition. |
+| `atomicSub( node, value )` | Performs an atomic subtraction. |
+| `atomicMax( node, value )` | Performs an atomic max operation. |
+| `atomicMin( node, value )` | Performs an atomic min operation. |
+| `atomicAnd( node, value )` | Performs an atomic AND operation. |
+| `atomicOr( node, value )` | Performs an atomic OR operation. |
+| `atomicXor( node, value )` | Performs an atomic XOR operation. |
+| `atomicStore( node, value )` | Stores a value atomically. |
+| `atomicLoad( node )` | Loads a value atomically. |
+| `workgroupBarrier()` | Creates a workgroup barrier. |
+| `storageBarrier()` | Creates a storage barrier. |
+| `textureBarrier()` | Creates a texture barrier. |
+| `barrier()` | Creates a memory barrier. |
+| `workgroupId` | The workgroup ID. |
+| `localId` | The local invocation ID within the workgroup. |
+| `globalId` | The global invocation ID. |
+| `numWorkgroups` | The number of workgroups. |
+| `subgroupSize` | The size of the subgroup. |
+
+Example:
+
+```js
+import { Fn, instancedArray, instanceIndex, deltaTime } from 'three/tsl';
+
+const count = 1000;
+const positionArray = instancedArray( count, 'vec3' );
+
+// create a compute function
+
+const computeShader = Fn( () => {
+
+	const position = positionArray.element( instanceIndex );
+
+	position.x.addAssign( deltaTime );
+
+} )().compute( count );
+
+//
+
+renderer.compute( computeShader );
+```
+
+## Storage
+
+Storage functions allow reading and writing to GPU buffers.
+
+| Name | Description |
+| -- | -- |
+| `storage( attribute, type, count )` | Creates a storage buffer. |
+| `storageTexture( texture )` | Creates a storage texture for read/write operations. |
+
+## Struct
+
+Structs allow you to create custom data types with multiple members. They can be used to organize related data in shaders, define structures for attributes and uniforms.
+
+| Name | Description |
+| -- | -- |
+| `struct( membersLayout, name = null )` | Creates a struct type with the specified member layout. |
+| `outputStruct( ...members )` | Creates an output struct node for returning multiple values. |
+
+Example:
+
+```js
+import { struct, vec3 } from 'three/tsl';
+
+// Define a custom struct
+const BoundingBox = struct( { min: 'vec3', max: 'vec3' } );
+
+// Create a new instance of the struct
+const bb = BoundingBox( vec3( 0 ), vec3( 1 ) ); // style 1
+const bb2 = BoundingBox( { min: vec3( 0 ), max: vec3( 1 ) } ); // style 2
+
+// Access the struct members
+const min = bb.get( 'min' );
+
+// Assign a new value to a member
+min.assign( vec3( -1, -1, -1 ) );
+```
+
+## Flow Control
+
+Functions for controlling shader flow.
+
+| Name | Description |
+| -- | -- |
+| `Discard()` | Discards the current fragment. |
+| `Return()` | Returns from the current function. |
+| `Break()` | Breaks out of a loop. |
+| `Continue()` | Continues to the next iteration of a loop. |
+
+Example:
+
+```js
+import { Fn, If, Discard, uv } from 'three/tsl';
+
+const customFragment = Fn( () => {
+
+	If( uv().x.lessThan( 0.5 ), () => {
+
+		Discard();
+
+	} );
+
+	return vec4( 1, 0, 0, 1 );
+
+} );
+
+material.colorNode = customFragment();
+```
+
+## Fog
+
+Functions for creating fog effects in the scene. Assign the fog node to `scene.fogNode`.
+
+| Name | Description | Type |
+| -- | -- | -- |
+| `fog( color, factor )` | Creates a fog node with specified color and fog factor. | `FogNode` |
+| `rangeFogFactor( near, far )` | Creates a linear fog factor based on distance from camera. | `float` |
+| `densityFogFactor( density )` | Creates an exponential squared fog factor for denser fog. | `float` |
+
+Example:
+
+```js
+import { fog, rangeFogFactor, densityFogFactor, color } from 'three/tsl';
+
+// Linear fog (starts at 10 units, fully opaque at 100 units)
+scene.fogNode = fog( color( 0x000000 ), rangeFogFactor( 10, 100 ) );
+
+// Exponential fog (density-based)
+scene.fogNode = fog( color( 0xcccccc ), densityFogFactor( 0.02 ) );
+```
+
+## Color Adjustments
+
+Functions for adjusting and manipulating colors.
+
+| Name | Description | Type |
+| -- | -- | -- |
+| `luminance( node )` | Calculates the luminance (perceived brightness) of a color. | `float` |
+| `saturation( node, adjustment = 1 )` | Adjusts the saturation of a color. Values > 1 increase saturation, < 1 decrease. | `color` |
+| `vibrance( node, adjustment = 1 )` | Selectively enhances less saturated colors while preserving already saturated ones. | `color` |
+| `hue( node, adjustment = 0 )` | Rotates the hue of a color. Value is in radians. | `color` |
+| `posterize( node, steps )` | Reduces the number of color levels, creating a poster-like effect. | `color` |
+
+Example:
+
+```js
+import { texture, saturation, hue, posterize } from 'three/tsl';
+
+// Increase saturation
+material.colorNode = saturation( texture( map ), 1.5 );
+
+// Rotate hue by 90 degrees
+material.colorNode = hue( texture( map ), Math.PI / 2 );
+
+// Posterize to 4 color levels
+material.colorNode = posterize( texture( map ), 4 );
+```
+
+## Utilities
+
+Utility functions for common shader tasks.
+
+| Name | Description | Type |
+| -- | -- | -- |
+| `billboarding( { position, horizontal, vertical } )` | Orients flat meshes always towards the camera. `position`: vertex positions in world space (default: `null`). `horizontal`: follow camera horizontally (default: `true`). `vertical`: follow camera vertically (default: `false`). | `vec3` |
+| `checker( coord )` | Creates a 2x2 checkerboard pattern. | `float` |
+
+Example:
+
+```js
+import { billboarding } from 'three/tsl';
+
+// Default: Horizontal only (like trees) - rotates around Y axis only
+material.vertexNode = billboarding();
+
+// Full billboarding (like particles) - faces camera in all directions
+material.vertexNode = billboarding( { horizontal: true, vertical: true } );
+```
+
+## NodeMaterial
+
+Check below for more details about `NodeMaterial` inputs.
+
+#### Core
+
+| Name | Description | Type |
+|--|--|--|
+| `.fragmentNode` | Replaces the built-in material logic used in the fragment stage. | `vec4` |
+| `.vertexNode` | Replaces the built-in material logic used in the vertex stage. | `vec4` |
+| `.geometryNode` | Allows you to execute a TSL function to deal with Geometry. | `Fn()` |
+
+#### Basic
+
+| Name | Description | Reference | Type |
+|--|--|--|--|
+| `.colorNode` | Replace the logic of `material.color * material.map`. | `materialColor` | `vec4` |
+| `.depthNode` | Customize the `depth` output. | `depth` | `float` |
+| `.opacityNode` | Replace the logic of `material.opacity * material.alphaMap`. | `materialOpacity` | `float` |
+| `.alphaTestNode` | Sets a threshold to discard pixels with low opacity. | `materialAlphaTest` | `float` |
+| `.positionNode` | Represents the vertex positions in local-space. Replace the logic of `material.displacementMap * material.displacementScale + material.displacementBias`. | `positionLocal` | `vec3` |
+
+#### Lighting
+
+| Name | Description | Reference | Type |
+|--|--|--|--|
+| `.emissiveNode` | Replace the logic of `material.emissive * material.emissiveIntensity * material.emissiveMap`. | `materialEmissive` | `color` |
+| `.normalNode` | Represents the normals direction in view-space. Replace the logic of `material.normalMap * material.normalScale` and `material.bumpMap * material.bumpScale`. | `materialNormal` | `vec3` |
+| `.lightsNode` | Defines the lights and lighting model that will be used by the material. |  | `lights()` |
+| `.envNode` | Replace the logic of `material.envMap * material.envMapRotation * material.envMapIntensity`. |  | `color` |
+
+#### Backdrop
+
+| Name | Description | Type |
+|--|--|--|
+| `.backdropNode` | Set the current render color to be used before applying `Specular`, useful for `transmission` and `refraction` effects. | `color` |
+| `.backdropAlphaNode` | Define the alpha of `backdropNode`. | `float` |
+
+#### Shadows
+
+| Name | Description | Reference | Type |
+|--|--|--|--|
+| `.castShadowNode` | Control the `color` and `opacity` of the shadow that will be projected by the material. |  | `vec4` |
+| `.maskShadowNode` | Define a custom mask for the shadow. |  | `bool` |
+| `.receivedShadowNode` | Handle the shadow cast on the material. |  | `Fn()` |
+| `.receivedShadowPositionNode` | Define the shadow projection position in world-space. | `shadowPositionWorld` | `vec3` |
+| `.aoNode` | Replace the logic of `material.aoMap * aoMapIntensity`. | `materialAO` | `float` |
+
+#### Output
+
+| Name | Description | Reference | Type |
+|--|--|--|--|
+| `.maskNode` | Define the material's mask. Unlike opacity, it is discarded at the beginning of rendering, optimizing the process. |  | `bool` |
+| `.mrtNode` | Define a different MRT than the one defined in `pass()`. |  | `mrt()` |
+| `.outputNode` | Defines the material's final output. | `output` | `vec4` |
+
+## LineDashedNodeMaterial
+
+| Name | Description | Reference | Type |
+|--|--|--|--|
+| `.dashScaleNode` | Replace the logic of `material.scale`. | `materialLineScale` | `float` |
+| `.dashSizeNode` | Replace the logic of `material.dashSize`. | `materialLineDashSize` | `float` |
+| `.gapSizeNode` | Replace the logic of `material.gapSize`. | `materialLineGapSize` | `float` |
+| `.offsetNode` | Replace the logic of `material.dashOffset`. | `materialLineDashOffset` | `float` |
+
+## MeshPhongNodeMaterial
+
+| Name | Description | Reference | Type |
+|--|--|--|--|
+| `.shininessNode` | Replace the logic of `material.shininess`. | `materialShininess` | `float` |
+| `.specularNode` | Replace the logic of `material.specular`. | `materialSpecular` | `color` |
+
+## MeshStandardNodeMaterial
+
+| Name | Description | Reference | Type |
+|--|--|--|--|
+| `.metalnessNode` | Replace the logic of `material.metalness * material.metalnessMap`. | `materialMetalness` | `float` |
+| `.roughnessNode` | Replace the logic of `material.roughness * material.roughnessMap`. | `materialRoughness` | `float` |
+
+## MeshPhysicalNodeMaterial
+
+| Name | Description | Reference | Type |
+|--|--|--|--|
+| `.clearcoatNode` | Replace the logic of `material.clearcoat * material.clearcoatMap`. | `materialClearcoat` | `float` |
+| `.clearcoatRoughnessNode` | Replace the logic of `material.clearcoatRoughness * material.clearcoatRoughnessMap`. | `materialClearcoatRoughness` | `float` |
+| `.clearcoatNormalNode` | Replace the logic of `material.clearcoatNormalMap * material.clearcoatNormalMapScale`. | `materialClearcoatNormal` | `vec3` |
+| `.sheenNode` | Replace the logic of `material.sheenColor * material.sheenColorMap`. | `materialSheen` | `color` |
+| `.iridescenceNode` | Replace the logic of `material.iridescence`. | `materialIridescence` | `float` |
+| `.iridescenceIORNode` | Replace the logic of `material.iridescenceIOR`. | `materialIridescenceIOR` | `float` |
+| `.iridescenceThicknessNode` | Replace the logic of `material.iridescenceThicknessRange * material.iridescenceThicknessMap`. | `materialIridescenceThickness` | `float` |
+| `.specularIntensityNode` | Replace the logic of `material.specularIntensity * material.specularIntensityMap`. | `materialSpecularIntensity` | `float` |
+| `.specularColorNode` | Replace the logic of `material.specularColor * material.specularColorMap`. | `materialSpecularColor` | `color` |
+| `.iorNode` | Replace the logic of `material.ior`. | `materialIOR` | `float` |
+| `.transmissionNode` | Replace the logic of `material.transmission * material.transmissionMap`. | `materialTransmission` | `color` |
+| `.thicknessNode` | Replace the logic of `material.thickness * material.thicknessMap`. | `materialTransmission` | `float` |
+| `.attenuationDistanceNode` | Replace the logic of `material.attenuationDistance`. | `materialAttenuationDistance` | `float` |
+| `.attenuationColorNode` | Replace the logic of `material.attenuationColor`. | `materialAttenuationColor` | `color` |
+| `.dispersionNode` | Replace the logic of `material.dispersion`. | `materialDispersion` | `float` |
+| `.anisotropyNode` | Replace the logic of `material.anisotropy * material.anisotropyMap`. | `materialAnisotropy` | `vec2` |
+
+## SpriteNodeMaterial
+
+| Name | Description | Type |
+|--|--|--|
+| `.positionNode` | Defines the position. | `vec3` |
+| `.rotationNode` | Defines the rotation. | `float` |
+| `.scaleNode` | Defines the scale. | `vec2` |
+
+## Transitioning common GLSL properties to TSL
+
+| GLSL | TSL | Type |
+| -- | -- | -- |
+| `position` | `positionGeometry` | `vec3` |
+| `transformed` | `positionLocal` | `vec3` |
+| `transformedNormal` | `normalLocal` | `vec3` |
+| `vWorldPosition` | `positionWorld` | `vec3` |
+| `vColor` | `vertexColor()` | `vec3` |
+| `vUv` \| `uv` | `uv()` | `vec2` |
+| `vNormal` | `normalView` | `vec3` |
+| `viewMatrix` | `cameraViewMatrix` | `mat4` |
+| `modelMatrix` | `modelWorldMatrix` | `mat4` |
+| `modelViewMatrix` | `modelViewMatrix` | `mat4` |
+| `projectionMatrix` | `cameraProjectionMatrix` | `mat4` |
+| `diffuseColor` | `material.colorNode` | `vec4` |
+| `gl_FragColor` | `material.fragmentNode` | `vec4` |
+
+*Inheritance: Pass →*
+
+# AfterimagePass
+
+Pass for a basic after image effect.
+
+## Code Example
+
+```js
+const afterimagePass = new AfterimagePass( 0.9 );
+composer.addPass( afterimagePass );
+```
+
+## Import
+
+AfterimagePass is an addon, and must be imported explicitly, see [Installation#Addons](https://threejs.org/manual/#en/installation).
+
+```js
+import { AfterimagePass } from 'three/addons/postprocessing/AfterimagePass.js';
+```
+
+## Constructor
+
+### new AfterimagePass( damp : number )
+
+Constructs a new after image pass.
+
+**damp**
+
+The damping intensity. A higher value means a stronger after image effect.
+
+Default is `0.96`.
+
+## Properties
+
+### .compFsMaterial : ShaderMaterial
+
+The composition material.
+
+### .copyFsMaterial : ShaderMaterial
+
+The copy material.
+
+### .damp : number
+
+The damping intensity, from 0.0 to 1.0. A higher value means a stronger after image effect.
+
+### .uniforms : Object
+
+The pass uniforms. Use this object if you want to update the `damp` value at runtime.
+
+```js
+pass.uniforms.damp.value = 0.9;
+```
+
+## Methods
+
+### .dispose()
+
+Frees the GPU-related resources allocated by this instance. Call this method whenever the pass is no longer used in your app.
+
+**Overrides:** [Pass#dispose](Pass.html#dispose)
+
+### .render( renderer : WebGLRenderer, writeBuffer : WebGLRenderTarget, readBuffer : WebGLRenderTarget, deltaTime : number, maskActive : boolean )
+
+Performs the after image pass.
+
+**renderer**
+
+The renderer.
+
+**writeBuffer**
+
+The write buffer. This buffer is intended as the rendering destination for the pass.
+
+**readBuffer**
+
+The read buffer. The pass can access the result from the previous pass from this buffer.
+
+**deltaTime**
+
+The delta time in seconds.
+
+**maskActive**
+
+Whether masking is active or not.
+
+**Overrides:** [Pass#render](Pass.html#render)
+
+### .setSize( width : number, height : number )
+
+Sets the size of the pass.
+
+**width**
+
+The width to set.
+
+**height**
+
+The height to set.
+
+**Overrides:** [Pass#setSize](Pass.html#setSize)
+
+## Source
+
+[examples/jsm/postprocessing/AfterimagePass.js](https://github.com/mrdoob/three.js/blob/master/examples/jsm/postprocessing/AfterimagePass.js)
+
     </script>
 
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { Inspector } from 'three/addons/inspector/Inspector.js';
         import { color, float, vec3, uniform, positionLocal, time, uv, mix, normalLocal } from 'three/tsl';
         import { TeapotGeometry } from 'three/addons/geometries/TeapotGeometry.js';
         
@@ -293,7 +944,7 @@ material.transparent = true;
         // App State
         let currentPageIndex = 0;
         let pages = [];
-        let isSidebarOpen = false;
+        let isSidebarOpen = window.innerWidth >= 768;
 
         // Initialize Lucide Icons
         lucide.createIcons();
@@ -304,11 +955,15 @@ material.transparent = true;
         const previewContainer = document.getElementById( 'preview-container' );
         const prevBtn = document.getElementById( 'prev-btn' );
         const nextBtn = document.getElementById( 'next-btn' );
-        const progressBar = document.getElementById( 'progress-bar' );
-        const progressText = document.getElementById( 'progress-text' );
         const sidebar = document.getElementById( 'sidebar' );
-        const menuToggle = document.getElementById( 'menu-toggle' );
+        const menuToggleMain = document.getElementById( 'menu-toggle-main' );
+        const menuToggleClose = document.getElementById( 'menu-toggle-close' );
         const tocList = document.getElementById( 'toc-list' );
+        
+        const contentCol = document.querySelector( '.content-col' );
+        const previewSection = document.querySelector( '.preview-section' );
+        const hResizer = document.getElementById( 'h-resizer' );
+        const vResizer = document.getElementById( 'v-resizer' );
 
         // 3D Scene globals
         let renderer, scene, camera, mesh, material, controls;
@@ -320,25 +975,79 @@ material.transparent = true;
         	const rawMarkdown = document.getElementById( 'tour-content' ).textContent;
         	const sections = rawMarkdown.split( '---' );
         
-        	pages = sections.map( section => {
+        	pages = [];
+        	let currentCategory = '';
 
-        		const pageMatch = section.match( /<!-- PAGE: (.*?) -->/ );
-        		const id = pageMatch ? pageMatch[ 1 ].trim() : 'untitled';
-        		const cleanContent = section.replace( /<!-- PAGE: (.*?) -->/, '' ).trim();
-        
+        	sections.forEach( section => {
+
+        		const categoryMatch = section.match( /^# (.*)/m );
+        		if ( categoryMatch ) {
+
+        			currentCategory = categoryMatch[ 1 ].trim();
+
+        		}
+
+        		const pageMatch = section.match( /^## (.*)/m );
+        		if ( ! pageMatch ) return;
+
+        		const title = pageMatch[ 1 ].trim();
+        		const id = title.toLowerCase().replace( /[^a-z0-9]+/g, '-' ).replace( /(^-|-$)/g, '' );
+        		const cleanContent = section.replace( /^# .*$/m, '' ).replace( /^## (.*)/m, '# $1' ).trim();
+
         		// Extract code for the code view
-        		const codeMatch = cleanContent.match( /```javascript([\s\S]*?)```/ );
+        		const codeMatch = cleanContent.match( /```tsl([\s\S]*?)```/ );
         		const code = codeMatch ? codeMatch[ 1 ].trim() : '// No example available.';
         
         		// Content for the left side (removing the code block from description if desired)
-        		const description = cleanContent.replace( /```javascript[\s\S]*?```/, '' ).trim();
+        		const description = cleanContent.replace( /```tsl[\s\S]*?```/, '' ).trim();
         
         		// Extract Title
-        		const titleMatch = description.match( /^# (.*)/m );
-        		const title = titleMatch ? titleMatch[ 1 ] : 'Page';
+        		// (Title is already extracted above, but we can reuse it)
 
-        		return { id, title, description, code };
+        		pages.push( { id, title, description, code, category: currentCategory } );
         
+        	} );
+
+        }
+
+        function initReadOnlyEditors() {
+
+        	if ( ! window.monaco ) return;
+
+        	const jsBlocks = contentArea.querySelectorAll( 'pre code.language-js' );
+        	jsBlocks.forEach( ( block ) => {
+
+        		const codeText = block.textContent;
+        		const pre = block.parentElement;
+        		const container = document.createElement( 'div' );
+
+        		const lines = codeText.trim().split( '\n' ).length;
+        		container.style.height = ( lines * 19 + 24 ) + 'px';
+        		container.style.marginBottom = '1.25rem';
+        		container.style.borderRadius = '6px';
+        		container.style.border = '1px solid var(--border-color)';
+        		container.style.overflow = 'hidden';
+
+        		pre.replaceWith( container );
+
+        		monaco.editor.create( container, {
+        			value: codeText.trim(),
+        			language: 'javascript',
+        			theme: 'chatgpt-dark',
+        			automaticLayout: true,
+        			readOnly: true,
+        			minimap: { enabled: false },
+        			scrollBeyondLastLine: false,
+        			renderLineHighlight: 'none',
+        			hideCursorInOverviewRuler: true,
+        			overviewRulerBorder: false,
+        			padding: { top: 12, bottom: 12 },
+        			scrollbar: {
+        				vertical: 'hidden',
+        				horizontal: 'auto'
+        			}
+        		} );
+
         	} );
 
         }
@@ -350,8 +1059,18 @@ material.transparent = true;
         	currentPageIndex = index;
         	const page = pages[ index ];
 
-        	// Render Markdown
-        	contentArea.innerHTML = marked.parse( page.description );
+        	// Render HTML content
+        	let headerHTML = '';
+        	if ( page.category ) {
+
+        		headerHTML = `<div class="breadcrumb">
+                    <span style="opacity: 0.7">${page.category}</span>
+                    <i data-lucide="chevron-right" style="width: 1rem; height: 1rem; opacity: 0.7;"></i>
+                </div>`;
+
+        	}
+
+        	contentArea.innerHTML = '<div style="max-width: 800px; margin: 0 auto; width: 100%;">' + headerHTML + marked.parse( page.description ) + '</div>';
         	contentArea.scrollTo( 0, 0 );
 
         	// Handle virtual links in the rendered HTML
@@ -359,21 +1078,23 @@ material.transparent = true;
         	links.forEach( link => {
 
         		const href = link.getAttribute( 'href' );
-        		if ( href && href.startsWith( 'virtual-link:' ) ) {
+        		if ( href && href.startsWith( '#' ) ) {
 
         			link.className = 'nav-link';
         			link.onclick = ( e ) => {
 
         				e.preventDefault();
-        				const targetId = href.split( ':' )[ 1 ];
-        				const targetIndex = pages.findIndex( p => p.id === targetId );
-        				if ( targetIndex !== - 1 ) renderPage( targetIndex );
+        				const targetId = href.substring( 1 );
+        				window.location.hash = targetId;
         
         			};
         
         		}
         
         	} );
+
+        	// Initialize Read-Only Monaco Editors for inline ```js blocks
+        	initReadOnlyEditors();
 
         	// Update Code Editor
         	if ( editor ) {
@@ -403,22 +1124,17 @@ material.transparent = true;
 
         	lucide.createIcons();
 
-        	// Progress
-        	const progress = ( ( currentPageIndex + 1 ) / pages.length ) * 100;
-        	progressBar.style.width = `${progress}%`;
-        	progressText.innerText = `Page ${currentPageIndex + 1} of ${pages.length}`;
-
         	// TOC Active State
         	const tocItems = tocList.querySelectorAll( 'button' );
         	tocItems.forEach( ( btn, idx ) => {
 
         		if ( idx === currentPageIndex ) {
 
-        			btn.className = 'w-full text-left px-3 py-2 rounded-md text-sm transition-all flex items-center gap-2 bg-inspector-active text-inspector-accent border-l-2 border-inspector-accent';
+        			btn.className = 'toc-btn active';
         
         		} else {
 
-        			btn.className = 'w-full text-left px-3 py-2 rounded-md text-sm transition-all hover:bg-inspector-hover flex items-center gap-2 text-inspector-muted';
+        			btn.className = 'toc-btn';
         
         		}
         
@@ -429,15 +1145,27 @@ material.transparent = true;
         function setupTOC() {
 
         	tocList.innerHTML = '';
+        	let currentCategory = null;
+
         	pages.forEach( ( page, index ) => {
 
+        		if ( page.category && page.category !== currentCategory ) {
+
+        			currentCategory = page.category;
+
+        			const categoryHeader = document.createElement( 'div' );
+        			categoryHeader.className = 'toc-category-header';
+        			categoryHeader.innerText = currentCategory;
+        			tocList.appendChild( categoryHeader );
+
+        		}
+
         		const btn = document.createElement( 'button' );
-        		btn.className = 'w-full text-left px-3 py-2 rounded-md text-sm transition-all hover:bg-inspector-hover flex items-center gap-2 text-inspector-muted';
-        		btn.innerHTML = `<span class="opacity-50 text-[10px]">${index + 1}.</span> ${page.title}`;
+        		btn.className = 'toc-btn';
+        		btn.innerHTML = `<span style="opacity: 0.5; font-size: 0.625rem;">${index + 1}.</span> ${page.title}`;
         		btn.onclick = () => {
 
-        			renderPage( index );
-        			toggleSidebar( false );
+        			window.location.hash = page.id;
         
         		};
 
@@ -452,11 +1180,13 @@ material.transparent = true;
         	isSidebarOpen = force !== undefined ? force : ! isSidebarOpen;
         	if ( isSidebarOpen ) {
 
-        		sidebar.classList.remove( 'translate-x-full' );
+        		sidebar.classList.add( 'open' );
+        		if ( menuToggleMain ) menuToggleMain.style.display = 'none';
         
         	} else {
 
-        		sidebar.classList.add( 'translate-x-full' );
+        		sidebar.classList.remove( 'open' );
+        		if ( menuToggleMain ) menuToggleMain.style.display = 'flex';
         
         	}
 
@@ -467,7 +1197,7 @@ material.transparent = true;
 
         	if ( currentPageIndex < pages.length - 1 ) {
 
-        		renderPage( currentPageIndex + 1 );
+        		window.location.hash = pages[ currentPageIndex + 1 ].id;
         
         	} else {
 
@@ -481,19 +1211,115 @@ material.transparent = true;
 
         	if ( currentPageIndex > 0 ) {
 
-        		renderPage( currentPageIndex - 1 );
+        		window.location.hash = pages[ currentPageIndex - 1 ].id;
         
         	}
 
         };
 
-        menuToggle.onclick = () => toggleSidebar();
+        if ( menuToggleMain ) menuToggleMain.onclick = () => toggleSidebar();
+        if ( menuToggleClose ) menuToggleClose.onclick = () => toggleSidebar();
+
+        window.addEventListener( 'hashchange', () => {
+
+        	const hash = window.location.hash.substring( 1 );
+        	const targetIndex = pages.findIndex( p => p.id === hash );
+
+        	if ( targetIndex !== - 1 ) {
+
+        		renderPage( targetIndex );
+
+        	} else {
+
+        		renderPage( 0 );
+        		history.replaceState( null, null, ' ' );
+
+        	}
+
+        } );
+
+        // Resizer Logic
+        let isResizingH = false;
+        let isResizingV = false;
+
+        hResizer.addEventListener( 'pointerdown', ( e ) => {
+
+        	isResizingH = true;
+        	hResizer.classList.add( 'dragging' );
+        	hResizer.setPointerCapture( e.pointerId );
+        	document.body.style.userSelect = 'none';
+
+        } );
+
+        vResizer.addEventListener( 'pointerdown', ( e ) => {
+
+        	isResizingV = true;
+        	vResizer.classList.add( 'dragging' );
+        	vResizer.setPointerCapture( e.pointerId );
+        	document.body.style.userSelect = 'none';
+
+        } );
+
+        window.addEventListener( 'pointermove', ( e ) => {
+
+        	if ( ! isResizingH && ! isResizingV ) return;
+
+        	if ( isResizingH ) {
+
+        		const mainLayout = document.querySelector( '.main-layout' );
+        		const leftOffset = mainLayout.getBoundingClientRect().left;
+        		const newWidth = ( ( e.clientX - leftOffset ) / mainLayout.clientWidth ) * 100;
+
+        		if ( newWidth > 20 && newWidth < 80 ) {
+
+        			contentCol.style.width = `${ newWidth }%`;
+
+        		}
+
+        	}
+
+        	if ( isResizingV ) {
+
+        		const editorWorkspace = document.querySelector( '.editor-workspace' );
+        		const containerHeight = editorWorkspace.clientHeight;
+        		const topOffset = editorWorkspace.getBoundingClientRect().top;
+        		const pointerYRelative = e.clientY - topOffset;
+        		const newHeight = ( ( containerHeight - pointerYRelative ) / containerHeight ) * 100;
+
+        		if ( newHeight > 10 && newHeight < 90 ) {
+
+        			previewSection.style.height = `${ newHeight }%`;
+
+        		}
+
+        	}
+
+        	if ( renderer && camera ) {
+
+        		camera.aspect = previewContainer.clientWidth / previewContainer.clientHeight;
+        		camera.updateProjectionMatrix();
+        		renderer.setSize( previewContainer.clientWidth, previewContainer.clientHeight );
+
+        	}
+
+        } );
+
+        window.addEventListener( 'pointerup', () => {
+
+        	isResizingH = false;
+        	isResizingV = false;
+        	hResizer.classList.remove( 'dragging' );
+        	vResizer.classList.remove( 'dragging' );
+        	document.body.style.userSelect = '';
+
+        } );
 
         // Initial Load
         async function init() {
 
         	parseContent();
         	setupTOC();
+        	toggleSidebar( isSidebarOpen );
 
         	// Setup 3D Preview
         	scene = new THREE.Scene();
@@ -524,6 +1350,9 @@ material.transparent = true;
         	renderer.setAnimationLoop( animate );
         	previewContainer.appendChild( renderer.domElement );
 
+        	renderer.inspector = new Inspector( renderer );
+	previewContainer.appendChild( renderer.inspector.domElement );
+
         	controls = new OrbitControls( camera, renderer.domElement );
         	controls.enableDamping = true;
         	controls.minDistance = 2;
@@ -542,10 +1371,20 @@ material.transparent = true;
         	require.config( { paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs' } } );
         	require( [ 'vs/editor/editor.main' ], function () {
 
+        		monaco.editor.defineTheme( 'chatgpt-dark', {
+        			base: 'vs-dark',
+        			inherit: true,
+        			rules: [],
+        			colors: {
+        				'editor.background': '#15151a',
+        				'editor.lineHighlightBackground': '#2a2a33'
+        			}
+        		} );
+
         		editor = monaco.editor.create( codeContainer, {
         			value: pages[ 0 ].code,
         			language: 'javascript',
-        			theme: 'vs-dark',
+        			theme: 'chatgpt-dark',
         			minimap: { enabled: false },
         			automaticLayout: true,
         			fontSize: 13,
@@ -564,8 +1403,20 @@ material.transparent = true;
         
         		} );
 
-        		renderPage( 0 );
-        		executeTSL( pages[ 0 ].code );
+        		const initialHash = window.location.hash.substring( 1 );
+        		const initialIndex = pages.findIndex( p => p.id === initialHash );
+
+        		if ( initialIndex !== - 1 ) {
+
+        			renderPage( initialIndex );
+        			executeTSL( pages[ initialIndex ].code );
+
+        		} else {
+
+        			renderPage( 0 );
+        			executeTSL( pages[ 0 ].code );
+
+        		}
 
         		document.fonts.ready.then( () => {
 

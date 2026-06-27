@@ -10,36 +10,46 @@ export class Style {
 	--profiler-header-bg: #2a2a33aa;
 	--profiler-header: #2a2a33;
 	--profiler-border: #4a4a5a;
-	--text-primary: #e0e0e0;
-	--text-secondary: #9a9aab;
-	--accent-color: #00aaff;
-	--color-green: #4caf50;
-	--color-yellow: #ffc107;
-	--color-red: #f44336;
-	--color-fps: rgb(63, 81, 181);
-	--color-call: rgba(255, 185, 34, 1);
-	--font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-	--font-mono: 'Fira Code', 'Courier New', Courier, monospace;
+	--profiler-text-primary: #e0e0e0;
+	--profiler-text-secondary: #9a9aab;
+	--profiler-accent-color: #00aaff;
+	--profiler-color-green: #4caf50;
+	--profiler-color-yellow: #ffc107;
+	--profiler-color-red: #f44336;
+	--profiler-color-fps: rgb(63, 81, 181);
+	--profiler-color-call: rgba(255, 185, 34, 1);
+	--profiler-font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	--profiler-font-mono: 'Fira Code', 'Courier New', Courier, monospace;
 }
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Fira+Code&display=swap');
 
-#profiler-panel *, #profiler-toggle * {
+#profiler-shell {
+	text-align: left;
+	font-weight: normal;
+	letter-spacing: normal;
+	text-shadow: none;
+	text-indent: 0;
+	color: var(--profiler-text-primary);
+}
+
+#profiler-panel *, #profiler-toggle *, #profiler-mini-panel * {
 	text-transform: initial;
 	line-height: normal;
 	box-sizing: border-box;
+	font-family: var(--profiler-font-family);
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 }
 
 #profiler-toggle {
-	position: fixed;
+	position: absolute;
 	top: 15px;
 	right: 15px;
 	background-color: rgba(30, 30, 36, 0.85);
 	border: 1px solid #4a4a5a54;
 	border-radius: 12px 6px 6px 12px;
-	color: var(--text-primary);
+	color: var(--profiler-text-primary);
 	cursor: pointer;
 	z-index: 1001;
 	transition: all 0.2s ease-in-out;
@@ -51,7 +61,7 @@ export class Style {
 	align-items: stretch;
 	padding: 0;
 	overflow: hidden;
-	font-family: var(--font-family);
+	font-family: var(--profiler-font-family);
 }
 
 #profiler-toggle.position-right.panel-open {
@@ -67,12 +77,12 @@ export class Style {
 }
 
 #profiler-toggle:hover {
-	border-color: var(--accent-color);
+	border-color: var(--profiler-accent-color);
 }
 
 #profiler-toggle.panel-open #toggle-icon {
 	background-color: rgba(0, 170, 255, 0.2);
-	color: var(--accent-color);
+	color: var(--profiler-accent-color);
 }
 
 #toggle-icon {
@@ -122,10 +132,10 @@ export class Style {
 .builtin-tab-btn {
 	background: transparent;
 	border: none;
-	color: var(--text-secondary);
+	color: var(--profiler-text-secondary);
 	cursor: pointer;
 	padding: 8px 14px;
-	font-family: var(--font-family);
+	font-family: var(--profiler-font-family);
 	font-size: 13px;
 	font-weight: 600;
 	transition: all 0.2s;
@@ -144,7 +154,7 @@ export class Style {
 
 .builtin-tab-btn:hover {
 	background-color: rgba(255, 255, 255, 0.08);
-	color: var(--accent-color);
+	color: var(--profiler-accent-color);
 }
 
 .builtin-tab-btn:active {
@@ -153,7 +163,7 @@ export class Style {
 
 .builtin-tab-btn.active {
 	background-color: rgba(0, 170, 255, 0.2);
-	color: var(--accent-color);
+	color: var(--profiler-accent-color);
 }
 
 .builtin-tab-btn.active:hover {
@@ -161,17 +171,17 @@ export class Style {
 }
 
 #profiler-mini-panel {
-	position: fixed;
+	position: absolute;
 	top: 60px;
 	right: 15px;
 	background-color: rgba(30, 30, 36, 0.85);
 	border: 1px solid #4a4a5a54;
 	border-radius: 8px;
-	color: var(--text-primary);
+	color: var(--profiler-text-primary);
 	z-index: 9999;
 	backdrop-filter: blur(8px);
 	box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
-	font-family: var(--font-family);
+	font-family: var(--profiler-font-family);
 	font-size: 11px;
 	width: 350px;
 	max-height: calc(100vh - 100px);
@@ -217,7 +227,7 @@ export class Style {
 	padding: 0;
 	font-size: 11px;
 	line-height: 1.5;
-	font-family: var(--font-mono);
+	font-family: var(--profiler-font-mono);
 	letter-spacing: 0.3px;
 	user-select: none;
 	-webkit-user-select: none;
@@ -320,7 +330,7 @@ export class Style {
 
 .mini-panel-content .value-number input:focus,
 .mini-panel-content .value-slider input:focus {
-	border-color: var(--accent-color);
+	border-color: var(--profiler-accent-color);
 }
 
 .mini-panel-content .value-slider {
@@ -400,7 +410,7 @@ export class Style {
 }
 
 #profiler-panel {
-	position: fixed;
+	position: absolute;
 	z-index: 1001 !important;
 	bottom: 0;
 	left: 0;
@@ -409,14 +419,14 @@ export class Style {
 	background-color: var(--profiler-bg);
 	backdrop-filter: blur(8px);
 	border-top: 2px solid var(--profiler-border);
-	color: var(--text-primary);
+	color: var(--profiler-text-primary);
 	display: flex;
 	flex-direction: column;
 	z-index: 1000;
 	/*box-shadow: 0 -5px 25px rgba(0, 0, 0, 0.5);*/
 	transform: translateY(100%);
 	transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94), height 0.3s ease-out, width 0.3s ease-out;
-	font-family: var(--font-mono);
+	font-family: var(--profiler-font-mono);
 }
 
 #profiler-panel.resizing,
@@ -429,7 +439,7 @@ export class Style {
 }
 
 #profiler-panel.maximized {
-	height: 100vh;
+	height: 100%;
 }
 
 /* Position-specific styles */
@@ -755,12 +765,12 @@ export class Style {
 	background: transparent;
 	border: none;
 	/*border-right: 1px solid var(--profiler-border);*/
-	color: var(--text-secondary);
+	color: var(--profiler-text-secondary);
 	padding: 8px 18px;
 	cursor: default;
 	display: flex;
 	align-items: center;
-	font-family: var(--font-family);
+	font-family: var(--profiler-font-family);
 	font-weight: 600;
 	font-size: 14px;
 	user-select: none;
@@ -769,7 +779,7 @@ export class Style {
 }
 
 .tab-btn.active {
-	border-bottom: 2px solid var(--accent-color);
+	border-bottom: 2px solid var(--profiler-accent-color);
 	color: white;
 }
 
@@ -795,7 +805,7 @@ export class Style {
 	background: transparent;
 	border: none;
 	border-left: 1px solid var(--profiler-border);
-	color: var(--text-secondary);
+	color: var(--profiler-text-secondary);
 	width: 45px;
 	height: 100%;
 	cursor: pointer;
@@ -820,7 +830,7 @@ export class Style {
 #maximize-btn:hover,
 #hide-panel-btn:hover {
 	background-color: rgba(255, 255, 255, 0.1);
-	color: var(--text-primary);
+	color: var(--profiler-text-primary);
 }
 
 /* Hide maximize button when there are no tabs */
@@ -928,7 +938,7 @@ export class Style {
 }
 
 .list-item-wrapper.header-wrapper>.list-item-row {
-	color: var(--accent-color);
+	color: var(--profiler-accent-color);
 	background-color: rgba(0, 170, 255, 0.1);
 }
 
@@ -985,7 +995,7 @@ export class Style {
 	align-items: center;
 	padding: 4px 8px;
 	font-weight: 600;
-	color: var(--text-secondary);
+	color: var(--profiler-text-secondary);
 	padding-bottom: 6px;
 	border-bottom: 1px solid var(--profiler-border);
 	margin-bottom: 5px;
@@ -1029,15 +1039,15 @@ export class Style {
 }
 
 .list-item-cell .value.good {
-	color: var(--color-green);
+	color: var(--profiler-color-green);
 }
 
 .list-item-cell .value.warn {
-	color: var(--color-yellow);
+	color: var(--profiler-color-yellow);
 }
 
 .list-item-cell .value.bad {
-	color: var(--color-red);
+	color: var(--profiler-color-red);
 }
 
 .list-scroll-wrapper {
@@ -1088,10 +1098,10 @@ export class Style {
 .console-filter-input {
 	background-color: var(--profiler-bg);
 	border: 1px solid var(--profiler-border);
-	color: var(--text-primary);
+	color: var(--profiler-text-primary);
 	border-radius: 4px;
 	padding: 4px 8px;
-	font-family: var(--font-mono);
+	font-family: var(--profiler-font-mono);
 	flex-grow: 1;
 	max-width: 300px;
 	border-radius: 15px;
@@ -1099,13 +1109,13 @@ export class Style {
 
 .console-filter-input:focus {
 	outline: none;
-	border-color: var(--text-secondary);
+	border-color: var(--profiler-text-secondary);
 }
 
 .console-copy-button {
 	background: transparent;
 	border: none;
-	color: var(--text-secondary);
+	color: var(--profiler-text-secondary);
 	cursor: pointer;
 	padding: 4px;
 	display: flex;
@@ -1116,12 +1126,12 @@ export class Style {
 }
 
 .console-copy-button:hover {
-	color: var(--text-primary);
+	color: var(--profiler-text-primary);
 	background-color: var(--profiler-hover);
 }
 
 .console-copy-button.copied {
-	color: var(--color-green);
+	color: var(--profiler-color-green);
 }
 
 #console-log {
@@ -1148,11 +1158,11 @@ export class Style {
 }
 
 .log-message.info {
-	color: var(--text-primary);
+	color: var(--profiler-text-primary);
 }
 
 .log-message.warn {
-	color: var(--color-yellow);
+	color: var(--profiler-color-yellow);
 }
 
 .log-message.error {
@@ -1161,7 +1171,7 @@ export class Style {
 }
 
 .log-prefix {
-	color: var(--text-secondary);
+	color: var(--profiler-text-secondary);
 	margin-right: 8px;
 }
 
@@ -1196,18 +1206,18 @@ export class Style {
 .param-control button {
 	background-color: var(--profiler-bg);
 	border: 1px solid var(--profiler-border);
-	color: var(--text-primary);
+	color: var(--profiler-text-primary);
 	border-radius: 4px;
 	padding: 4px 6px;
 	padding-bottom: 2px;
-	font-family: var(--font-mono);
+	font-family: var(--profiler-font-mono);
 	width: 100%;
 	box-sizing: border-box;
 }
 
 .param-control input:focus {
 	outline: none;
-	border-color: var(--accent-color);
+	border-color: var(--profiler-accent-color);
 }
 
 .param-control select {
@@ -1252,7 +1262,7 @@ export class Style {
 .custom-checkbox .checkmark {
 	width: 14px;
 	height: 14px;
-	border: 1px solid var(--accent-color);
+	border: 1px solid var(--profiler-accent-color);
 	border-radius: 3px;
 	display: inline-flex;
 	justify-content: center;
@@ -1264,7 +1274,7 @@ export class Style {
 	content: '';
 	width: 6px;
 	height: 6px;
-	background-color: var(--accent-color);
+	background-color: var(--profiler-accent-color);
 	border-radius: 1px;
 	display: block;
 	transform: scale(0);
@@ -1272,7 +1282,7 @@ export class Style {
 }
 
 .custom-checkbox input:checked+.checkmark {
-	border-color: var(--accent-color);
+	border-color: var(--profiler-accent-color);
 }
 
 .custom-checkbox input:checked+.checkmark::after {
@@ -1298,7 +1308,7 @@ export class Style {
 	width: 18px;
 	height: 18px;
 	background: var(--profiler-bg);
-	border: 1px solid var(--accent-color);
+	border: 1px solid var(--profiler-accent-color);
 	border-radius: 3px;
 	cursor: pointer;
 	margin-top: -8px;
@@ -1308,7 +1318,7 @@ export class Style {
 	width: 18px;
 	height: 18px;
 	background: var(--profiler-bg);
-	border: 2px solid var(--accent-color);
+	border: 2px solid var(--profiler-accent-color);
 	border-radius: 3px;
 	cursor: pointer;
 }
@@ -1419,7 +1429,7 @@ export class Style {
 .drag-preview-indicator {
 	position: fixed;
 	background-color: rgba(0, 170, 255, 0.2);
-	border: 2px dashed var(--accent-color);
+	border: 2px dashed var(--profiler-accent-color);
 	z-index: 999;
 	pointer-events: none;
 	transition: all 0.2s ease-out;
@@ -1454,9 +1464,9 @@ body:has(#profiler-panel:not(.visible)) .detached-tab-panel {
 .detached-tab-header {
 	background: var(--profiler-header-bg);
 	padding: 0 7px 0 15px;
-	font-family: var(--font-family);
+	font-family: var(--profiler-font-family);
 	font-size: 14px;
-	color: var(--text-primary);
+	color: var(--profiler-text-primary);
 	font-weight: 600;
 	display: flex;
 	justify-content: space-between;
@@ -1483,8 +1493,8 @@ body:has(#profiler-panel:not(.visible)) .detached-tab-panel {
 .detached-reattach-btn {
 	background: transparent;
 	border: none;
-	color: var(--text-secondary);
-	font-family: var(--font-family);
+	color: var(--profiler-text-secondary);
+	font-family: var(--profiler-font-family);
 	font-size: 18px;
 	line-height: 1;
 	cursor: pointer;
@@ -1500,7 +1510,7 @@ body:has(#profiler-panel:not(.visible)) .detached-tab-panel {
 
 .detached-reattach-btn:hover {
 	background: rgba(0, 170, 255, 0.2);
-	color: var(--accent-color);
+	color: var(--profiler-accent-color);
 }
 
 .detached-tab-content {
@@ -1542,8 +1552,8 @@ body:has(#profiler-panel:not(.visible)) .detached-tab-panel {
 }
 
 .detached-tab-content .profiler-content > * {
-	font-family: var(--font-mono);
-	color: var(--text-primary);
+	font-family: var(--profiler-font-mono);
+	color: var(--profiler-text-primary);
 }
 
 .detached-tab-resizer {
@@ -1572,7 +1582,7 @@ body:has(#profiler-panel:not(.visible)) .detached-tab-panel {
 
 .detached-tab-resizer:hover::after {
 	opacity: 1;
-	border-color: var(--accent-color);
+	border-color: var(--profiler-accent-color);
 }
 
 /* Edge resizers */
@@ -1638,12 +1648,12 @@ body:has(#profiler-panel:not(.visible)) .detached-tab-panel {
 
 .panel-action-btn {
 	background: transparent;
-	color: var(--text-primary);
+	color: var(--profiler-text-primary);
 	border: 1px solid var(--profiler-border);
 	border-radius: 4px;
 	padding: 6px 12px;
 	cursor: pointer;
-	font-family: var(--font-family);
+	font-family: var(--profiler-font-family);
 	font-size: 12px;
 	transition: background-color 0.2s;
 	display: flex;
