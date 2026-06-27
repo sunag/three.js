@@ -112,6 +112,18 @@ class AssignNode extends TempNode {
 
 		const { targetNode, sourceNode } = builder.getNodeProperties( this );
 
+		const scope = targetNode.getScope();
+
+		if ( scope.isPropertyNode || scope.isVarNode ) {
+
+			if ( builder.hasReadUsage( scope ) === false ) {
+
+				return '';
+
+			}
+
+		}
+
 		const needsSplitAssign = this.needsSplitAssign( builder );
 
 		const target = targetNode.build( builder );
@@ -121,6 +133,19 @@ class AssignNode extends TempNode {
 		const sourceType = sourceNode.getNodeType( builder );
 
 		const nodeData = builder.getDataFromNode( this );
+
+		// Skip no-op self assignments (e.g. `positionLocal = positionLocal`). These
+		// arise when a node (such as a `positionNode`) returns the very variable it
+		// is assigned to. The source's flow code has already been emitted above, so
+		// only the redundant assignment line is dropped.
+
+		if ( needsSplitAssign === false && target === source ) {
+
+			nodeData.initialized = true;
+
+			return output === 'void' ? '' : builder.format( target, targetType, output );
+
+		}
 
 		//
 

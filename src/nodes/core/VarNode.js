@@ -226,7 +226,7 @@ class VarNode extends Node {
 
 		if ( this.isIntent( builder ) ) {
 
-			if ( this.isAssign( builder ) !== true ) {
+			if ( builder.isAssign( this ) !== true ) {
 
 				return this.node.build( ...params );
 
@@ -307,9 +307,38 @@ class VarNode extends Node {
 
 	_hasStack( builder ) {
 
-		const nodeData = builder.getDataFromNode( this );
+		// The node must be considered as "already in a stack" if it was anchored to
+		// a stack in *any* sub-build context, not just the current one. Otherwise the
+		// same variable gets re-added to the base stack of every other sub-build it is
+		// reached from, emitting dead declarations (e.g. a non-prefixed `origin`
+		// alongside its used `POSITION_origin` counterpart).
 
-		return nodeData.stack !== undefined;
+		const cache = this.isGlobal( builder ) ? builder.globalCache : builder.cache;
+		const nodeData = cache.getData( this );
+
+		if ( nodeData === undefined ) return false;
+
+		for ( const shaderStage in nodeData ) {
+
+			if ( shaderStage === 'any' ) continue;
+
+			const stageData = nodeData[ shaderStage ];
+
+			if ( stageData.stack !== undefined ) return true;
+
+			if ( stageData.subBuildsCache !== undefined ) {
+
+				for ( const subBuild in stageData.subBuildsCache ) {
+
+					if ( stageData.subBuildsCache[ subBuild ].stack !== undefined ) return true;
+
+				}
+
+			}
+
+		}
+
+		return false;
 
 	}
 

@@ -4,7 +4,7 @@ import { positionGeometry, positionLocal, positionView } from '../../nodes/acces
 import { modelViewMatrix } from '../../nodes/accessors/ModelNode.js';
 import { materialPointSize } from '../../nodes/accessors/MaterialNode.js';
 import { rotate } from '../../nodes/utils/RotateNode.js';
-import { float, uniform, vec2, vec3, vec4 } from '../../nodes/tsl/TSLBase.js';
+import { float, subBuild, uniform, vec2, vec3, vec4 } from '../../nodes/tsl/TSLBase.js';
 
 import { PointsMaterial } from '../PointsMaterial.js';
 import { Vector2 } from '../../math/Vector2.js';
@@ -82,7 +82,7 @@ class PointsNodeMaterial extends SpriteNodeMaterial {
 
 		const { positionNode } = this;
 
-		return modelViewMatrix.mul( vec3( positionNode || positionLocal ) ).xyz;
+		return modelViewMatrix.mul( vec3( positionNode ? subBuild( positionNode, 'POSITION', 'vec3' ) : positionLocal ) ).xyz;
 
 	}
 

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>skin test</title>
+		<meta charset="utf-8">
+	</head>
+	<body>
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../src/three.webgpu.js",
+					"three/webgpu": "../src/three.webgpu.js",
+					"three/tsl": "../src/three.tsl.js"
+				}
+			}
+		</script>
+
+		<script type="module">
+
+			import * as THREE from 'three/webgpu';
+
+			async function main() {
+
+				const camera = new THREE.PerspectiveCamera( 50, 1, 0.01, 100 );
+				camera.position.set( 0, 0, 5 );
+
+				const scene = new THREE.Scene();
+				scene.add( new THREE.AmbientLight( 0xffffff, 1 ) );
+				const dir = new THREE.DirectionalLight( 0xffffff, 1 );
+				dir.position.set( 1, 1, 1 );
+				scene.add( dir );
+
+				const geometry = new THREE.CylinderGeometry( 0.5, 0.5, 4, 8, 4 );
+				const position = geometry.attributes.position;
+				const skinIndices = [];
+				const skinWeights = [];
+				const vertex = new THREE.Vector3();
+				const height = 4;
+				for ( let i = 0; i < position.count; i ++ ) {
+					vertex.fromBufferAttribute( position, i );
+					const y = ( vertex.y + height / 2 );
+					const skinWeight = ( y % ( height / 2 ) ) / ( height / 2 );
+					const skinIndex = Math.floor( y / ( height / 2 ) );
+					skinIndices.push( skinIndex, skinIndex + 1, 0, 0 );
+					skinWeights.push( 1 - skinWeight, skinWeight, 0, 0 );
+				}
+				geometry.setAttribute( 'skinIndex', new THREE.Uint16BufferAttribute( skinIndices, 4 ) );
+				geometry.setAttribute( 'skinWeight', new THREE.Float32BufferAttribute( skinWeights, 4 ) );
+
+				const material = new THREE.MeshStandardNodeMaterial();
+				const mesh = new THREE.SkinnedMesh( geometry, material );
+
+				const bones = [];
+				const prevBone = new THREE.Bone();
+				bones.push( prevBone );
+				prevBone.position.y = - height / 2;
+				const bone = new THREE.Bone();
+				bone.position.y = height / 2;
+				prevBone.add( bone );
+				bones.push( bone );
+
+				mesh.add( bones[ 0 ] );
+				const skeleton = new THREE.Skeleton( bones );
+				mesh.bind( skeleton );
+				mesh.frustumCulled = false;
+				scene.add( mesh );
+				scene.updateMatrixWorld( true );
+
+				const renderer = new THREE.WebGPURenderer( { antialias: true } );
+				renderer.setSize( 256, 256 );
+				await renderer.init();
+
+				try {
+
+					const { vertexShader } = await renderer.debug.getShaderAsync( scene, camera, mesh );
+					console.log( '=====VERTEX_SHADER_START=====' );
+					console.log( vertexShader );
+					console.log( '=====VERTEX_SHADER_END=====' );
+
+				} catch ( e ) {
+
+					console.log( 'ERROR_DURING_COMPILE:', e.message, e.stack );
+
+				}
+
+			}
+
+			main();
+
+		</script>
+	</body>
+</html>

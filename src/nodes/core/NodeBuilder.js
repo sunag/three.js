@@ -65,6 +65,28 @@ const _toFloat = ( value ) => {
 
 };
 
+const _checkReadUsage = ( data ) => {
+
+	if ( data.readUsageCount > 0 ) return true;
+
+	if ( data.subBuildsCache !== undefined ) {
+
+		for ( const subBuild in data.subBuildsCache ) {
+
+			if ( _checkReadUsage( data.subBuildsCache[ subBuild ] ) ) {
+
+				return true;
+
+			}
+
+		}
+
+	}
+
+	return false;
+
+};
+
 const _checkWriteUsage = ( data ) => {
 
 	if ( data.writeUsageCount > 0 ) return true;
@@ -1231,6 +1253,18 @@ class NodeBuilder {
 	}
 
 	/**
+	 * Returns whether the given node is assigned to.
+	 *
+	 * @param {Node} node - The node to check.
+	 * @return {boolean} Whether the node is assigned to.
+	 */
+	isAssign( node ) {
+
+		return this.getDataFromNode( node ).assign === true;
+
+	}
+
+	/**
 	 * Returns whether the builder is currently in an assignment context.
 	 *
 	 * @return {boolean} Whether the builder is in an assignment context.
@@ -1263,6 +1297,36 @@ class NodeBuilder {
 		}
 
 		return nodeData.usageCount;
+
+	}
+
+	/**
+	 * Returns whether the given node has been read/referenced in any shader stage.
+	 *
+	 * @param {Node} node - The node to check.
+	 * @return {boolean} Whether the node has been read.
+	 */
+	hasReadUsage( node ) {
+
+		const refNode = node.getShared( this );
+		const cache = refNode.isGlobal( this ) ? this.globalCache : this.cache;
+		const nodeData = cache.getData( refNode );
+
+		if ( nodeData !== undefined ) {
+
+			for ( const shaderStage in nodeData ) {
+
+				if ( _checkReadUsage( nodeData[ shaderStage ] ) ) {
+
+					return true;
+
+				}
+
+			}
+
+		}
+
+		return false;
 
 	}
 
@@ -1929,12 +1993,18 @@ class NodeBuilder {
 
 		let data = nodeData[ shaderStage ];
 
-		if ( this.subBuildLayers.length === 0 ) return data;
+		if ( this.subBuildLayers.length === 0 || shaderStage === 'any' ) return data;
 
 		const subBuilds = nodeData.any ? nodeData.any.subBuilds : null;
 		const subBuild = this.getClosestSubBuild( subBuilds );
 
 		if ( subBuild ) {
+
+			if ( typeof subBuild !== 'string' ) {
+
+				console.warn( 'NodeBuilder getDataFromNode: subBuild is not a string! Node:', node.constructor.name, 'subBuild:', subBuild, 'subBuilds:', subBuilds );
+
+			}
 
 			if ( data.subBuildsCache === undefined ) data.subBuildsCache = {};
 
@@ -3018,13 +3088,15 @@ class NodeBuilder {
 
 			}
 
-		} else if ( data instanceof Set ) {
-
-			subBuilds = [ ...data ];
-
 		} else {
 
 			subBuilds = data;
+
+		}
+
+		if ( subBuilds instanceof Set ) {
+
+			subBuilds = [ ...subBuilds ];
 
 		}
 

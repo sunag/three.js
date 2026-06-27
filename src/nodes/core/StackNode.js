@@ -331,7 +331,7 @@ class StackNode extends Node {
 
 			if ( childNode.isVarNode && childNode.isIntent( builder ) ) {
 
-				if ( childNode.isAssign( builder ) !== true ) {
+				if ( builder.isAssign( childNode ) !== true ) {
 
 					continue;
 
@@ -349,6 +349,30 @@ class StackNode extends Node {
 
 	}
 
+	_isValidNode( node, builder ) {
+
+		if ( node.isVarNode && node.isIntent( builder ) && builder.isAssign( node ) !== true ) {
+
+			return false;
+
+		}
+
+		if ( builder.buildStage !== 'setup' && node.isAssignNode ) {
+
+			const scope = node.targetNode.getScope();
+
+			if ( ( scope.isPropertyNode || scope.isVarNode ) && builder.hasReadUsage( scope ) === false ) {
+
+				return false;
+
+			}
+
+		}
+
+		return true;
+
+	}
+
 	build( builder, ...params ) {
 
 		const previousStack = getCurrentStack();
@@ -359,49 +383,78 @@ class StackNode extends Node {
 
 		builder.setActiveStack( this );
 
-		//
+		if ( buildStage === 'setup' ) {
 
-		for ( let i = 0; i < this.nodes.length; i ++ ) {
+			for ( let i = 0; i < this.nodes.length; i ++ ) {
 
-			const node = this.nodes[ i ];
-			const previousNode = this._currentNode;
+				const node = this.nodes[ i ];
 
-			this._currentNode = node;
+				if ( this._isValidNode( node, builder ) === false ) continue;
 
-			if ( node.isVarNode && node.isIntent( builder ) ) {
+				const previousNode = this._currentNode;
 
-				if ( node.isAssign( builder ) !== true ) {
+				this._currentNode = node;
+
+				node.build( builder );
+
+				this._currentNode = previousNode;
+
+			}
+
+		} else if ( buildStage === 'analyze' ) {
+
+			if ( this.outputNode ) {
+
+				this.outputNode.build( builder, this );
+
+			}
+
+			for ( let i = this.nodes.length - 1; i >= 0; i -- ) {
+
+				const node = this.nodes[ i ];
+
+				if ( this._isValidNode( node, builder ) === false ) continue;
+
+				const previousNode = this._currentNode;
+
+				this._currentNode = node;
+
+				node.build( builder, this );
+
+				this._currentNode = previousNode;
+
+			}
+
+		} else if ( buildStage === 'generate' ) {
+
+			for ( let i = 0; i < this.nodes.length; i ++ ) {
+
+				const node = this.nodes[ i ];
+
+				if ( this._isValidNode( node, builder ) === false ) continue;
+
+				const stages = builder.getDataFromNode( node, 'any' ).stages;
+				const parents = stages && stages[ builder.shaderStage ];
+
+				// Skip var nodes whose value is never consumed by a real expression,
+				// i.e. every parent is a stack (the var only appears as a statement,
+				// e.g. an unused `.toVar()` or a var only used in `.toVarying()`).
+
+				if ( node.isVarNode && parents && parents.length > 0 && parents.every( ( parent ) => parent && parent.isStackNode ) ) {
 
 					continue;
 
 				}
 
-			}
+				const previousNode = this._currentNode;
 
-			if ( buildStage === 'setup' ) {
-
-				node.build( builder );
-
-			} else if ( buildStage === 'analyze' ) {
-
-				node.build( builder, this );
-
-			} else if ( buildStage === 'generate' ) {
-
-				const stages = builder.getDataFromNode( node, 'any' ).stages;
-				const parents = stages && stages[ builder.shaderStage ];
-
-				if ( node.isVarNode && parents && parents.length === 1 && parents[ 0 ] && parents[ 0 ].isStackNode ) {
-
-					continue; // skip var nodes that are only used in .toVarying()
-
-				}
+				this._currentNode = node;
 
 				node.build( builder, 'void' );
 
-			}
+				this._currentNode = previousNode;
 
-			this._currentNode = previousNode;
+			}
 
 		}
 
@@ -411,11 +464,15 @@ class StackNode extends Node {
 
 		if ( this.outputNode ) {
 
-			const buildResult = this.outputNode.build( builder, ...params );
+			if ( builder.buildStage !== 'analyze' ) {
 
-			if ( builder.buildStage !== 'generate' || this.outputNode.getNodeType( builder ) !== 'void' ) {
+				const buildResult = this.outputNode.build( builder, ...params );
 
-				result = buildResult;
+				if ( builder.buildStage !== 'generate' || this.outputNode.getNodeType( builder ) !== 'void' ) {
+
+					result = buildResult;
+
+				}
 
 			}
 
