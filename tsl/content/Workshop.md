@@ -2,20 +2,16 @@
 
 <page name="Welcome">
 
-Welcome to the **Three.js Punk Workshop**!
+Welcome to the **TSL Workshop 2026**!
 
-This interactive tour provides a hands-on environment for creating and experimenting with **TSL (Three.js Shading Language)** and **WebGPU**.
+This workshop explores shader creation and visual effects using **TSL (Three.js Shading Language)** and **WebGPURenderer**.
 
-### Workshop Tools
+We have two main formats to follow along:
 
-- **Tour of TSL Environment**: An integrated editor with live code compilation and real-time 3D preview. You can modify any code directly, tweak uniforms, or experiment with your own shaders.
-- **Three.js Inspector**: A built-in visual inspection tool on the 3D viewport. It lets you inspect nodes, tweak scene properties, and dynamically adjust shader parameters.
-- **Console & Error Diagnostics**: The collapsible console panel at the bottom captures WebGPU compilation outputs, logs, and syntax errors.
-
-> **Refreshing the Scene**
-> Code executes reactively. If your shader enters an invalid state, an error occurs, or the GPU preview freezes:
-> - Click the **Refresh** button (<i data-icon="refresh" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"></i>) in the preview toolbar or top header to cleanly re-execute and reset the scene.
-> - Open the **Console** at the bottom to inspect error traces.
+- **TSL Guide Playground**: An interactive in-browser environment with live code execution.
+  - Click the <i data-icon="terminal" style="width: 1rem; height: 1rem; display: inline-block; vertical-align: middle;"></i> button in the header to open it.
+- **Workshop Repository**: Clone the repository to run the project locally:
+  - [https://github.com/sunag/tsl-workshop-2026](https://github.com/sunag/tsl-workshop-2026).
 
 </page>
 
