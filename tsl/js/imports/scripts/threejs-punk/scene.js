@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { pass, saturation } from 'three/tsl';
+import { pass } from 'three/tsl';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
@@ -14,10 +14,9 @@ const UNCOMPRESSED_FORMATS = new Set( [
 	THREE.RedFormat,
 ] );
 
-let patchApplied = false;
 function patchKTX2UncompressedTextures() {
 
-	if ( patchApplied ) return;
+	if ( KTX2Loader.prototype._isPatchedForUncompressed ) return;
 
 	const createTextureFrom = KTX2Loader.prototype._createTextureFrom;
 	KTX2Loader.prototype._createTextureFrom = function ( transcodeResult, container ) {
@@ -51,7 +50,7 @@ function patchKTX2UncompressedTextures() {
 
 	};
 
-	patchApplied = true;
+	KTX2Loader.prototype._isPatchedForUncompressed = true;
 
 }
 
@@ -107,19 +106,28 @@ async function init() {
 	ktx2Loader.detectSupport( renderer );
 	loader.setKTX2Loader( ktx2Loader );
 
-	const cityGltf = await loader.loadAsync( '../public/models/cyberpunk_compressed.glb' );
-	city = cityGltf.scene;
-	city.position.y = - 20;
-	cityOriginalChildren = [ ...city.children ];
-	scene.add( city );
+	try {
 
-	const carGltf = await loader.loadAsync( '../public/models/quadra.glb' );
-	car = carGltf.scene;
-	car.position.set( - 128, - 5.47, 33 );
-	car.rotation.y = Math.PI / 2 + 0.6;
-	car.scale.set( 1.1, 1.1, 1.1 );
-	carOriginalChildren = [ ...car.children ];
-	scene.add( car );
+		const cityGltf = await loader.loadAsync( '../public/models/cyberpunk_compressed.glb' );
+		city = cityGltf.scene;
+		city.position.y = - 20;
+		cityOriginalChildren = [ ...city.children ];
+		scene.add( city );
+
+		const carGltf = await loader.loadAsync( '../public/models/quadra.glb' );
+		car = carGltf.scene;
+		car.position.set( - 128, - 5.47, 33 );
+		car.rotation.y = Math.PI / 2 + 0.6;
+		car.scale.set( 1.1, 1.1, 1.1 );
+		carOriginalChildren = [ ...car.children ];
+		scene.add( car );
+
+	} finally {
+
+		dracoLoader.dispose();
+		ktx2Loader.dispose();
+
+	}
 
 	const groundGeometry = new THREE.PlaneGeometry( 400, 400 );
 	ground = new THREE.Mesh( groundGeometry, new THREE.MeshBasicNodeMaterial( { color: 0x333333 } ) );
