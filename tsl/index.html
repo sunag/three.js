@@ -236,14 +236,33 @@
 
 			import { Guide } from './js/Guide.js';
 
+			const libs = {
+				guide: 'content/Guide.md',
+				workshop: 'content/Workshop.md',
+				code: 'content/WorkshopCode.md'
+			};
+
+			let file = libs.workshop;
+
+			if ( location.search.includes( 'guide' ) ) {
+
+				file = libs.guide;
+
+			} else if ( location.search.includes( 'code' ) ) {
+
+				file = libs.code;
+
+			}
+
 			const guide = new Guide();
+			guide.refreshOnPageChange = false;
 			guide.onEmptyProject = () => {
 
 				return 'import \'scenes/empty\';\n';
 
 			};
 
-			guide.load( 'content/Guide.md' );
+			guide.load( file );
 
 		</script>
 	</body>
