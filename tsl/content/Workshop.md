@@ -234,16 +234,16 @@ import 'threejs-punk/scene';
 
 const textureLoader = new THREE.TextureLoader();
 
-const albedoMap = textureLoader.load( '/textures/wet-puddles-albedo.jpg' );
+const albedoMap = textureLoader.load( '../public/textures/wet-puddles-albedo.jpg' );
 albedoMap.wrapS = THREE.RepeatWrapping;
 albedoMap.wrapT = THREE.RepeatWrapping;
 albedoMap.colorSpace = THREE.SRGBColorSpace;
 
-const roughnessMap = textureLoader.load( '/textures/wet-puddles-roughness.jpg' );
+const roughnessMap = textureLoader.load( '../public/textures/wet-puddles-roughness.jpg' );
 roughnessMap.wrapS = THREE.RepeatWrapping;
 roughnessMap.wrapT = THREE.RepeatWrapping;
 
-const normalMapTex = textureLoader.load( '/textures/wet-puddles-normal.jpg' );
+const normalMapTex = textureLoader.load( '../public/textures/wet-puddles-normal.jpg' );
 normalMapTex.wrapS = THREE.RepeatWrapping;
 normalMapTex.wrapT = THREE.RepeatWrapping;
 
@@ -293,16 +293,16 @@ import 'threejs-punk/scene';
 
 const textureLoader = new THREE.TextureLoader();
 
-const albedoMap = textureLoader.load( '/textures/wet-puddles-albedo.jpg' );
+const albedoMap = textureLoader.load( '../public/textures/wet-puddles-albedo.jpg' );
 albedoMap.wrapS = THREE.RepeatWrapping;
 albedoMap.wrapT = THREE.RepeatWrapping;
 albedoMap.colorSpace = THREE.SRGBColorSpace;
 
-const roughnessMap = textureLoader.load( '/textures/wet-puddles-roughness.jpg' );
+const roughnessMap = textureLoader.load( '../public/textures/wet-puddles-roughness.jpg' );
 roughnessMap.wrapS = THREE.RepeatWrapping;
 roughnessMap.wrapT = THREE.RepeatWrapping;
 
-const normalMapTex = textureLoader.load( '/textures/wet-puddles-normal.jpg' );
+const normalMapTex = textureLoader.load( '../public/textures/wet-puddles-normal.jpg' );
 normalMapTex.wrapS = THREE.RepeatWrapping;
 normalMapTex.wrapT = THREE.RepeatWrapping;
 
@@ -435,7 +435,7 @@ import 'threejs-punk/ground';
 import 'threejs-punk/fog';
 
 const textureLoader = new THREE.TextureLoader();
-const smokeMap = textureLoader.load( '/textures/smoke.png' );
+const smokeMap = textureLoader.load( '../public/textures/smoke.png' );
 smokeMap.colorSpace = THREE.SRGBColorSpace;
 
 // 1. Random ranges per particle instance
@@ -675,7 +675,7 @@ camera.layers.enable( 1 );
 
 Spritesheets pack multiple animation frames into a single texture atlas. Using the built-in `spritesheetUV` TSL node, we dynamically offset the UV coordinates across rows and columns over time to play flipbook animations with zero CPU overhead.
 
-![Water Splash Spritesheet](/textures/water-splash.webp)
+![Water Splash Spritesheet](../public/textures/water-splash.webp)
 
 - **Texture Atlas**: Loads a spritesheet image `water-splash.webp` containing 5 horizontal animation frames of water droplets splashing.
 - **spritesheetUV Node**: Calculates the current column/row UV offset automatically based on frame dimensions `vec2( 5, 1 )`, base UV coordinates `uv()`, and continuous time-driven frame progress `time.mul( 20 )`.
@@ -695,7 +695,7 @@ import 'threejs-punk/fog';
 import 'threejs-punk/smoke';
 
 // 1. Load splash spritesheet (5 frames horizontal)
-const splashSheet = new THREE.TextureLoader().load( '/textures/water-splash.webp' );
+const splashSheet = new THREE.TextureLoader().load( '../public/textures/water-splash.webp' );
 
 // 2. Spritesheet frame animation (5 columns, 1 row, 20 fps)
 const frameUV = spritesheetUV( vec2( 5, 1 ), uv(), time.mul( 20 ) );
@@ -788,7 +788,7 @@ const computeSplashUpdate = Fn( () => {
 } )().compute( particleCount );
 
 // 3. Load splash spritesheet (5 frames horizontal)
-const splashSheet = new THREE.TextureLoader().load( '/textures/water-splash.webp' );
+const splashSheet = new THREE.TextureLoader().load( '../public/textures/water-splash.webp' );
 
 // 4. Spritesheet frame animation (5 columns, 1 row, 20 fps + per-particle phase)
 const frameUV = spritesheetUV( vec2( 5, 1 ), uv(), time.mul( 20 ).add( hash( instanceIndex ).mul( 5 ) ) );

@@ -7,7 +7,7 @@ let smokeMaterial, exhaustRight, exhaustLeft, smokeMap;
 function init() {
 
 	const textureLoader = new THREE.TextureLoader();
-	smokeMap = textureLoader.load( '/textures/smoke.png' );
+	smokeMap = textureLoader.load( '../public/textures/smoke.png' );
 	smokeMap.colorSpace = THREE.SRGBColorSpace;
 
 	// 1. Random ranges per particle instance

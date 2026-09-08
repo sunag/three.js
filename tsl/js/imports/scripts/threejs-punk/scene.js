@@ -99,21 +99,21 @@ async function init() {
 	const loader = new GLTFLoader();
 
 	const dracoLoader = new DRACOLoader();
-	dracoLoader.setDecoderPath( '/libs/draco/' );
+	dracoLoader.setDecoderPath( '../public/libs/draco/' );
 	loader.setDRACOLoader( dracoLoader );
 
 	const ktx2Loader = new KTX2Loader();
-	ktx2Loader.setTranscoderPath( '/libs/basis/' );
+	ktx2Loader.setTranscoderPath( '../public/libs/basis/' );
 	ktx2Loader.detectSupport( renderer );
 	loader.setKTX2Loader( ktx2Loader );
 
-	const cityGltf = await loader.loadAsync( '/models/cyberpunk_compressed.glb' );
+	const cityGltf = await loader.loadAsync( '../public/models/cyberpunk_compressed.glb' );
 	city = cityGltf.scene;
 	city.position.y = - 20;
 	cityOriginalChildren = [ ...city.children ];
 	scene.add( city );
 
-	const carGltf = await loader.loadAsync( '/models/quadra.glb' );
+	const carGltf = await loader.loadAsync( '../public/models/quadra.glb' );
 	car = carGltf.scene;
 	car.position.set( - 128, - 5.47, 33 );
 	car.rotation.y = Math.PI / 2 + 0.6;

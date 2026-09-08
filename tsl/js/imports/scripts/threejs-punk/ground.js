@@ -14,16 +14,16 @@ function init() {
 
 	const textureLoader = new THREE.TextureLoader();
 
-	albedoMap = textureLoader.load( '/textures/wet-puddles-albedo.jpg' );
+	albedoMap = textureLoader.load( '../public/textures/wet-puddles-albedo.jpg' );
 	albedoMap.wrapS = THREE.RepeatWrapping;
 	albedoMap.wrapT = THREE.RepeatWrapping;
 	albedoMap.colorSpace = THREE.SRGBColorSpace;
 
-	roughnessMap = textureLoader.load( '/textures/wet-puddles-roughness.jpg' );
+	roughnessMap = textureLoader.load( '../public/textures/wet-puddles-roughness.jpg' );
 	roughnessMap.wrapS = THREE.RepeatWrapping;
 	roughnessMap.wrapT = THREE.RepeatWrapping;
 
-	normalMapTex = textureLoader.load( '/textures/wet-puddles-normal.jpg' );
+	normalMapTex = textureLoader.load( '../public/textures/wet-puddles-normal.jpg' );
 	normalMapTex.wrapS = THREE.RepeatWrapping;
 	normalMapTex.wrapT = THREE.RepeatWrapping;
 

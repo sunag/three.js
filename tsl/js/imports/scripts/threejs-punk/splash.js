@@ -53,7 +53,7 @@ function init() {
 	} )().compute( particleCount );
 
 	// 3. Load splash spritesheet (5 frames horizontal)
-	splashSheet = new THREE.TextureLoader().load( '/textures/water-splash.webp' );
+	splashSheet = new THREE.TextureLoader().load( '../public/textures/water-splash.webp' );
 
 	// 4. Spritesheet frame animation (5 columns, 1 row, 20 fps + per-particle phase)
 	const frameUV = spritesheetUV( vec2( 5, 1 ), uv(), time.mul( 20 ).add( hash( instanceIndex ).mul( 5 ) ) );
