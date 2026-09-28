@@ -9053,6 +9053,8 @@ function WebGLShadowMap( renderer, objects, capabilities ) {
 
 			if ( light.isPointLight !== true ) shadow.updateMatrices( light, camera );
 
+			const layers = ( shadow.camera.layers.mask & 0xFFFFFFFE ) !== 0 ? shadow.camera.layers : camera.layers;
+
 			for ( let face = 0; face < faceCount; face ++ ) {
 
 				const shadowCamera = shadow.getCamera( face );
@@ -9118,7 +9120,7 @@ function WebGLShadowMap( renderer, objects, capabilities ) {
 
 				_frustum = shadow.getFrustum( face );
 
-				renderObject( scene, camera, shadowCamera, light, this.type );
+				renderObject( scene, camera, shadowCamera, light, layers, this.type );
 
 			}
 
@@ -9278,11 +9280,11 @@ function WebGLShadowMap( renderer, objects, capabilities ) {
 
 	}
 
-	function renderObject( object, camera, shadowCamera, light, type ) {
+	function renderObject( object, camera, shadowCamera, light, layers, type ) {
 
 		if ( object.visible === false ) return;
 
-		const visible = object.layers.test( camera.layers );
+		const visible = object.layers.test( layers );
 
 		if ( visible && ( object.isMesh || object.isLine || object.isPoints ) ) {
 
@@ -9336,7 +9338,7 @@ function WebGLShadowMap( renderer, objects, capabilities ) {
 
 		for ( let i = 0, l = children.length; i < l; i ++ ) {
 
-			renderObject( children[ i ], camera, shadowCamera, light, type );
+			renderObject( children[ i ], camera, shadowCamera, light, layers, type );
 
 		}
 
@@ -9716,7 +9718,7 @@ function WebGLState( gl, extensions ) {
 	const depthBuffer = new DepthBuffer();
 	const stencilBuffer = new StencilBuffer();
 
-	const uboBindings = new WeakMap();
+	let uboBindings = {};
 	const uboProgramMap = new WeakMap();
 
 	let enabledCapabilities = {};
@@ -10548,23 +10550,25 @@ function WebGLState( gl, extensions ) {
 
 			blockIndex = gl.getUniformBlockIndex( program, uniformsGroup.name );
 
+			// use the block index as the binding point
+			gl.uniformBlockBinding( program, blockIndex, blockIndex );
+
 			mapping.set( uniformsGroup, blockIndex );
 
 		}
 
 	}
 
-	function uniformBlockBinding( uniformsGroup, program ) {
+	function uniformBlockBinding( uniformsGroup, program, buffer ) {
 
 		const mapping = uboProgramMap.get( program );
 		const blockIndex = mapping.get( uniformsGroup );
 
-		if ( uboBindings.get( program ) !== blockIndex ) {
+		if ( uboBindings[ blockIndex ] !== buffer ) {
 
-			// bind shader specific block index to global block point
-			gl.uniformBlockBinding( program, blockIndex, uniformsGroup.__bindingPointIndex );
+			gl.bindBufferBase( gl.UNIFORM_BUFFER, blockIndex, buffer );
 
-			uboBindings.set( program, blockIndex );
+			uboBindings[ blockIndex ] = buffer;
 
 		}
 
@@ -10645,6 +10649,7 @@ function WebGLState( gl, extensions ) {
 		currentBoundTextures = {};
 
 		currentBoundFramebuffers = {};
+		uboBindings = {};
 		currentDrawbuffers = new WeakMap();
 		defaultDrawbuffers = [];
 
@@ -15315,14 +15320,11 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 
 	let buffers = {};
 	let updateList = {};
-	let allocatedBindingPoints = [];
-
-	const maxBindingPoints = gl.getParameter( gl.MAX_UNIFORM_BUFFER_BINDINGS ); // binding points are global whereas block indices are per shader program
 
 	function bind( uniformsGroup, program ) {
 
 		const webglProgram = program.program;
-		state.uniformBlockBinding( uniformsGroup, webglProgram );
+		state.uniformBlockBinding( uniformsGroup, webglProgram, buffers[ uniformsGroup.id ] );
 
 	}
 
@@ -15362,11 +15364,6 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 
 	function createBuffer( uniformsGroup ) {
 
-		// the setup of an UBO is independent of a particular shader program but global
-
-		const bindingPointIndex = allocateBindingPointIndex();
-		uniformsGroup.__bindingPointIndex = bindingPointIndex;
-
 		const buffer = gl.createBuffer();
 		const size = uniformsGroup.__size;
 		const usage = uniformsGroup.usage;
@@ -15374,28 +15371,8 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 		gl.bindBuffer( gl.UNIFORM_BUFFER, buffer );
 		gl.bufferData( gl.UNIFORM_BUFFER, size, usage );
 		gl.bindBuffer( gl.UNIFORM_BUFFER, null );
-		gl.bindBufferBase( gl.UNIFORM_BUFFER, bindingPointIndex, buffer );
 
 		return buffer;
-
-	}
-
-	function allocateBindingPointIndex() {
-
-		for ( let i = 0; i < maxBindingPoints; i ++ ) {
-
-			if ( allocatedBindingPoints.indexOf( i ) === -1 ) {
-
-				allocatedBindingPoints.push( i );
-				return i;
-
-			}
-
-		}
-
-		error( 'WebGLRenderer: Maximum number of simultaneously usable uniforms groups reached.' );
-
-		return 0;
 
 	}
 
@@ -15714,9 +15691,6 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 
 		uniformsGroup.removeEventListener( 'dispose', onUniformsGroupsDispose );
 
-		const index = allocatedBindingPoints.indexOf( uniformsGroup.__bindingPointIndex );
-		allocatedBindingPoints.splice( index, 1 );
-
 		gl.deleteBuffer( buffers[ uniformsGroup.id ] );
 
 		delete buffers[ uniformsGroup.id ];
@@ -15732,7 +15706,6 @@ function WebGLUniformsGroups( gl, info, capabilities, state ) {
 
 		}
 
-		allocatedBindingPoints = [];
 		buffers = {};
 		updateList = {};
 
