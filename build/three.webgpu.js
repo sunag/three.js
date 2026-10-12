@@ -20088,9 +20088,12 @@ class XRManager extends EventDispatcher {
 
 					contextNode = context( {
 
-						getOutput: ( outputNode ) => {
+						getOutput: ( outputNode, builder ) => {
 
-							return renderOutput( outputNode, renderer.toneMapping, renderer.outputColorSpace );
+							const renderOutputNode = renderOutput( outputNode, renderer.toneMapping, renderer.outputColorSpace );
+							renderOutputNode.premultipliedAlpha = builder.material.premultipliedAlpha;
+
+							return renderOutputNode;
 
 						},
 
@@ -23321,10 +23324,10 @@ class Renderer {
 	 * from the GPU to the CPU in context of compute shaders.
 	 *
 	 * @async
-	 * @param {BufferAttribute} attribute - The storage buffer attribute to read frm.
-	 * @param {ReadbackBuffer|ArrayBuffer} target - The storage buffer attribute.
-	 * @param {number} offset - The storage buffer attribute.
-	 * @param {number} count - The offset from which to start reading the
+	 * @param {BufferAttribute} attribute - The storage buffer attribute to read from.
+	 * @param {?(ReadbackBuffer|ArrayBuffer)} [target=null] - The readback buffer or array buffer that receives the data. If `null`, a new array buffer is returned.
+	 * @param {number} [offset=0] - The byte offset to start reading from. Must be a multiple of 4.
+	 * @param {number} [count=-1] - The number of bytes to read. Must be a multiple of 4, or `-1` to read to the end of the buffer.
 	 * @return {Promise<ArrayBuffer|ReadbackBuffer>} A promise that resolves with the buffer data when the data are ready.
 	 */
 	async getArrayBufferAsync( attribute, target = null, offset = 0, count = -1 ) {
@@ -24127,6 +24130,20 @@ class Renderer {
 
 		}
 
+		const computeList = Array.isArray( computeNodes ) ? computeNodes : [ computeNodes ];
+
+		if ( computeList.length === 0 || computeList.some( computeNode => computeNode?.isComputeNode !== true ) ) {
+
+			throw new Error( 'THREE.Renderer: ".compute()" expects a "ComputeNode".' );
+
+		}
+
+		if ( dispatchSize !== null && computeList.some( computeNode => computeNode.count !== null || computeNode.dispatchSize !== null ) ) {
+
+			throw new Error( 'THREE.Renderer: A dispatch size cannot be passed to "renderer.compute()" for nodes created with "compute( count )". Use "computeKernel()" instead.' );
+
+		}
+
 		//
 
 		const nodeFrame = this._nodes.nodeFrame;
@@ -24153,14 +24170,6 @@ class Renderer {
 		const pipelines = this._pipelines;
 		const bindings = this._bindings;
 		const nodes = this._nodes;
-
-		const computeList = Array.isArray( computeNodes ) ? computeNodes : [ computeNodes ];
-
-		if ( computeList[ 0 ] === undefined || computeList[ 0 ].isComputeNode !== true ) {
-
-			throw new Error( 'THREE.Renderer: .compute() expects a ComputeNode.' );
-
-		}
 
 		backend.beginCompute( computeNodes );
 
@@ -25418,7 +25427,7 @@ class Buffer extends Binding {
 	 */
 	get byteLength() {
 
-		return getFloatLength( this._buffer.byteLength );
+		return getFloatLength( this.buffer.byteLength );
 
 	}
 
@@ -25509,7 +25518,7 @@ class NodeUniformBuffer extends UniformBuffer {
 
 		const label = nodeUniform && nodeUniform.name ? nodeUniform.name : _id$4 ++;
 
-		super( 'UniformBuffer_' + label, nodeUniform ? nodeUniform.value : null );
+		super( 'UniformBuffer_' + label );
 
 		/**
 		 * The uniform buffer node.
@@ -25576,18 +25585,6 @@ class NodeUniformBuffer extends UniformBuffer {
 	clearUpdateRanges() {
 
 		this.nodeUniform.clearUpdateRanges();
-
-	}
-
-	/**
-	 * The buffer's byte length.
-	 *
-	 * @type {number}
-	 * @readonly
-	 */
-	get byteLength() {
-
-		return getFloatLength( this.buffer.byteLength );
 
 	}
 
@@ -29148,10 +29145,13 @@ class Backend {
 	 * a storage buffer attribute from the GPU to the CPU.
 	 *
 	 * @async
-	 * @param {StorageBufferAttribute} attribute - The storage buffer attribute.
-	 * @return {Promise<ArrayBuffer>} A promise that resolves with the buffer data when the data are ready.
+	 * @param {BufferAttribute} attribute - The storage buffer attribute to read from.
+	 * @param {?(ReadbackBuffer|ArrayBuffer)} [target=null] - The readback buffer or array buffer that receives the data. If `null`, a new array buffer is returned.
+	 * @param {number} [offset=0] - The byte offset to start reading from. Must be a multiple of 4.
+	 * @param {number} [count=-1] - The number of bytes to read. Must be a multiple of 4, or `-1` to read to the end of the buffer.
+	 * @return {Promise<ArrayBuffer|ReadbackBuffer>} A promise that resolves with the buffer data when the data are ready.
 	 */
-	async getArrayBufferAsync( /* attribute */ ) {}
+	async getArrayBufferAsync( /* attribute, target, offset, count */ ) {}
 
 	/**
 	 * Checks if the given feature is supported by the backend.
@@ -29604,10 +29604,10 @@ class WebGLAttributeUtils {
 	 * new allocation.
 	 *
 	 * @async
-	 * @param {BufferAttribute} attribute - The storage buffer attribute to read frm.
-	 * @param {ReadbackBuffer|ArrayBuffer} target - The storage buffer attribute.
-	 * @param {number} offset - The storage buffer attribute.
-	 * @param {number} count - The offset from which to start reading the
+	 * @param {BufferAttribute} attribute - The storage buffer attribute to read from.
+	 * @param {?(ReadbackBuffer|ArrayBuffer)} [target=null] - The readback buffer or array buffer that receives the data. If `null`, a new array buffer is returned.
+	 * @param {number} [offset=0] - The byte offset to start reading from. Must be a multiple of 4.
+	 * @param {number} [count=-1] - The number of bytes to read. Must be a multiple of 4, or `-1` to read to the end of the buffer.
 	 * @return {Promise<ArrayBuffer|ReadbackBuffer>} A promise that resolves with the buffer data when the data are ready.
 	 */
 	async getArrayBufferAsync( attribute, target = null, offset = 0, count = -1 ) {
@@ -32952,9 +32952,9 @@ class WebGLTextureUtils {
 	setupRenderBufferStorage( renderbuffer, renderContext, samples, useMultisampledRTT = false ) {
 
 		const { gl } = this;
-		const renderTarget = renderContext.renderTarget;
+		const { depthTexture, renderTarget } = renderContext;
 
-		const { depthTexture, depthBuffer, stencilBuffer, width, height } = renderTarget;
+		const { depthBuffer, stencilBuffer, width, height } = renderTarget;
 
 		gl.bindRenderbuffer( gl.RENDERBUFFER, renderbuffer );
 
@@ -34350,10 +34350,10 @@ class WebGLBackend extends Backend {
 	 * new allocation.
 	 *
 	 * @async
-	 * @param {BufferAttribute} attribute - The storage buffer attribute to read frm.
-	 * @param {ReadbackBuffer|ArrayBuffer} target - The storage buffer attribute.
-	 * @param {number} offset - The storage buffer attribute.
-	 * @param {number} count - The offset from which to start reading the
+	 * @param {BufferAttribute} attribute - The storage buffer attribute to read from.
+	 * @param {?(ReadbackBuffer|ArrayBuffer)} [target=null] - The readback buffer or array buffer that receives the data. If `null`, a new array buffer is returned.
+	 * @param {number} [offset=0] - The byte offset to start reading from. Must be a multiple of 4.
+	 * @param {number} [count=-1] - The number of bytes to read. Must be a multiple of 4, or `-1` to read to the end of the buffer.
 	 * @return {Promise<ArrayBuffer|ReadbackBuffer>} A promise that resolves with the buffer data when the data are ready.
 	 */
 	async getArrayBufferAsync( attribute, target = null, offset = 0, count = -1 ) {
@@ -35275,7 +35275,7 @@ class WebGLBackend extends Backend {
 			if ( isRenderCameraDepthArray ) {
 
 				// Clear the depth texture
-				const textureData = this.get( renderTarget.depthTexture );
+				const textureData = this.get( this._currentContext.depthTexture );
 
 				if ( textureData.clearedRenderId !== this.renderer._nodes.nodeFrame.renderId ) {
 
@@ -37352,7 +37352,7 @@ class NodeStorageBuffer extends StorageBuffer {
 
 		const label = nodeUniform && nodeUniform.name ? nodeUniform.name : _id ++;
 
-		super( 'StorageBuffer_' + label, nodeUniform ? nodeUniform.value : null );
+		super( 'StorageBuffer_' + label );
 
 		/**
 		 * The node uniform.
@@ -44631,10 +44631,10 @@ class WebGPUAttributeUtils {
 	 * new allocation.
 	 *
 	 * @async
-	 * @param {BufferAttribute} attribute - The storage buffer attribute to read frm.
-	 * @param {number} count - The offset from which to start reading the
-	 * @param {number} offset - The storage buffer attribute.
-	 * @param {ReadbackBuffer|ArrayBuffer} target - The storage buffer attribute.
+	 * @param {BufferAttribute} attribute - The storage buffer attribute to read from.
+	 * @param {?(ReadbackBuffer|ArrayBuffer)} [target=null] - The readback buffer or array buffer that receives the data. If `null`, a new array buffer is returned.
+	 * @param {number} [offset=0] - The byte offset to start reading from. Must be a multiple of 4.
+	 * @param {number} [count=-1] - The number of bytes to read. Must be a multiple of 4, or `-1` to read to the end of the buffer.
 	 * @return {Promise<ArrayBuffer|ReadbackBuffer>} A promise that resolves with the buffer data when the data are ready.
 	 */
 	async getArrayBufferAsync( attribute, target = null, offset = 0, count = -1 ) {
@@ -47497,10 +47497,10 @@ class WebGPUBackend extends Backend {
 	 * new allocation.
 	 *
 	 * @async
-	 * @param {BufferAttribute} attribute - The storage buffer attribute to read frm.
-	 * @param {number} count - The offset from which to start reading the
-	 * @param {number} offset - The storage buffer attribute.
-	 * @param {ReadbackBuffer|ArrayBuffer} target - The storage buffer attribute.
+	 * @param {BufferAttribute} attribute - The storage buffer attribute to read from.
+	 * @param {?(ReadbackBuffer|ArrayBuffer)} [target=null] - The readback buffer or array buffer that receives the data. If `null`, a new array buffer is returned.
+	 * @param {number} [offset=0] - The byte offset to start reading from. Must be a multiple of 4.
+	 * @param {number} [count=-1] - The number of bytes to read. Must be a multiple of 4, or `-1` to read to the end of the buffer.
 	 * @return {Promise<ArrayBuffer|ReadbackBuffer>} A promise that resolves with the buffer data when the data are ready.
 	 */
 	async getArrayBufferAsync( attribute, target = null, offset = 0, count = -1 ) {
@@ -50982,6 +50982,7 @@ class RenderPipeline {
  * material shaders. This avoids the intermediate framebuffer and output pass
  * used by {@link Renderer}, but changes blending and is not compatible with
  * materials that sample the framebuffer, such as transmissive materials.
+ * With the WebGL backend, `antialias` has no effect.
  *
  * ```js
  * const renderPipeline = new DirectRenderPipeline( renderer );
@@ -51193,9 +51194,12 @@ class DirectRenderPipeline extends RenderPipeline {
 
 				output.assign( materialOutputNode );
 
-				return outputColorTransform === true ?
-					renderOutput( pipelineOutputNode, toneMapping, outputColorSpace ) :
-					pipelineOutputNode;
+				if ( outputColorTransform === false ) return pipelineOutputNode;
+
+				const renderOutputNode = renderOutput( pipelineOutputNode, toneMapping, outputColorSpace );
+				renderOutputNode.premultipliedAlpha = builder.material.premultipliedAlpha;
+
+				return renderOutputNode;
 
 			}
 		} );
