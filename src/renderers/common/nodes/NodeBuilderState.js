@@ -25,8 +25,9 @@ class NodeBuilderState {
 	 * @param {NodeMaterialObserver} observer - A node material observer.
 	 * @param {boolean} hardwareClipping - Whether the built material uses hardware clipping or not.
 	 * @param {Array<Object>} transforms - An array with transform attribute objects. Only relevant when using compute shaders with WebGL 2.
+	 * @param {Array<EventNode>} disposeNodes - An array of event nodes that are executed when an object, material or geometry is disposed.
 	 */
-	constructor( vertexShader, fragmentShader, computeShader, nodeAttributes, bindings, updateNodes, updateBeforeNodes, updateAfterNodes, observer, hardwareClipping, transforms = [] ) {
+	constructor( vertexShader, fragmentShader, computeShader, nodeAttributes, bindings, updateNodes, updateBeforeNodes, updateAfterNodes, observer, hardwareClipping, transforms = [], disposeNodes = [] ) {
 
 		/**
 		 * The native vertex shader code.
@@ -95,6 +96,14 @@ class NodeBuilderState {
 		this.updateAfterNodes = updateAfterNodes;
 
 		/**
+		 * An array of event nodes that are executed when an object,
+		 * material or geometry rendered with this state is disposed.
+		 *
+		 * @type {Array<EventNode>}
+		 */
+		this.disposeNodes = disposeNodes;
+
+		/**
 		 * A node material observer.
 		 *
 		 * @type {NodeMaterialObserver}
@@ -152,6 +161,23 @@ class NodeBuilderState {
 		}
 
 		return bindings;
+
+	}
+
+	/**
+	 * Executes the dispose events of the given type.
+	 *
+	 * @param {string} eventType - The event type, e.g. `EventNode.OBJECT_DISPOSE`.
+	 * @param {Object} target - The disposed object, material or geometry.
+	 * @param {Object} frame - The object, material, geometry and renderer of the disposed render object.
+	 */
+	dispatchDispose( eventType, target, frame ) {
+
+		for ( const node of this.disposeNodes ) {
+
+			if ( node.eventType === eventType ) node.dispose( target, frame );
+
+		}
 
 	}
 

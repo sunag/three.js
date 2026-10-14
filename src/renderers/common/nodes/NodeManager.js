@@ -550,7 +550,8 @@ class NodeManager extends DataMap {
 			nodeBuilder.updateAfterNodes,
 			nodeBuilder.observer,
 			nodeBuilder.hardwareClipping,
-			nodeBuilder.transforms
+			nodeBuilder.transforms,
+			nodeBuilder.disposeNodes
 		);
 
 	}

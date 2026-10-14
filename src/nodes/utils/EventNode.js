@@ -55,7 +55,28 @@ class EventNode extends Node {
 
 			this.updateBeforeType = NodeUpdateType.FRAME;
 
+		} else if ( eventType === EventNode.OBJECT_DISPOSE || eventType === EventNode.MATERIAL_DISPOSE || eventType === EventNode.GEOMETRY_DISPOSE ) {
+
+			/**
+			 * The disposed targets, so the callback runs once per target even if it has several render objects.
+			 *
+			 * @type {?WeakSet<Object>}
+			 */
+			this.disposedTargets = new WeakSet();
+
 		}
+
+	}
+
+	/**
+	 * Whether the event is executed when an object, material or geometry is disposed.
+	 *
+	 * @type {boolean}
+	 * @readonly
+	 */
+	get isDisposeEvent() {
+
+		return this.disposedTargets !== undefined;
 
 	}
 
@@ -89,9 +110,29 @@ class EventNode extends Node {
 
 			}
 
+		} else if ( this.isDisposeEvent ) {
+
+			builder.disposeNodes.push( this );
+
 		}
 
 		return super.setup( builder );
+
+	}
+
+	/**
+	 * Executes the callback of a dispose event, once per disposed target.
+	 *
+	 * @param {Object} target - The disposed object, material or geometry.
+	 * @param {Object} frame - The object, material, geometry and renderer of the disposed render object.
+	 */
+	dispose( target, frame ) {
+
+		if ( this.disposedTargets.has( target ) ) return;
+
+		this.disposedTargets.add( target );
+
+		this.callback( frame );
 
 	}
 
@@ -124,6 +165,9 @@ EventNode.BEFORE_MATERIAL = 'beforeMaterial';
 EventNode.BEFORE_FRAME = 'beforeFrame';
 EventNode.BEFORE_RENDER_PIPELINE = 'beforeRenderPipeline';
 EventNode.AFTER_RENDER_PIPELINE = 'afterRenderPipeline';
+EventNode.OBJECT_DISPOSE = 'objectDispose';
+EventNode.MATERIAL_DISPOSE = 'materialDispose';
+EventNode.GEOMETRY_DISPOSE = 'geometryDispose';
 
 export default EventNode;
 
@@ -227,3 +271,37 @@ export const OnBeforeRenderPipeline = ( callback ) => createEvent( EventNode.BEF
  * @returns {EventNode}
  */
 export const OnAfterRenderPipeline = ( callback ) => createEvent( EventNode.AFTER_RENDER_PIPELINE, callback );
+
+/**
+ * Creates an event that triggers a function when an object (Mesh|Sprite) rendered with the program is disposed.
+ * The callback receives the disposed object, also if the program is shared between objects, so it can release
+ * the resources the nodes created for that object. It runs once per program and object.
+ *
+ * The event will be bound to the declared TSL function `Fn()`; it must be declared within a `Fn()` or the JS function call must be inherited from one.
+ *
+ * @param {Function} callback - The callback function.
+ * @returns {EventNode}
+ */
+export const OnObjectDispose = ( callback ) => createEvent( EventNode.OBJECT_DISPOSE, callback );
+
+/**
+ * Creates an event that triggers a function when a material rendered with the program is disposed.
+ * It runs once per program and material.
+ *
+ * The event will be bound to the declared TSL function `Fn()`; it must be declared within a `Fn()` or the JS function call must be inherited from one.
+ *
+ * @param {Function} callback - The callback function.
+ * @returns {EventNode}
+ */
+export const OnMaterialDispose = ( callback ) => createEvent( EventNode.MATERIAL_DISPOSE, callback );
+
+/**
+ * Creates an event that triggers a function when a geometry rendered with the program is disposed.
+ * It runs once per program and geometry.
+ *
+ * The event will be bound to the declared TSL function `Fn()`; it must be declared within a `Fn()` or the JS function call must be inherited from one.
+ *
+ * @param {Function} callback - The callback function.
+ * @returns {EventNode}
+ */
+export const OnGeometryDispose = ( callback ) => createEvent( EventNode.GEOMETRY_DISPOSE, callback );

@@ -200,6 +200,14 @@ class NodeBuilder {
 		this.updateAfterNodes = [];
 
 		/**
+		 * A list of all event nodes which are executed when an object, material
+		 * or geometry rendered with the program is disposed.
+		 *
+		 * @type {Array<EventNode>}
+		 */
+		this.disposeNodes = [];
+
+		/**
 		 * A dictionary that assigns each node to a unique hash.
 		 *
 		 * @type {Object<number,Node>}

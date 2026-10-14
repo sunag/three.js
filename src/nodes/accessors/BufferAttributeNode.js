@@ -146,16 +146,6 @@ class BufferAttributeNode extends InputNode {
 		 */
 		this.global = true;
 
-		/**
-		 * An optional function that returns the buffer attribute of the rendered object.
-		 * Programs shared between objects use it so each object binds its own data.
-		 * The returned attribute belongs to the object and is released when the object is disposed.
-		 *
-		 * @type {?Function}
-		 * @default null
-		 */
-		this.attributeCallback = null;
-
 		if ( value && ( value.isBufferAttribute === true || value.isInterleavedBufferAttribute === true ) && value.itemSize <= 4 ) {
 
 			this.attribute = value;
@@ -357,28 +347,15 @@ class BufferAttributeNode extends InputNode {
 	}
 
 	/**
-	 * Sets a function that returns the buffer attribute of the rendered object.
-	 *
-	 * @param {?Function} callback - The function, receiving the rendered object.
-	 * @return {BufferAttributeNode} A reference to this node.
-	 */
-	setAttributeCallback( callback ) {
-
-		this.attributeCallback = callback;
-
-		return this;
-
-	}
-
-	/**
 	 * Returns the buffer attribute to bind when rendering the given object.
+	 * Nodes that bind the data of the rendered object, like {@link ReferenceAttributeNode}, override it.
 	 *
 	 * @param {Object3D} object - The rendered object.
 	 * @return {BufferAttribute|InterleavedBufferAttribute} The buffer attribute.
 	 */
-	getObjectAttribute( object ) {
+	getObjectAttribute( /* object */ ) {
 
-		return this.attributeCallback !== null ? this.attributeCallback( object ) : this.attribute;
+		return this.attribute;
 
 	}
 

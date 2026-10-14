@@ -3155,6 +3155,21 @@ class Renderer {
 	}
 
 	/**
+	 * Releases the GPU buffer of the given attribute. It is created again if the attribute is rendered later.
+	 * Geometry attributes are released with their geometry, so this is meant for attributes that nodes bind
+	 * outside of a geometry, like the instance matrices bound via `referenceAttribute()`.
+	 *
+	 * @param {BufferAttribute|InterleavedBufferAttribute} attribute - The attribute.
+	 */
+	disposeAttribute( attribute ) {
+
+		if ( this._initialized === false ) return;
+
+		this._attributes.delete( this.backend.getBufferAttribute( attribute ) );
+
+	}
+
+	/**
 	 * Initializes the given render target.
 	 *
 	 * @param {RenderTarget} renderTarget - The render target to intialize.

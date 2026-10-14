@@ -515,7 +515,7 @@ export class WebGLNodesHandler {
 		// add instancing attributes
 		builder.bufferAttributes.forEach( v => {
 
-			geometry.setAttribute( v.name, v.node.attribute );
+			geometry.setAttribute( v.name, v.node.getObjectAttribute( builder.object ) );
 
 		} );
 

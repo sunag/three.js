@@ -1,4 +1,5 @@
 import { hashArray, hashString } from '../../nodes/core/NodeUtils.js';
+import EventNode from '../../nodes/utils/EventNode.js';
 
 let _id = 0;
 const _protoKeysCache = new WeakMap();
@@ -46,37 +47,21 @@ function getKeys( obj ) {
 }
 
 /**
- * Returns `true` if the instanced mesh can share its node builder state with
- * other instanced meshes. Shared programs read the instance matrices of the
- * object being rendered instead of embedding the buffers of a specific mesh.
- * Storage buffers, instance colors, morph targets and geometries with many
- * attributes remain per object, as does instancing outside WebGPURenderer.
+ * Returns the length of the uniform array that holds the given instance matrices, or `0` if they
+ * exceed the uniform buffer limit and are bound as a vertex buffer instead. The instance count is
+ * rounded up to a power of two, so instanced meshes with similar counts share their program.
  *
- * @param {InstancedMesh} object - The instanced mesh.
- * @param {Renderer} renderer - The renderer.
- * @returns {boolean} Whether the instancing setup can be shared.
+ * @param {number} count - The number of instance matrices.
+ * @param {number} uniformBufferLimit - The maximum number of bytes of a uniform buffer.
+ * @returns {number} The length of the uniform array, `0` if the matrices are bound as a vertex buffer.
  */
-export function isSharedInstancing( object, renderer ) {
+export function getInstanceBufferCount( count, uniformBufferLimit ) {
 
-	// Only WebGPURenderer's render objects share node builder states.
-	if ( renderer.isWebGPURenderer !== true ) return false;
+	const maxCount = Math.floor( uniformBufferLimit / 64 ); // 64 bytes per matrix
 
-	if ( object.isInstancedMesh !== true || object.instanceColor !== null ) return false;
+	if ( count > maxCount ) return 0;
 
-	const instanceMatrix = object.instanceMatrix;
-
-	if ( ! instanceMatrix || instanceMatrix.isInstancedBufferAttribute !== true || instanceMatrix.isStorageInstancedBufferAttribute === true ) return false;
-
-	const geometry = object.geometry;
-
-	// Shared programs bind the matrices as one more vertex buffer, two with velocity.
-	// Leave room for them within the default limit of eight vertex buffers.
-	if ( Object.keys( geometry.attributes ).length > 6 ) return false;
-
-	// Morph target influences are bound per mesh.
-	const morphAttributes = geometry.morphAttributes;
-
-	return ! ( morphAttributes.position || morphAttributes.normal || morphAttributes.color );
+	return Math.min( 2 ** Math.ceil( Math.log2( Math.max( count, 1 ) ) ), maxCount );
 
 }
 
@@ -375,6 +360,8 @@ class RenderObject {
 		 */
 		this.onMaterialDispose = () => {
 
+			this.dispatchDispose( EventNode.MATERIAL_DISPOSE, this.material );
+
 			this.dispose();
 
 		};
@@ -386,6 +373,8 @@ class RenderObject {
 		 * @method
 		 */
 		this.onGeometryDispose = () => {
+
+			this.dispatchDispose( EventNode.GEOMETRY_DISPOSE, this.geometry );
 
 			this._geometries.deleteNodeAttributes( this );
 			this._geometries.deleteVertexState( this );
@@ -405,7 +394,7 @@ class RenderObject {
 		 */
 		this.onObjectDispose = () => {
 
-			this._geometries.deleteObjectAttributes( this );
+			this.dispatchDispose( EventNode.OBJECT_DISPOSE, this.object );
 
 			this.dispose();
 
@@ -459,6 +448,27 @@ class RenderObject {
 	get hardwareClippingPlanes() {
 
 		return this.getNodeBuilderState().hardwareClipping === true ? this.clippingContext.unionClippingCount : 0;
+
+	}
+
+	/**
+	 * Executes the dispose events of the nodes of this render object, so nodes can
+	 * release the resources they created for the disposed object, material or geometry.
+	 * Nothing happens if the render object was never built.
+	 *
+	 * @param {string} eventType - The event type, e.g. `EventNode.OBJECT_DISPOSE`.
+	 * @param {Object} target - The disposed object, material or geometry.
+	 */
+	dispatchDispose( eventType, target ) {
+
+		if ( this._nodeBuilderState === null ) return;
+
+		this._nodeBuilderState.dispatchDispose( eventType, target, {
+			object: this.object,
+			material: this.material,
+			geometry: this.geometry,
+			renderer: this.renderer
+		} );
 
 	}
 
@@ -901,17 +911,35 @@ class RenderObject {
 
 		}
 
-		if ( object.isInstancedMesh && object.instanceColor !== null ) {
+		if ( object.isInstancedMesh ) {
 
-			cacheKey += object.instanceColor.id + ',';
+			// instanced meshes bind their own instance data, so only its layout is part of the cache key
 
-		}
+			const { instanceMatrix, instanceColor, morphTexture } = object;
 
-		if ( isSharedInstancing( object, renderer ) ) {
+			if ( instanceMatrix.isStorageInstancedBufferAttribute === true ) {
 
-			cacheKey += 'sharedInstancing,';
+				cacheKey += instanceMatrix.id + ',';
 
-		} else if ( object.isInstancedMesh || object.count > 1 ) {
+			} else {
+
+				cacheKey += getInstanceBufferCount( instanceMatrix.count, renderer.backend.capabilities.getUniformBufferLimit() ) + ',';
+
+			}
+
+			if ( instanceColor !== null ) {
+
+				cacheKey += ( instanceColor.isStorageInstancedBufferAttribute === true ? instanceColor.id : 'instanceColor' ) + ',';
+
+			}
+
+			if ( morphTexture !== null && morphTexture !== undefined ) {
+
+				cacheKey += morphTexture.uuid + ',';
+
+			}
+
+		} else if ( object.count > 1 ) {
 
 			cacheKey += object.uuid + ',';
 
