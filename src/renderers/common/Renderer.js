@@ -714,6 +714,14 @@ class Renderer {
 		this._cacheShadowNodes = new WeakMap();
 
 		/**
+		 * The copies of override materials per source material, see `_getOverrideMaterial()`.
+		 *
+		 * @private
+		 * @type {Map<Material, Map<Material, {material: Material, version: number}>>}
+		 */
+		this._overrideMaterials = new Map();
+
+		/**
 		 * Whether the renderer has been initialized or not.
 		 *
 		 * @private
@@ -3775,6 +3783,115 @@ class Renderer {
 	}
 
 	/**
+	 * Returns the material which draws the given material with the given override material. Each source
+	 * material has its own copy of the override material with the properties of the source material, like
+	 * the alpha test or the side. So the materials of an object with material groups have their own render
+	 * objects. A copy is updated when the version of the override material changes and disposed with the
+	 * override material or the source material.
+	 *
+	 * @private
+	 * @param {Material} overrideMaterial - The override material of the scene.
+	 * @param {Material} material - The source material.
+	 * @return {Material} The override material for the source material.
+	 */
+	_getOverrideMaterial( overrideMaterial, material ) {
+
+		let materials = this._overrideMaterials.get( overrideMaterial );
+
+		if ( materials === undefined ) {
+
+			materials = new Map();
+
+			const onDispose = () => {
+
+				overrideMaterial.removeEventListener( 'dispose', onDispose );
+
+				for ( const data of materials.values() ) data.material.dispose();
+
+				this._overrideMaterials.delete( overrideMaterial );
+
+			};
+
+			overrideMaterial.addEventListener( 'dispose', onDispose );
+
+			this._overrideMaterials.set( overrideMaterial, materials );
+
+		}
+
+		let data = materials.get( material );
+
+		if ( data === undefined ) {
+
+			data = { material: new overrideMaterial.constructor(), version: - 1 };
+
+			const onSourceDispose = () => {
+
+				material.removeEventListener( 'dispose', onSourceDispose );
+
+				materials.delete( material );
+
+				data.material.dispose();
+
+			};
+
+			material.addEventListener( 'dispose', onSourceDispose );
+
+			materials.set( material, data );
+
+		}
+
+		const instance = data.material;
+
+		if ( data.version !== overrideMaterial.version ) {
+
+			instance.copy( overrideMaterial );
+			if ( overrideMaterial.isShadowPassMaterial === true ) instance.isShadowPassMaterial = true;
+			instance.needsUpdate = true;
+
+			data.version = overrideMaterial.version;
+
+		}
+
+		// the properties of the source material
+
+		instance.positionNode = ( material.positionNode && material.positionNode.isNode ) ? material.positionNode : overrideMaterial.positionNode;
+		instance.colorNode = overrideMaterial.colorNode;
+		instance.depthNode = overrideMaterial.depthNode;
+		instance.side = overrideMaterial.side;
+		instance.alphaTest = material.alphaTest;
+		instance.alphaMap = material.alphaMap;
+		instance.displacementMap = material.displacementMap;
+		instance.displacementScale = material.displacementScale;
+		instance.displacementBias = material.displacementBias;
+		instance.transparent = material.transparent || material.transmission > 0 ||
+			( material.transmissionNode && material.transmissionNode.isNode ) ||
+			( material.backdropNode && material.backdropNode.isNode );
+
+		if ( overrideMaterial.isShadowPassMaterial ) {
+
+			const { colorNode, depthNode, positionNode } = this._getShadowNodes( material );
+
+			if ( this.shadowMap.type === VSMShadowMap ) {
+
+				instance.side = ( material.shadowSide !== null ) ? material.shadowSide : material.side;
+
+			} else {
+
+				instance.side = ( material.shadowSide !== null ) ? material.shadowSide : _shadowSide[ material.side ];
+
+			}
+
+			if ( colorNode !== null ) instance.colorNode = colorNode;
+			if ( depthNode !== null ) instance.depthNode = depthNode;
+			if ( positionNode !== null ) instance.positionNode = positionNode;
+
+		}
+
+		return instance;
+
+	}
+
+	/**
 	 * Retrieves shadow nodes for the given material. This is used to setup shadow passes.
 	 * The result is cached per material and updated when the material's version changes.
 	 *
@@ -4013,15 +4130,6 @@ class Renderer {
 	 */
 	renderObject( object, scene, camera, geometry, material, group, lightsNode, clippingContext = null, passId = null ) {
 
-		let materialOverride = false;
-		let materialColorNode;
-		let materialDepthNode;
-		let materialPositionNode;
-		let materialSide;
-		let materialDisplacementMap;
-		let materialDisplacementScale;
-		let materialDisplacementBias;
-
 		const previousSourceMaterial = this._currentSourceMaterial;
 
 		//
@@ -4034,55 +4142,7 @@ class Renderer {
 
 			this._currentSourceMaterial = material;
 
-			const overrideMaterial = scene.overrideMaterial;
-
-			materialOverride = true;
-
-			// store original nodes
-			materialColorNode = ( overrideMaterial.isNodeMaterial ) ? overrideMaterial.colorNode : null;
-			materialDepthNode = ( overrideMaterial.isNodeMaterial ) ? overrideMaterial.depthNode : null;
-			materialPositionNode = ( overrideMaterial.isNodeMaterial ) ? overrideMaterial.positionNode : null;
-			materialSide = scene.overrideMaterial.side;
-			materialDisplacementMap = overrideMaterial.displacementMap;
-			materialDisplacementScale = overrideMaterial.displacementScale;
-			materialDisplacementBias = overrideMaterial.displacementBias;
-
-			if ( material.positionNode && material.positionNode.isNode ) {
-
-				overrideMaterial.positionNode = material.positionNode;
-
-			}
-
-			overrideMaterial.alphaTest = material.alphaTest;
-			overrideMaterial.alphaMap = material.alphaMap;
-			overrideMaterial.displacementMap = material.displacementMap;
-			overrideMaterial.displacementScale = material.displacementScale;
-			overrideMaterial.displacementBias = material.displacementBias;
-			overrideMaterial.transparent = material.transparent || material.transmission > 0 ||
-				( material.transmissionNode && material.transmissionNode.isNode ) ||
-				( material.backdropNode && material.backdropNode.isNode );
-
-			if ( overrideMaterial.isShadowPassMaterial ) {
-
-				const { colorNode, depthNode, positionNode } = this._getShadowNodes( material );
-
-				if ( this.shadowMap.type === VSMShadowMap ) {
-
-					overrideMaterial.side = ( material.shadowSide !== null ) ? material.shadowSide : material.side;
-
-				} else {
-
-					overrideMaterial.side = ( material.shadowSide !== null ) ? material.shadowSide : _shadowSide[ material.side ];
-
-				}
-
-				if ( colorNode !== null ) overrideMaterial.colorNode = colorNode;
-				if ( depthNode !== null ) overrideMaterial.depthNode = depthNode;
-				if ( positionNode !== null ) overrideMaterial.positionNode = positionNode;
-
-			}
-
-			material = overrideMaterial;
+			material = this._getOverrideMaterial( scene.overrideMaterial, material );
 
 		}
 
@@ -4105,18 +4165,6 @@ class Renderer {
 		}
 
 		//
-
-		if ( materialOverride ) {
-
-			scene.overrideMaterial.colorNode = materialColorNode;
-			scene.overrideMaterial.depthNode = materialDepthNode;
-			scene.overrideMaterial.positionNode = materialPositionNode;
-			scene.overrideMaterial.side = materialSide;
-			scene.overrideMaterial.displacementMap = materialDisplacementMap;
-			scene.overrideMaterial.displacementScale = materialDisplacementScale;
-			scene.overrideMaterial.displacementBias = materialDisplacementBias;
-
-		}
 
 		this._currentSourceMaterial = previousSourceMaterial;
 
